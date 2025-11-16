@@ -163,9 +163,16 @@ struct ContentView: View {
             let matched = text[range]
             let after = text[range.upperBound...]
 
-            (Text(before) +
-             Text(matched).foregroundStyle(.orange).bold().background(Color.orange.opacity(0.3)) +
-             Text(after))
+            HStack(spacing: 0) {
+                Text(before)
+                Text(matched)
+                    .foregroundStyle(.orange)
+                    .bold()
+                    .padding(.horizontal, 2)
+                    .background(Color.orange.opacity(0.3))
+                    .cornerRadius(3)
+                Text(after)
+            }
         } else {
             Text(text)
         }
@@ -184,10 +191,17 @@ struct ContentView: View {
             let matched = text[range]
             let after = text[range.upperBound...]
 
-            (Text("\(index + 1). ") +
-             Text(before) +
-             Text(matched).foregroundStyle(.orange).bold().background(Color.orange.opacity(0.3)) +
-             Text(after))
+            HStack(spacing: 0) {
+                Text("\(index + 1). ")
+                Text(before)
+                Text(matched)
+                    .foregroundStyle(.orange)
+                    .bold()
+                    .padding(.horizontal, 2)
+                    .background(Color.orange.opacity(0.3))
+                    .cornerRadius(3)
+                Text(after)
+            }
         } else {
             Text("\(index + 1). \(text)")
         }
