@@ -328,21 +328,11 @@ final class SearchEngine {
         isRegex: Bool
     ) throws -> String {
         if isRegex {
-            let regex = try Regex(pattern)
-            return text.replacing(regex) { match in
-                // Support basic capture group replacement ($0, $1, etc.)
-                var result = replacement
-
-                // $0 represents the entire match
-                let matchedText = String(text[match.range])
-                result = result.replacingOccurrences(of: "$0", with: matchedText)
-
-                // Support numbered capture groups if available
-                // Note: Swift Regex capture groups are complex, so we do simple replacement
-                // For more complex capture groups, users can use the matched text
-
-                return result
-            }
+            // Use NSRegularExpression for replacement to get built-in template support
+            // This automatically handles $0 (entire match), $1, $2, etc. (capture groups)
+            let nsRegex = try NSRegularExpression(pattern: pattern, options: [])
+            let range = NSRange(text.startIndex..<text.endIndex, in: text)
+            return nsRegex.stringByReplacingMatches(in: text, range: range, withTemplate: replacement)
         } else {
             return text.replacingOccurrences(of: pattern, with: replacement)
         }
