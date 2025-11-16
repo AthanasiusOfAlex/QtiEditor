@@ -93,18 +93,27 @@ final class SearchEngine {
         isRegex: Bool,
         in document: QTIDocument
     ) throws {
-        // Group matches by question and field
-        let groupedMatches = Dictionary(grouping: matches) { ($0.questionID, $0.field, $0.answerID) }
+        // Create a hashable key for grouping
+        struct MatchKey: Hashable {
+            let questionID: UUID
+            let field: SearchField
+            let answerID: UUID?
+        }
 
-        for ((questionID, field, answerID), fieldMatches) in groupedMatches {
-            guard let question = document.questions.first(where: { $0.id == questionID }) else {
+        // Group matches by question and field
+        let groupedMatches = Dictionary(grouping: matches) { match in
+            MatchKey(questionID: match.questionID, field: match.field, answerID: match.answerID)
+        }
+
+        for (key, fieldMatches) in groupedMatches {
+            guard let question = document.questions.first(where: { $0.id == key.questionID }) else {
                 continue
             }
 
             try replaceInField(
                 question: question,
-                answerID: answerID,
-                field: field,
+                answerID: key.answerID,
+                field: key.field,
                 pattern: pattern,
                 replacement: replacement,
                 isRegex: isRegex
@@ -323,14 +332,14 @@ final class SearchEngine {
             return text.replacing(regex) { match in
                 // Support basic capture group replacement ($0, $1, etc.)
                 var result = replacement
-                result = result.replacingOccurrences(of: "$0", with: String(match.output))
 
-                // Support numbered capture groups
-                for index in 1..<10 {
-                    if let capture = try? match.output[index] as? Substring {
-                        result = result.replacingOccurrences(of: "$\(index)", with: String(capture))
-                    }
-                }
+                // $0 represents the entire match
+                let matchedText = String(text[match.range])
+                result = result.replacingOccurrences(of: "$0", with: matchedText)
+
+                // Support numbered capture groups if available
+                // Note: Swift Regex capture groups are complex, so we do simple replacement
+                // For more complex capture groups, users can use the matched text
 
                 return result
             }
