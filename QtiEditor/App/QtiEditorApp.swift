@@ -19,16 +19,84 @@ struct QtiEditorApp: App {
                 .environment(editorState)
         }
         .commands {
-            // Add File menu commands
-            CommandGroup(replacing: .newItem) {
-                Button("New Quiz") {
-                    editorState.document = QTIDocument.empty()
+            FileCommands(editorState: editorState)
+        }
+    }
+}
+
+/// File menu commands for the app
+struct FileCommands: Commands {
+    let editorState: EditorState
+
+    var body: some Commands {
+        CommandGroup(replacing: .newItem) {
+            Button("New Quiz") {
+                editorState.createNewDocument()
+            }
+            .keyboardShortcut("n", modifiers: .command)
+
+            Divider()
+
+            Button("Open...") {
+                openDocument()
+            }
+            .keyboardShortcut("o", modifiers: .command)
+        }
+
+        CommandGroup(replacing: .saveItem) {
+            Button("Save") {
+                Task {
+                    await editorState.saveDocument()
                 }
-                .keyboardShortcut("n", modifiers: .command)
+            }
+            .keyboardShortcut("s", modifiers: .command)
+            .disabled(editorState.document == nil || editorState.documentManager.fileURL == nil)
+
+            Button("Save As...") {
+                saveDocumentAs()
+            }
+            .keyboardShortcut("s", modifiers: [.command, .shift])
+            .disabled(editorState.document == nil)
+        }
+    }
+
+    @MainActor
+    private func openDocument() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowedContentTypes = [.init(filenameExtension: "imscc")!]
+        panel.message = "Select a Canvas .imscc quiz export file"
+
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+
+            Task { @MainActor in
+                await editorState.openDocument(from: url)
+            }
+        }
+    }
+
+    @MainActor
+    private func saveDocumentAs() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.init(filenameExtension: "imscc")!]
+        panel.nameFieldStringValue = editorState.document?.title ?? "quiz"
+        panel.message = "Export quiz as .imscc package"
+
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+
+            Task { @MainActor in
+                await editorState.saveDocument(to: url)
             }
         }
     }
 }
+
+// MARK: - Import AppKit for file dialogs
+import AppKit
 
 /// Creates a sample document for testing/demonstration
 @MainActor

@@ -78,6 +78,33 @@ struct ContentView: View {
             }
         }
         .navigationTitle(editorState.document?.title ?? "QTI Quiz Editor")
+        .overlay {
+            if editorState.isLoading {
+                ZStack {
+                    Color.black.opacity(0.3)
+                        .ignoresSafeArea()
+
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                        Text("Loading...")
+                            .foregroundStyle(.white)
+                    }
+                    .padding(32)
+                    .background(Color.secondary.opacity(0.8))
+                    .cornerRadius(12)
+                }
+            }
+        }
+        .alert("Error", isPresented: $editorState.showAlert) {
+            Button("OK") {
+                editorState.showAlert = false
+            }
+        } message: {
+            if let message = editorState.alertMessage {
+                Text(message)
+            }
+        }
     }
 
     /// Strip HTML tags for preview display
