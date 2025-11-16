@@ -16,13 +16,8 @@ final class QTISerializer {
     /// - Throws: QTIError if serialization fails
     func serialize(document: QTIDocument) throws -> Data {
         let xmlDoc = try generateXML(for: document)
-
-        guard let data = xmlDoc.xmlData(options: [.nodePrettyPrint]) else {
-            throw QTIError.serializationFailed("Could not generate XML data")
-        }
-
-        return data
-    }
+        return xmlDoc.xmlData(options: [.nodePrettyPrint])
+     }
 
     /// Serializes a QTIDocument to a file
     /// - Parameters:
