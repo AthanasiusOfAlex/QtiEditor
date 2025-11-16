@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import RegexBuilder
 
 /// Errors that can occur during search operations
 enum SearchError: LocalizedError {
@@ -195,23 +194,24 @@ final class SearchEngine {
         var matches: [SearchMatch] = []
 
         if isRegex {
-            // Use Swift Regex
-            let regex: Regex<Substring>
+            // Use NSRegularExpression for consistent behavior with replace
+            let options: NSRegularExpression.Options = isCaseSensitive ? [] : [.caseInsensitive]
+            let regex: NSRegularExpression
             do {
-                if isCaseSensitive {
-                    regex = try Regex(pattern)
-                } else {
-                    regex = try Regex(pattern).ignoresCase()
-                }
+                regex = try NSRegularExpression(pattern: pattern, options: options)
             } catch {
                 throw SearchError.invalidRegexPattern(pattern)
             }
 
             // Find all matches
-            let regexMatches = text.matches(of: regex)
+            let nsRange = NSRange(text.startIndex..<text.endIndex, in: text)
+            let regexMatches = regex.matches(in: text, range: nsRange)
 
             for match in regexMatches {
-                let matchRange = match.range
+                guard let matchRange = Range(match.range, in: text) else {
+                    continue
+                }
+
                 let matchedText = String(text[matchRange])
                 let context = extractContext(from: text, around: matchRange)
 

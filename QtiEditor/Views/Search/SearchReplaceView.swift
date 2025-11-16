@@ -16,6 +16,7 @@ struct SearchReplaceView: View {
     @State private var isSearching = false
     @State private var errorMessage: String?
     @State private var resultsHeight: CGFloat = 200
+    @FocusState private var isSearchFieldFocused: Bool
 
     private let searchEngine = SearchEngine()
 
@@ -30,6 +31,7 @@ struct SearchReplaceView: View {
 
                 TextField("Search", text: $editorState.searchText)
                     .textFieldStyle(.plain)
+                    .focused($isSearchFieldFocused)
                     .onSubmit {
                         performSearch()
                     }
@@ -256,6 +258,10 @@ struct SearchReplaceView: View {
         }
         .padding()
         .background(Color(nsColor: .controlBackgroundColor))
+        .onAppear {
+            // Auto-focus the search field when the panel appears
+            isSearchFieldFocused = true
+        }
     }
 
     private func performSearch() {
