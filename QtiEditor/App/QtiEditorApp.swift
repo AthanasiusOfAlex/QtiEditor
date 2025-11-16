@@ -32,21 +32,25 @@ struct FileCommands: Commands {
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
             Button("New Quiz") {
-                editorState.createNewDocument()
+                Task { @MainActor in
+                    editorState.createNewDocument()
+                }
             }
             .keyboardShortcut("n", modifiers: .command)
 
             Divider()
 
             Button("Open...") {
-                openDocument()
+                Task { @MainActor in
+                    openDocument()
+                }
             }
             .keyboardShortcut("o", modifiers: .command)
         }
 
         CommandGroup(replacing: .saveItem) {
             Button("Save") {
-                Task {
+                Task { @MainActor in
                     await editorState.saveDocument()
                 }
             }
@@ -54,7 +58,9 @@ struct FileCommands: Commands {
             .disabled(editorState.document == nil || editorState.documentManager.fileURL == nil)
 
             Button("Save As...") {
-                saveDocumentAs()
+                Task { @MainActor in
+                    saveDocumentAs()
+                }
             }
             .keyboardShortcut("s", modifiers: [.command, .shift])
             .disabled(editorState.document == nil)

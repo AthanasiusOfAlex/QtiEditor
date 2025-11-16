@@ -111,7 +111,8 @@ actor IMSCCExtractor {
 // Note: This extension provides basic ZIP support using Apple's native compression
 extension FileManager {
     /// Unzips a file to a destination
-    func unzipItem(at sourceURL: URL, to destinationURL: URL) throws {
+    /// - Note: This method is nonisolated and can be called from any actor context
+    nonisolated func unzipItem(at sourceURL: URL, to destinationURL: URL) throws {
         // Use Process to call the system's unzip command
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
@@ -131,7 +132,8 @@ extension FileManager {
     }
 
     /// Zips a directory to a destination
-    func zipItem(at sourceURL: URL, to destinationURL: URL, shouldKeepParent: Bool) throws {
+    /// - Note: This method is nonisolated and can be called from any actor context
+    nonisolated func zipItem(at sourceURL: URL, to destinationURL: URL, shouldKeepParent: Bool) throws {
         // Use Process to call the system's zip command
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
