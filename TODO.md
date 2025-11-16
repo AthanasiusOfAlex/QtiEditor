@@ -11,10 +11,10 @@ This document tracks the implementation progress of the QTI Quiz Editor.
 - [x] Create project directory structure
 - [x] Create CLAUDE.md architecture documentation
 - [x] Create TODO.md roadmap
-- [ ] Create Xcode project on macOS
-  - [ ] Set up macOS app target (macOS 14.0+)
-  - [ ] Configure Swift 6.2.1+ with strict concurrency
-  - [ ] Set up code signing for personal use
+- [x] Create Xcode project on macOS
+  - [x] Set up macOS app target (macOS 14.0+)
+  - [x] Configure Swift 6.2.1+ with strict concurrency
+  - [x] Set up code signing for personal use
   - [ ] Add .gitignore for Xcode/Swift
 
 ---
