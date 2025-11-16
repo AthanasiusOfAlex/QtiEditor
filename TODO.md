@@ -15,131 +15,165 @@ This document tracks the implementation progress of the QTI Quiz Editor.
   - [x] Set up macOS app target (macOS 14.0+)
   - [x] Configure Swift 6.2.1+ with strict concurrency
   - [x] Set up code signing for personal use
-  - [ ] Add .gitignore for Xcode/Swift
+  - [x] Add .gitignore for Xcode/Swift
+  - [x] Configure entitlements for file access
 
 ---
 
-## Phase 1: Core Data Models
+## Phase 1: Core Data Models ✅
 
 ### QTI Data Structures
-- [ ] `QTIDocument.swift` - Main document model
-  - [ ] Quiz metadata (title, description, settings)
-  - [ ] Collection of questions
-  - [ ] Observable/Published properties for SwiftUI
-  - [ ] Sendable conformance for Swift 6 concurrency
+- [x] `QTIDocument.swift` - Main document model
+  - [x] Quiz metadata (title, description, settings)
+  - [x] Collection of questions
+  - [x] @Observable macro for SwiftUI
+  - [x] Sendable conformance for Swift 6 concurrency
+  - [x] @MainActor isolation
 
-- [ ] `QTIQuestion.swift` - Question model
-  - [ ] Question types enum (multiple_choice, essay, etc.)
-  - [ ] Question text (HTML stored as String)
-  - [ ] Question metadata (points, difficulty, etc.)
-  - [ ] Answers collection
-  - [ ] Universal editing support for all types
-  - [ ] Focus on multiple choice initially
+- [x] `QTIQuestion.swift` - Question model
+  - [x] Question types enum (all QTI types supported)
+  - [x] Question text (HTML stored as String)
+  - [x] Question metadata (points, title, identifier)
+  - [x] Answers collection
+  - [x] Universal editing support for all types
+  - [x] Multiple choice fully supported
 
-- [ ] `QTIAnswer.swift` - Answer/choice model
-  - [ ] Answer text (HTML)
-  - [ ] Correct/incorrect flag
-  - [ ] Feedback text (optional)
-  - [ ] Weight/points (for partial credit)
+- [x] `QTIAnswer.swift` - Answer/choice model
+  - [x] Answer text (HTML)
+  - [x] Correct/incorrect flag
+  - [x] Feedback text (optional)
+  - [x] Weight/points (for partial credit)
 
 ### Editor State
-- [ ] `EditorState.swift` - App state management
-  - [ ] Current document reference
-  - [ ] Selected question
-  - [ ] Editor mode (HTML vs Rich Text)
-  - [ ] Search state
-  - [ ] Use `@MainActor` for UI safety
+- [x] `EditorState.swift` - App state management
+  - [x] Current document reference
+  - [x] Selected question
+  - [x] Editor mode (HTML vs Rich Text) - state only, views pending
+  - [x] Search state (pattern, scope, field)
+  - [x] File operation methods
+  - [x] Use `@MainActor` for UI safety
 
 ---
 
-## Phase 2: File Operations & QTI Parsing
+## Phase 2: File Operations & QTI Parsing ✅
 
 ### IMSCC Package Handling
-- [ ] `IMSCCExtractor.swift` - ZIP extraction service
-  - [ ] Async extract .imscc files
-  - [ ] Parse imsmanifest.xml
-  - [ ] Locate QTI assessment files
-  - [ ] Extract to temp directory
-  - [ ] Clean up temp files on close
+- [x] `IMSCCExtractor.swift` - ZIP extraction service (actor-based)
+  - [x] Async extract .imscc files using system zip/unzip
+  - [x] Parse imsmanifest.xml
+  - [x] Locate QTI assessment files
+  - [x] Extract to temp directory
+  - [x] Create .imscc packages for saving
+  - [x] Fixed permission issues with TMPDIR workaround
 
 ### QTI 1.2 XML Parsing
-- [ ] `QTIParser.swift` - XML to model conversion
-  - [ ] Parse `<questestinterop>` root
-  - [ ] Parse `<assessment>` quiz metadata
-  - [ ] Parse `<item>` questions
-  - [ ] Parse `<response_lid>` multiple choice
-  - [ ] Parse `<presentation>` question HTML
-  - [ ] Parse `<resprocessing>` scoring logic
-  - [ ] Handle Canvas-specific extensions
-  - [ ] Preserve unknown elements (for round-trip)
-  - [ ] Async operation with error handling
+- [x] `QTIParser.swift` - XML to model conversion
+  - [x] Parse `<questestinterop>` root
+  - [x] Parse `<assessment>` quiz metadata
+  - [x] Parse `<item>` questions
+  - [x] Parse `<response_lid>` multiple choice responses
+  - [x] Parse `<presentation>` question HTML (with mattext)
+  - [x] Parse `<resprocessing>` scoring logic
+  - [x] Handle Canvas-specific extensions (metadata preservation)
+  - [x] Preserve unknown elements for round-trip fidelity
+  - [x] Async operation with typed error handling
 
-- [ ] `QTISerializer.swift` - Model to XML conversion
-  - [ ] Generate valid QTI 1.2 XML
-  - [ ] Create .imscc package structure
-  - [ ] ZIP package files
-  - [ ] Async save operation
-  - [ ] Preserve Canvas extensions
+- [x] `QTISerializer.swift` - Model to XML conversion
+  - [x] Generate valid QTI 1.2 XML
+  - [x] Create complete .imscc package structure
+  - [x] Generate imsmanifest.xml with proper resource references
+  - [x] ZIP package files
+  - [x] Async save operation
+  - [x] Preserve Canvas extensions
 
 ### Document Management
-- [ ] `DocumentManager.swift` - File coordination
-  - [ ] New document creation
-  - [ ] Open existing .imscc
-  - [ ] Save/Save As operations
-  - [ ] Track document dirty state
-  - [ ] Auto-save support (optional)
+- [x] `DocumentManager.swift` - File coordination
+  - [x] New document creation
+  - [x] Open existing .imscc files
+  - [x] Save/Save As operations
+  - [x] Proper error propagation
+  - [x] QTIError.swift - Typed errors for all file operations
+  - [ ] Track document dirty state (future enhancement)
+  - [ ] Auto-save support (future enhancement)
 
 ---
 
-## Phase 3: Search & Replace Engine
+## Phase 3: Search & Replace Engine ✅
 
 ### Core Search Engine
-- [ ] `SearchEngine.swift` - Regex search implementation
-  - [ ] Parse user regex strings into Swift.Regex
-  - [ ] Handle regex compilation errors gracefully
-  - [ ] Simple text search (non-regex mode)
-  - [ ] Regex search with Swift's Regex API
-  - [ ] Search scopes:
-    - [ ] Current question only
-    - [ ] All questions
-    - [ ] Question text only
-    - [ ] Answer text only
-    - [ ] All text fields
-  - [ ] Return match locations and context
-  - [ ] Replace operations (single and replace-all)
-  - [ ] Preserve HTML structure during replace
+- [x] `SearchEngine.swift` - Regex search implementation
+  - [x] Parse user regex strings using NSRegularExpression
+  - [x] Handle regex compilation errors gracefully with SearchError
+  - [x] Simple text search (non-regex mode)
+  - [x] Regex search with NSRegularExpression (not Swift.Regex*)
+  - [x] Search scopes:
+    - [x] Current question only
+    - [x] All questions
+    - [x] Question text only
+    - [x] Answer text only
+    - [x] Feedback text only
+    - [x] All text fields
+  - [x] Return match locations and context with HTML stripping
+  - [x] Replace operations (single match and replace-all)
+  - [x] Full capture group support ($0, $1, $2, etc.)
+  - [x] Case-sensitive/insensitive toggle
+  - [x] Preserve HTML structure during replace
+
+### Search Data Models
+- [x] `SearchResult.swift` - Search data structures
+  - [x] SearchMatch struct with context
+  - [x] SearchScope enum
+  - [x] SearchField enum
 
 ### Search UI
-- [ ] `SearchReplaceView.swift` - Search interface
-  - [ ] Pattern input field (text)
-  - [ ] Replacement input field (text)
-  - [ ] Regex toggle (enable/disable regex mode)
-  - [ ] Case sensitivity toggle
-  - [ ] Scope selector
-  - [ ] Find Next/Previous buttons
-  - [ ] Replace/Replace All buttons
-  - [ ] Match counter
-  - [ ] Error display for invalid regex
+- [x] `SearchReplaceView.swift` - VSCode-style search interface
+  - [x] Pattern input field (text)
+  - [x] Replacement input field (text)
+  - [x] Regex toggle (enable/disable regex mode)
+  - [x] Case sensitivity toggle
+  - [x] Scope selector (current/all questions)
+  - [x] Field selector (question/answer/feedback/all)
+  - [x] Find Next/Previous buttons with navigation
+  - [x] Replace button (one-by-one replacement)
+  - [x] Replace All button
+  - [x] Match counter (X/Y format)
+  - [x] Results list with click-to-navigate
+  - [x] Resizable results panel (drag handle)
+  - [x] Match highlighting in results (orange, yellow when selected)
+  - [x] Match highlighting in editor (orange background)
+  - [x] Auto-focus search field on Cmd+F
+  - [x] Error display for invalid regex
+
+*Note: Changed from Swift.Regex to NSRegularExpression for consistent behavior and full regex template support
 
 ---
 
-## Phase 4: User Interface
+## Phase 4: User Interface (In Progress)
 
 ### Main Window Structure
-- [ ] `QtiEditorApp.swift` - App entry point
-  - [ ] SwiftUI App structure
-  - [ ] Window configuration
-  - [ ] Menu bar commands (New, Open, Save, etc.)
+- [x] `QtiEditorApp.swift` - App entry point
+  - [x] SwiftUI App structure
+  - [x] Window configuration
+  - [x] Menu bar commands (New, Open, Save, Save As)
+  - [x] Keyboard shortcuts (Cmd+N, Cmd+O, Cmd+S, Cmd+Shift+S)
+  - [x] Sample data for development
+  - [x] EditorState environment injection
 
-- [ ] `ContentView.swift` - Main layout
-  - [ ] Three-pane layout (Sidebar, Editor, Inspector)
+- [x] `ContentView.swift` - Main layout
+  - [x] NavigationSplitView three-pane layout
+  - [x] Collapsible search panel (Cmd+F)
+  - [x] Loading overlay for async operations
+  - [x] Error alert display
+  - [x] Question display with HTML stripping
+  - [x] Answer list display
+  - [x] Search match highlighting in question/answers
   - [ ] Toolbar with common actions
-  - [ ] Editor mode toggle
-  - [ ] Search panel toggle
+  - [ ] Inspector pane integration
 
-- [ ] `QuestionListView.swift` - Question navigator (Sidebar)
-  - [ ] List all questions
-  - [ ] Question preview/summary
+- [x] `QuestionListView.swift` - Question navigator (Sidebar)
+  - [x] List all questions
+  - [x] Question preview/summary
+  - [x] Selection binding
   - [ ] Add/delete question buttons
   - [ ] Reorder questions (drag & drop)
   - [ ] Question type indicators
@@ -149,7 +183,7 @@ This document tracks the implementation progress of the QTI Quiz Editor.
   - [ ] Quiz metadata when no question selected
   - [ ] Conditional display based on selection
 
-### Editor Views
+### Editor Views (Not Yet Implemented)
 - [ ] `EditorModeToggle.swift` - Mode switcher
   - [ ] Segmented control (HTML / Rich Text)
   - [ ] Update state on change
@@ -268,11 +302,19 @@ When resuming development, prioritize:
 4. Implement QTI parser for multiple choice (Phase 2)
 
 ### Technical Decisions Made
-- **Regex**: Swift native Regex API (not NSRegularExpression)
+- **Regex**: NSRegularExpression (changed from Swift.Regex for full template support)
+  - Search uses NSRegularExpression with case-insensitive option support
+  - Replace uses NSRegularExpression template engine for $0, $1, $2, etc.
+  - User enters patterns as plain strings (VSCode-style)
 - **Concurrency**: async/await with Swift 6 strict checking
-- **HTML Editor**: Simple NSTextView (not web-based editor)
-- **File Format**: Full .imscc package support
+  - @MainActor for UI-bound state and operations
+  - actor for IMSCCExtractor to isolate file operations
+  - nonisolated for system command wrappers
+- **State Management**: @Observable macro (not @ObservableObject)
+- **HTML Editor**: Simple NSTextView (not web-based editor) - TBD
+- **File Format**: Full .imscc package support with manifest generation
 - **QTI Version**: 1.2 (Canvas standard)
+- **ZIP Handling**: System zip/unzip commands with TMPDIR workaround for permissions
 
 ### Dependencies to Consider
 - ZIP handling: Native compression or ZIPFoundation pod/package
@@ -309,5 +351,35 @@ open QtiEditor.xcodeproj
 
 ---
 
+## Recent Accomplishments (2025-11-16)
+
+### Search & Replace Engine
+- Implemented complete regex search with capture group support ($0, $1, $2, etc.)
+- Fixed regex parsing issue (switched from Swift.Regex to NSRegularExpression)
+- Added auto-focus to search field when opening with Cmd+F
+- Implemented resizable results panel with drag handle
+- Added match highlighting in both results and editor views
+- Implemented one-by-one replace functionality
+- Added navigation between matches with Previous/Next buttons
+- Match counter displays current position (X/Y format)
+
+### File Operations
+- Complete .imscc package extraction and creation
+- QTI 1.2 XML parsing for multiple choice questions
+- Round-trip preservation of Canvas metadata
+- Fixed macOS permission issues with ZIP operations
+- Proper async/await throughout with Swift 6 concurrency
+
+### UI Foundation
+- Three-pane NavigationSplitView layout
+- Collapsible search panel
+- Question list sidebar with selection
+- Question display with HTML stripping
+- File menu commands (New, Open, Save, Save As)
+- Loading states and error handling
+
+---
+
 *Last updated: 2025-11-16*
-*Current phase: Phase 0 - Project Setup*
+*Current phase: Phase 4 - User Interface (Editor Views)*
+*Status: Foundation complete, search/replace fully functional, ready for editor views*
