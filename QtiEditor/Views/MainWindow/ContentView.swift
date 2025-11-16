@@ -21,7 +21,16 @@ struct ContentView: View {
                 .navigationSplitViewColumnWidth(min: 200, ideal: 250)
         } detail: {
             // Main editor area
-            VStack {
+            VStack(spacing: 0) {
+                // Search panel (collapsible)
+                if editorState.isSearchVisible {
+                    SearchReplaceView()
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
+                Divider()
+
+                // Question editor
                 if let question = editorState.selectedQuestion {
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Question \(editorState.document?.questions.firstIndex(where: { $0.id == question.id }).map { $0 + 1 } ?? 0)")
@@ -63,10 +72,13 @@ struct ContentView: View {
             .toolbar {
                 ToolbarItem {
                     Button(action: {
-                        editorState.isSearchVisible.toggle()
+                        withAnimation {
+                            editorState.isSearchVisible.toggle()
+                        }
                     }) {
-                        Label("Search", systemImage: "magnifyingglass")
+                        Label("Search", systemImage: editorState.isSearchVisible ? "magnifyingglass.circle.fill" : "magnifyingglass")
                     }
+                    .keyboardShortcut("f", modifiers: .command)
                 }
                 ToolbarItem {
                     Button(action: {

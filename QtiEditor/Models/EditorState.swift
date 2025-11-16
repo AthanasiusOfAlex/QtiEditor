@@ -46,6 +46,12 @@ final class EditorState {
     /// Whether search is case-sensitive
     var isCaseSensitive: Bool = false
 
+    /// Search scope
+    var searchScope: SearchScope = .allQuestions
+
+    /// Search field
+    var searchField: SearchField = .all
+
     /// Alert message to display
     var alertMessage: String?
 
