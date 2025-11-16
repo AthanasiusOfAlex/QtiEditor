@@ -58,5 +58,30 @@ After adding entitlements:
 - ✅ "Unable to display save panel" - Fixed
 - ✅ "User Selected File Read entitlement but needs Read/Write" - Fixed
 - ✅ Save panel crash on line 84 - Fixed
+- ✅ "zip I/O error: Operation not permitted" - Fixed (zip now creates files in temp directory first)
 
-The "task name port right" warning is typically harmless and related to macOS debugging.
+## Known Harmless Warnings
+
+**"Unable to obtain a task name port right for pid XXX: (os/kern) failure (0x5)"**
+
+This is a harmless macOS system message that appears when:
+- NSOpenPanel or NSSavePanel is displayed
+- AppKit file dialogs interact with the system
+- Debugging is active in Xcode
+
+**Why it happens:**
+- macOS uses "task ports" for inter-process communication
+- File panels run in a separate security context
+- The debugger can't fully access these secure panels
+- This is by design for security purposes
+
+**Impact:**
+- ⚠️ Informational only - does not affect functionality
+- File dialogs work correctly despite this message
+- You can safely ignore this warning
+- It will not appear in Release builds outside of Xcode
+
+**To reduce clutter in console:**
+- Uncheck "All Output" in Xcode console filter
+- Or use console filter to hide these specific messages
+- They won't appear to end users

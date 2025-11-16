@@ -134,22 +134,59 @@ extension FileManager {
     /// Zips a directory to a destination
     /// - Note: This method is nonisolated and can be called from any actor context
     nonisolated func zipItem(at sourceURL: URL, to destinationURL: URL, shouldKeepParent: Bool) throws {
+        // Create zip in temp directory first to avoid permission issues
+        let tempZip = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("zip")
+
         // Use Process to call the system's zip command
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
         process.currentDirectoryURL = shouldKeepParent ? sourceURL.deletingLastPathComponent() : sourceURL
+
+        // Set TMPDIR to system temp directory to avoid permission issues
+        var environment = ProcessInfo.processInfo.environment
+        environment["TMPDIR"] = FileManager.default.temporaryDirectory.path
+        process.environment = environment
+
         process.arguments = [
             "-r", // Recursive
             "-q", // Quiet mode
-            destinationURL.path,
+            tempZip.path, // Create in temp directory first
             shouldKeepParent ? sourceURL.lastPathComponent : "."
         ]
+
+        // Capture stderr for better error messages
+        let errorPipe = Pipe()
+        process.standardError = errorPipe
 
         try process.run()
         process.waitUntilExit()
 
         guard process.terminationStatus == 0 else {
-            throw QTIError.cannotCreatePackage("zip failed with status \(process.terminationStatus)")
+            // Read error message
+            let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+            let errorMessage = String(data: errorData, encoding: .utf8) ?? "Unknown error"
+
+            // Clean up temp zip if it exists
+            try? FileManager.default.removeItem(at: tempZip)
+
+            throw QTIError.cannotCreatePackage("zip failed with status \(process.terminationStatus): \(errorMessage)")
+        }
+
+        // Move the zip file from temp to final destination
+        do {
+            // Remove destination if it exists
+            if FileManager.default.fileExists(atPath: destinationURL.path) {
+                try FileManager.default.removeItem(at: destinationURL)
+            }
+
+            // Move temp zip to final location
+            try FileManager.default.moveItem(at: tempZip, to: destinationURL)
+        } catch {
+            // Clean up temp zip on failure
+            try? FileManager.default.removeItem(at: tempZip)
+            throw QTIError.cannotCreatePackage("Failed to move zip file: \(error.localizedDescription)")
         }
     }
 }
