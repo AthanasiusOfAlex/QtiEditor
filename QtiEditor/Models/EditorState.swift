@@ -52,6 +52,9 @@ final class EditorState {
     /// Search field
     var searchField: SearchField = .all
 
+    /// Current search match being viewed (for highlighting)
+    var currentSearchMatch: SearchMatch?
+
     /// Alert message to display
     var alertMessage: String?
 

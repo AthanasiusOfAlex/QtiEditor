@@ -15,6 +15,7 @@ struct SearchReplaceView: View {
     @State private var currentMatchIndex: Int = 0
     @State private var isSearching = false
     @State private var errorMessage: String?
+    @State private var resultsHeight: CGFloat = 200
 
     private let searchEngine = SearchEngine()
 
@@ -175,6 +176,7 @@ struct SearchReplaceView: View {
                 Button(action: {
                     editorState.isSearchVisible = false
                     searchResults = []
+                    editorState.currentSearchMatch = nil
                 }) {
                     Image(systemName: "xmark")
                 }
@@ -199,26 +201,57 @@ struct SearchReplaceView: View {
             if !searchResults.isEmpty {
                 Divider()
 
-                Text("Results:")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                VStack(spacing: 0) {
+                    // Results header with drag handle
+                    HStack {
+                        Text("Results:")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
 
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 8) {
-                        ForEach(Array(searchResults.enumerated()), id: \.element.id) { index, match in
-                            SearchResultRow(
-                                match: match,
-                                isSelected: index == currentMatchIndex,
-                                onSelect: {
-                                    currentMatchIndex = index
-                                    selectMatch(match)
-                                }
-                            )
-                        }
+                        Spacer()
+
+                        Image(systemName: "line.3.horizontal")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                     }
-                    .padding(.vertical, 4)
+                    .padding(.bottom, 4)
+
+                    // Resizable results list
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 8) {
+                            ForEach(Array(searchResults.enumerated()), id: \.element.id) { index, match in
+                                SearchResultRow(
+                                    match: match,
+                                    isSelected: index == currentMatchIndex,
+                                    searchPattern: editorState.searchText,
+                                    onSelect: {
+                                        currentMatchIndex = index
+                                        selectMatch(match)
+                                    }
+                                )
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .frame(height: resultsHeight)
+
+                    // Resize handle
+                    Divider()
+                        .overlay(
+                            Rectangle()
+                                .fill(Color.clear)
+                                .frame(height: 8)
+                                .contentShape(Rectangle())
+                                .gesture(
+                                    DragGesture()
+                                        .onChanged { value in
+                                            let newHeight = resultsHeight + value.translation.height
+                                            resultsHeight = min(max(newHeight, 100), 500)
+                                        }
+                                )
+                                .cursor(.resizeUpDown)
+                        )
                 }
-                .frame(maxHeight: 300)
             }
         }
         .padding()
@@ -349,6 +382,8 @@ struct SearchReplaceView: View {
     private func selectMatch(_ match: SearchMatch) {
         // Navigate to the question containing this match
         editorState.selectedQuestionID = match.questionID
+        // Store current match for highlighting in editor
+        editorState.currentSearchMatch = match
     }
 }
 
@@ -356,6 +391,7 @@ struct SearchReplaceView: View {
 struct SearchResultRow: View {
     let match: SearchMatch
     let isSelected: Bool
+    let searchPattern: String
     let onSelect: () -> Void
 
     var body: some View {
@@ -373,11 +409,15 @@ struct SearchResultRow: View {
                     Spacer()
                 }
 
-                Text(match.context)
-                    .font(.system(.body, design: .monospaced))
-                    .lineLimit(2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .foregroundStyle(isSelected ? .white : .primary)
+                // Highlight matched text in context
+                highlightedText(
+                    context: match.context,
+                    matched: match.matchedText,
+                    isSelected: isSelected
+                )
+                .font(.system(.body, design: .monospaced))
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(8)
             .background(isSelected ? Color.accentColor : Color.secondary.opacity(0.05))
@@ -385,6 +425,21 @@ struct SearchResultRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func highlightedText(context: String, matched: String, isSelected: Bool) -> some View {
+        if let range = context.range(of: matched, options: [.caseInsensitive]) {
+            let before = context[..<range.lowerBound]
+            let match = context[range]
+            let after = context[range.upperBound...]
+
+            (Text(before).foregroundStyle(isSelected ? .white : .primary) +
+             Text(match).foregroundStyle(isSelected ? .yellow : .orange).bold() +
+             Text(after).foregroundStyle(isSelected ? .white : .primary))
+        } else {
+            Text(context).foregroundStyle(isSelected ? .white : .primary)
+        }
     }
 
     private func fieldIcon(for field: SearchField) -> String {
@@ -397,6 +452,19 @@ struct SearchResultRow: View {
             return "bubble.left"
         case .all:
             return "doc.text"
+        }
+    }
+}
+
+// MARK: - View Extension for Cursor
+extension View {
+    func cursor(_ cursor: NSCursor) -> some View {
+        self.onHover { hovering in
+            if hovering {
+                cursor.push()
+            } else {
+                NSCursor.pop()
+            }
         }
     }
 }

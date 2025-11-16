@@ -42,13 +42,37 @@ struct ContentView: View {
 
                         Divider()
 
-                        // Question text preview (stripped HTML)
-                        Text(stripHTML(question.questionText))
-                            .font(.body)
-                            .padding()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.secondary.opacity(0.1))
-                            .cornerRadius(8)
+                        // Question text preview (stripped HTML with search highlighting)
+                        VStack(alignment: .leading, spacing: 8) {
+                            highlightedQuestionText(question: question, match: editorState.currentSearchMatch)
+                                .font(.body)
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.secondary.opacity(0.1))
+                                .cornerRadius(8)
+
+                            // Show answers with highlighting if matched
+                            if editorState.currentSearchMatch?.field == .answerText {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Answers:")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+
+                                    ForEach(Array(question.answers.enumerated()), id: \.element.id) { index, answer in
+                                        highlightedAnswerText(
+                                            answer: answer,
+                                            index: index,
+                                            match: editorState.currentSearchMatch
+                                        )
+                                        .font(.caption)
+                                        .padding(4)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .background(Color.secondary.opacity(0.05))
+                                        .cornerRadius(4)
+                                    }
+                                }
+                            }
+                        }
 
                         Text("Answers: \(question.answers.count)")
                             .font(.caption)
@@ -123,6 +147,50 @@ struct ContentView: View {
     private func stripHTML(_ html: String) -> String {
         html.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Create highlighted text for question with search matches
+    @ViewBuilder
+    private func highlightedQuestionText(question: QTIQuestion, match: SearchMatch?) -> some View {
+        let text = stripHTML(question.questionText)
+
+        if let match = match,
+           match.questionID == question.id,
+           match.field == .questionText,
+           let range = text.range(of: match.matchedText, options: [.caseInsensitive]) {
+
+            let before = text[..<range.lowerBound]
+            let matched = text[range]
+            let after = text[range.upperBound...]
+
+            (Text(before) +
+             Text(matched).foregroundStyle(.orange).bold().background(Color.orange.opacity(0.3)) +
+             Text(after))
+        } else {
+            Text(text)
+        }
+    }
+
+    /// Create highlighted text for answer with search matches
+    @ViewBuilder
+    private func highlightedAnswerText(answer: QTIAnswer, index: Int, match: SearchMatch?) -> some View {
+        let text = stripHTML(answer.text)
+
+        if let match = match,
+           match.answerID == answer.id,
+           let range = text.range(of: match.matchedText, options: [.caseInsensitive]) {
+
+            let before = text[..<range.lowerBound]
+            let matched = text[range]
+            let after = text[range.upperBound...]
+
+            (Text("\(index + 1). ") +
+             Text(before) +
+             Text(matched).foregroundStyle(.orange).bold().background(Color.orange.opacity(0.3)) +
+             Text(after))
+        } else {
+            Text("\(index + 1). \(text)")
+        }
     }
 }
 
