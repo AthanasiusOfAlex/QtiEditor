@@ -105,7 +105,7 @@ final class SearchEngine {
             MatchKey(questionID: match.questionID, field: match.field, answerID: match.answerID)
         }
 
-        for (key, fieldMatches) in groupedMatches {
+        for (key, _) in groupedMatches {
             guard let question = document.questions.first(where: { $0.id == key.questionID }) else {
                 continue
             }

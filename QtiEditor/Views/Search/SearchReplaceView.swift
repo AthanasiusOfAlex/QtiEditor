@@ -12,6 +12,7 @@ import AppKit
 struct SearchReplaceView: View {
     @Environment(EditorState.self) private var editorState
     @State private var searchResults: [SearchMatch] = []
+    @State private var currentMatchIndex: Int = 0
     @State private var isSearching = false
     @State private var errorMessage: String?
 
@@ -132,16 +133,48 @@ struct SearchReplaceView: View {
                 .controlSize(.small)
                 .disabled(editorState.searchText.isEmpty || isSearching)
 
-                Button("Replace All") {
-                    performReplaceAll()
+                if !searchResults.isEmpty {
+                    Button("Replace") {
+                        replaceCurrentMatch()
+                    }
+                    .controlSize(.small)
+                    .disabled(currentMatchIndex >= searchResults.count)
+
+                    Button("Replace All") {
+                        performReplaceAll()
+                    }
+                    .controlSize(.small)
                 }
-                .controlSize(.small)
-                .disabled(searchResults.isEmpty || isSearching)
 
                 Spacer()
 
+                // Navigation buttons for results
+                if !searchResults.isEmpty {
+                    HStack(spacing: 4) {
+                        Button(action: previousMatch) {
+                            Image(systemName: "chevron.up")
+                        }
+                        .disabled(searchResults.isEmpty || currentMatchIndex <= 0)
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
+
+                        Text("\(currentMatchIndex + 1)/\(searchResults.count)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(minWidth: 50)
+
+                        Button(action: nextMatch) {
+                            Image(systemName: "chevron.down")
+                        }
+                        .disabled(searchResults.isEmpty || currentMatchIndex >= searchResults.count - 1)
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
+                    }
+                }
+
                 Button(action: {
                     editorState.isSearchVisible = false
+                    searchResults = []
                 }) {
                     Image(systemName: "xmark")
                 }
@@ -166,14 +199,24 @@ struct SearchReplaceView: View {
             if !searchResults.isEmpty {
                 Divider()
 
+                Text("Results:")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 8) {
-                        ForEach(searchResults) { match in
-                            SearchResultRow(match: match, onSelect: {
-                                selectMatch(match)
-                            })
+                        ForEach(Array(searchResults.enumerated()), id: \.element.id) { index, match in
+                            SearchResultRow(
+                                match: match,
+                                isSelected: index == currentMatchIndex,
+                                onSelect: {
+                                    currentMatchIndex = index
+                                    selectMatch(match)
+                                }
+                            )
                         }
                     }
+                    .padding(.vertical, 4)
                 }
                 .frame(maxHeight: 300)
             }
@@ -203,9 +246,13 @@ struct SearchReplaceView: View {
                 )
 
                 searchResults = results
+                currentMatchIndex = 0
 
                 if results.isEmpty {
                     errorMessage = "No matches found"
+                } else {
+                    // Navigate to first match
+                    selectMatch(results[0])
                 }
             } catch let error as SearchError {
                 errorMessage = error.localizedDescription
@@ -248,6 +295,57 @@ struct SearchReplaceView: View {
         }
     }
 
+    private func replaceCurrentMatch() {
+        guard let document = editorState.document,
+              currentMatchIndex < searchResults.count else {
+            return
+        }
+
+        let match = searchResults[currentMatchIndex]
+
+        Task { @MainActor in
+            do {
+                // Replace just this one match
+                try searchEngine.replaceAll(
+                    matches: [match],
+                    with: editorState.replacementText,
+                    pattern: editorState.searchText,
+                    isRegex: editorState.isRegexEnabled,
+                    in: document
+                )
+
+                // Remove this match from results
+                searchResults.remove(at: currentMatchIndex)
+
+                // Adjust current index if needed
+                if currentMatchIndex >= searchResults.count && currentMatchIndex > 0 {
+                    currentMatchIndex = searchResults.count - 1
+                }
+
+                // If no more matches, clear results
+                if searchResults.isEmpty {
+                    errorMessage = "No more matches"
+                }
+            } catch {
+                errorMessage = "Replace failed: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    private func previousMatch() {
+        if currentMatchIndex > 0 {
+            currentMatchIndex -= 1
+            selectMatch(searchResults[currentMatchIndex])
+        }
+    }
+
+    private func nextMatch() {
+        if currentMatchIndex < searchResults.count - 1 {
+            currentMatchIndex += 1
+            selectMatch(searchResults[currentMatchIndex])
+        }
+    }
+
     private func selectMatch(_ match: SearchMatch) {
         // Navigate to the question containing this match
         editorState.selectedQuestionID = match.questionID
@@ -257,6 +355,7 @@ struct SearchReplaceView: View {
 /// Individual search result row
 struct SearchResultRow: View {
     let match: SearchMatch
+    let isSelected: Bool
     let onSelect: () -> Void
 
     var body: some View {
@@ -264,12 +363,12 @@ struct SearchResultRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Image(systemName: fieldIcon(for: match.field))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(isSelected ? .white : .secondary)
                         .font(.caption)
 
                     Text(match.field.displayName)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(isSelected ? .white : .secondary)
 
                     Spacer()
                 }
@@ -278,9 +377,10 @@ struct SearchResultRow: View {
                     .font(.system(.body, design: .monospaced))
                     .lineLimit(2)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .foregroundStyle(isSelected ? .white : .primary)
             }
             .padding(8)
-            .background(Color.secondary.opacity(0.05))
+            .background(isSelected ? Color.accentColor : Color.secondary.opacity(0.05))
             .cornerRadius(6)
             .contentShape(Rectangle())
         }
