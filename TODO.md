@@ -367,34 +367,36 @@ This document tracks the implementation progress of the QTI Quiz Editor.
 
 ---
 
-## Phase 5.6: Question Preview Enhancement
+## Phase 5.6: Question Preview Enhancement ✅
 
 ### Improved Question Display
-- [ ] Extract question preview text from HTML
-  - [ ] Strip HTML tags for plain text
-  - [ ] Handle mattext and other QTI elements
-  - [ ] Truncate long questions intelligently (word boundaries)
-  - [ ] Show first N characters with ellipsis
+- [x] Extract question preview text from HTML
+  - [x] Strip HTML tags for plain text
+  - [x] Handle mattext and other QTI elements
+  - [x] Truncate long questions intelligently (word boundaries)
+  - [x] Show first N characters with ellipsis
 
-- [ ] Enhanced Question List View
-  - [ ] Two-line display: title + preview
-  - [ ] Question type icon
-  - [ ] Point value badge/indicator
-  - [ ] Answer count indicator
-  - [ ] Visual distinction for questions with issues (no correct answer, etc.)
+- [x] Enhanced Question List View
+  - [x] Two-line display: title + preview
+  - [x] Question type icon
+  - [x] Point value badge/indicator
+  - [x] Answer count indicator
+  - [x] Visual distinction for questions with issues (no correct answer, etc.)
 
-- [ ] Preview Customization
+- [ ] Preview Customization (Future enhancement)
   - [ ] User preference for preview length
   - [ ] Option to show/hide point values
   - [ ] Option to show/hide answer counts
   - [ ] Font size adjustment for preview text
 
 ### Implementation Status
-- [ ] HTML text extraction utility
-- [ ] Two-line question list item view
-- [ ] Visual indicators and badges
-- [ ] Preference storage
-- [ ] Testing with various question types
+- [x] HTML text extraction utility
+- [x] Two-line question list item view
+- [x] Visual indicators and badges
+- [x] Context-aware copy/paste commands (Cmd+C/V for text, Cmd+Shift+C/V for questions)
+- [x] Question context menu with Copy/Paste/Duplicate/Delete
+- [ ] Preference storage (future)
+- [x] Testing with various question types
 
 ---
 
@@ -461,15 +463,19 @@ These are potential features for future development:
 - [ ] Canvas preview mode
 - [ ] Diff view (compare before/after)
 - [ ] Version history
+- [ ] **Answer reordering** - Drag & drop to reorder answers like questions
+  - If implemented, could remove answer copy/paste (duplicate is sufficient)
 
 ### Quality of Life
 - [ ] Undo/redo support
 - [ ] Multiple document windows
 - [ ] Split editor view
 - [ ] Customizable keyboard shortcuts
-- [ ] Dark mode support
+- [ ] Dark mode support (partially done - text editors work)
 - [ ] Export to other formats (PDF, Markdown, etc.)
 - [ ] Statistics (question count, average difficulty, etc.)
+- [ ] **Cmd+A to select all questions** when question list has focus
+- [ ] **Remove answer paste button** if answer reordering implemented
 
 ---
 
