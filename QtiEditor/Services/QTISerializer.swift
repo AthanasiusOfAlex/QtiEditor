@@ -203,8 +203,9 @@ final class QTISerializer {
 
     private func createMaterialElement(with htmlContent: String) -> XMLElement {
         let material = XMLElement(name: "material")
-        // Canvas expects HTML to be XML-encoded in the text content
-        let mattext = XMLElement(name: "mattext", stringValue: xmlEscape(htmlContent))
+        // XMLElement automatically XML-escapes the stringValue, so pass raw HTML
+        // Canvas expects: <mattext texttype="text/html">&lt;p&gt;text&lt;/p&gt;</mattext>
+        let mattext = XMLElement(name: "mattext", stringValue: htmlContent)
         mattext.addAttribute(XMLNode.attribute(withName: "texttype", stringValue: "text/html") as! XMLNode)
 
         material.addChild(mattext)
@@ -292,16 +293,5 @@ final class QTISerializer {
         respcondition.addChild(setvar)
 
         return respcondition
-    }
-
-    // MARK: - XML Escaping
-
-    private func xmlEscape(_ string: String) -> String {
-        string
-            .replacingOccurrences(of: "&", with: "&amp;")
-            .replacingOccurrences(of: "<", with: "&lt;")
-            .replacingOccurrences(of: ">", with: "&gt;")
-            .replacingOccurrences(of: "\"", with: "&quot;")
-            .replacingOccurrences(of: "'", with: "&apos;")
     }
 }
