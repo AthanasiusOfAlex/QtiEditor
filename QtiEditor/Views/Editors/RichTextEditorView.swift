@@ -71,9 +71,12 @@ struct RichTextEditorView: NSViewRepresentable {
 
     /// Convert HTML string to NSAttributedString
     private func htmlToAttributedString(_ html: String) -> NSAttributedString {
+        // Strip explicit black colors to support dark mode
+        let processedHTML = stripBlackColors(from: html)
+
         // Clean HTML by wrapping in proper HTML structure if needed
         let wrappedHTML: String
-        if !html.lowercased().contains("<html") {
+        if !processedHTML.lowercased().contains("<html") {
             wrappedHTML = """
             <!DOCTYPE html>
             <html>
@@ -83,16 +86,17 @@ struct RichTextEditorView: NSViewRepresentable {
                     body {
                         font-family: -apple-system, BlinkMacSystemFont, sans-serif;
                         font-size: 14px;
+                        color: -apple-system-label;
                     }
                 </style>
             </head>
             <body>
-            \(html)
+            \(processedHTML)
             </body>
             </html>
             """
         } else {
-            wrappedHTML = html
+            wrappedHTML = processedHTML
         }
 
         guard let data = wrappedHTML.data(using: .utf8) else {
@@ -111,6 +115,37 @@ struct RichTextEditorView: NSViewRepresentable {
             // Fallback to plain text if HTML parsing fails
             return NSAttributedString(string: html)
         }
+    }
+
+    /// Strip explicit black colors from HTML to support dark mode
+    /// Removes: color: black, color: #000, color: #000000, color: rgb(0,0,0)
+    private func stripBlackColors(from html: String) -> String {
+        var result = html
+
+        // Patterns for black colors (case-insensitive)
+        let blackPatterns = [
+            "color:\\s*black\\s*;?",           // color: black
+            "color:\\s*#000\\s*;?",            // color: #000
+            "color:\\s*#000000\\s*;?",         // color: #000000
+            "color:\\s*rgb\\s*\\(\\s*0\\s*,\\s*0\\s*,\\s*0\\s*\\)\\s*;?" // color: rgb(0,0,0)
+        ]
+
+        for pattern in blackPatterns {
+            result = result.replacingOccurrences(
+                of: pattern,
+                with: "",
+                options: [.regularExpression, .caseInsensitive]
+            )
+        }
+
+        // Clean up empty style attributes: style="" or style="  "
+        result = result.replacingOccurrences(
+            of: "style\\s*=\\s*[\"']\\s*[\"']",
+            with: "",
+            options: .regularExpression
+        )
+
+        return result
     }
 
     /// Convert NSAttributedString to HTML string
