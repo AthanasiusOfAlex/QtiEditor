@@ -109,11 +109,11 @@ This document tracks the implementation progress of the QTI Quiz Editor.
   - [x] Search scopes:
     - [x] Current question only
     - [x] All questions
+    - [x] Question title only
     - [x] Question text only
     - [x] Answer text only
     - [x] Feedback text only
     - [x] All text fields
-    - [ ] **Question titles** - Need to add as searchable field
   - [x] Return match locations and context with HTML stripping
   - [x] Replace operations (single match and replace-all)
   - [x] Full capture group support ($0, $1, $2, etc.)
@@ -121,10 +121,10 @@ This document tracks the implementation progress of the QTI Quiz Editor.
   - [x] Preserve HTML structure during replace
 
 ### Known Issues / Future Enhancements
-- [ ] **Question titles not searchable** - Add question title as a separate searchable scope
-  - Need to update SearchField enum
-  - Need to update SearchEngine to search question titles
-  - Need to add "Question Titles" option to field selector UI
+- [x] **Question titles now searchable** ✅ - Question title added as searchable field
+  - [x] Updated SearchField enum with .questionTitle case
+  - [x] Updated SearchEngine to search question titles (canvas_title metadata)
+  - [x] Added "Question Titles" option to field selector UI with icon
 
 ### Search Data Models
 - [x] `SearchResult.swift` - Search data structures
