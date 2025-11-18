@@ -110,11 +110,40 @@ struct RichTextEditorView: NSViewRepresentable {
 
         do {
             let attributedString = try NSAttributedString(data: data, options: options, documentAttributes: nil)
-            return attributedString
+
+            // Replace black foreground colors with adaptive label color for dark mode support
+            let mutableAttributedString = NSMutableAttributedString(attributedString: attributedString)
+            let fullRange = NSRange(location: 0, length: mutableAttributedString.length)
+
+            mutableAttributedString.enumerateAttribute(.foregroundColor, in: fullRange, options: []) { value, range, _ in
+                if let color = value as? NSColor {
+                    // Check if color is black or very dark (close to black)
+                    if isBlackOrDarkColor(color) {
+                        // Replace with adaptive label color
+                        mutableAttributedString.addAttribute(.foregroundColor, value: NSColor.labelColor, range: range)
+                    }
+                }
+            }
+
+            return mutableAttributedString
         } catch {
             // Fallback to plain text if HTML parsing fails
             return NSAttributedString(string: html)
         }
+    }
+
+    /// Check if a color is black or very close to black
+    private func isBlackOrDarkColor(_ color: NSColor) -> Bool {
+        // Convert to RGB color space for comparison
+        guard let rgbColor = color.usingColorSpace(.deviceRGB) else {
+            return false
+        }
+
+        // Consider black if all RGB components are below 0.1 (very dark)
+        let threshold: CGFloat = 0.1
+        return rgbColor.redComponent < threshold &&
+               rgbColor.greenComponent < threshold &&
+               rgbColor.blueComponent < threshold
     }
 
     /// Strip explicit black colors from HTML to support dark mode
