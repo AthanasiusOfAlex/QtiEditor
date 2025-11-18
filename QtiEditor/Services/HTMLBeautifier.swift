@@ -26,7 +26,6 @@ actor HTMLBeautifier {
         // Simple tag-based formatting
         var currentTag = ""
         var inTag = false
-        var inClosingTag = false
 
         for char in trimmed {
             if char == "<" {
@@ -47,7 +46,6 @@ actor HTMLBeautifier {
                     // Closing tag - decrease indent before adding
                     indentLevel = max(0, indentLevel - 1)
                     result += String(repeating: indentString, count: indentLevel) + currentTag + "\n"
-                    inClosingTag = true
                 } else if currentTag.hasSuffix("/>") {
                     // Self-closing tag
                     result += String(repeating: indentString, count: indentLevel) + currentTag + "\n"
@@ -87,8 +85,8 @@ actor HTMLBeautifier {
         var tagStack: [String] = []
 
         // Simple validation: check for matching tags
-        let tagPattern = /<\/?([a-zA-Z][a-zA-Z0-9]*)[^>]*>/
-        guard let regex = try? NSRegularExpression(pattern: tagPattern.pattern) else {
+        let tagPattern = "</?([a-zA-Z][a-zA-Z0-9]*)[^>]*>"
+        guard let regex = try? NSRegularExpression(pattern: tagPattern) else {
             return ValidationResult(isValid: false, errors: ["Failed to create validation regex"])
         }
 
