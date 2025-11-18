@@ -12,7 +12,9 @@ import SwiftUI
 struct ContentView: View {
     @Environment(EditorState.self) private var editorState
     @AppStorage("questionEditorHeight") private var storedQuestionHeight: Double = 100
+    @AppStorage("answerListHeight") private var storedAnswerHeight: Double = 300
     @State private var questionEditorHeight: CGFloat = 100
+    @State private var answerListHeight: CGFloat = 300
 
     var body: some View {
         @Bindable var editorState = editorState
@@ -172,11 +174,12 @@ struct ContentView: View {
                         .padding()
                     }
 
-                    Divider()
+                    // Resize handle for answer list
+                    AnswerResizeHandle(height: $answerListHeight)
 
                     // Answer editor
                     AnswerListEditorView(question: question)
-                        .frame(maxHeight: .infinity)
+                        .frame(height: answerListHeight)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if editorState.document != nil {
@@ -243,9 +246,13 @@ struct ContentView: View {
         }
         .onAppear {
             questionEditorHeight = CGFloat(storedQuestionHeight)
+            answerListHeight = CGFloat(storedAnswerHeight)
         }
         .onChange(of: questionEditorHeight) { _, newValue in
             storedQuestionHeight = Double(newValue)
+        }
+        .onChange(of: answerListHeight) { _, newValue in
+            storedAnswerHeight = Double(newValue)
         }
     }
 
@@ -339,7 +346,7 @@ struct ContentView: View {
     }
 }
 
-/// Resize handle for draggable dividers
+/// Resize handle for draggable dividers (question editor)
 struct ResizeHandle: View {
     @Binding var height: CGFloat
     @State private var isDragging = false
@@ -361,6 +368,38 @@ struct ResizeHandle: View {
                                 isDragging = true
                                 let newHeight = height + value.translation.height
                                 height = min(max(newHeight, 100), 800)
+                            }
+                            .onEnded { _ in
+                                isDragging = false
+                            }
+                    )
+                    .cursor(.resizeUpDown)
+            )
+    }
+}
+
+/// Resize handle for answer list divider
+struct AnswerResizeHandle: View {
+    @Binding var height: CGFloat
+    @State private var isDragging = false
+    @State private var isHovering = false
+
+    var body: some View {
+        Divider()
+            .overlay(
+                Rectangle()
+                    .fill(isDragging ? Color.blue.opacity(0.3) : (isHovering ? Color.gray.opacity(0.2) : Color.clear))
+                    .frame(height: 20)
+                    .contentShape(Rectangle())
+                    .onHover { hovering in
+                        isHovering = hovering
+                    }
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                isDragging = true
+                                let newHeight = height - value.translation.height  // Inverted: drag down = shrink answers
+                                height = min(max(newHeight, 150), 800)
                             }
                             .onEnded { _ in
                                 isDragging = false
