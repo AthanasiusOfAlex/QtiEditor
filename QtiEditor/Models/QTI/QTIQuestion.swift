@@ -90,4 +90,28 @@ extension QTIQuestion {
     var hasCorrectAnswer: Bool {
         !correctAnswers.isEmpty
     }
+
+    /// Creates a deep copy of this question with new UUIDs
+    /// - Parameter preserveCanvasIdentifier: If false, removes canvas_identifier from metadata
+    /// - Returns: A new QTIQuestion instance with copied properties
+    func duplicate(preserveCanvasIdentifier: Bool = false) -> QTIQuestion {
+        // Deep copy all answers with new UUIDs
+        let copiedAnswers = answers.map { $0.duplicate(preserveCanvasIdentifier: preserveCanvasIdentifier) }
+
+        // Copy metadata, optionally removing canvas_identifier
+        var copiedMetadata = metadata
+        if !preserveCanvasIdentifier {
+            copiedMetadata.removeValue(forKey: "canvas_identifier")
+        }
+
+        return QTIQuestion(
+            id: UUID(), // New UUID for the copy
+            type: type,
+            questionText: questionText,
+            points: points,
+            answers: copiedAnswers,
+            generalFeedback: generalFeedback,
+            metadata: copiedMetadata
+        )
+    }
 }

@@ -13,6 +13,7 @@ struct AnswerEditorView: View {
     let answer: QTIAnswer
     let index: Int
     let onDelete: () -> Void
+    let onDuplicate: () -> Void
     let onCorrectChanged: (Bool) -> Void
     @AppStorage("answerEditorHeight") private var storedAnswerHeight: Double = 50
     @State private var editorHeight: CGFloat = 50
@@ -21,7 +22,7 @@ struct AnswerEditorView: View {
         @Bindable var answer = answer
 
         VStack(alignment: .leading, spacing: 8) {
-            // Header row: Answer number, correct checkbox, delete button
+            // Header row: Answer number, correct checkbox, duplicate, delete button
             HStack {
                 Text("Answer \(index + 1)")
                     .font(.headline)
@@ -36,6 +37,13 @@ struct AnswerEditorView: View {
                 .toggleStyle(.checkbox)
 
                 Spacer()
+
+                Button(action: onDuplicate) {
+                    Label("Duplicate", systemImage: "plus.square.on.square")
+                        .foregroundStyle(.blue)
+                }
+                .buttonStyle(.plain)
+                .help("Duplicate this answer")
 
                 Button(action: onDelete) {
                     Label("Delete", systemImage: "trash")
@@ -119,6 +127,7 @@ struct AnswerResizeHandle: View {
         answer: sampleAnswer,
         index: 0,
         onDelete: { print("Delete tapped") },
+        onDuplicate: { print("Duplicate tapped") },
         onCorrectChanged: { isCorrect in print("Correct changed to: \(isCorrect)") }
     )
     .environment(EditorState(document: QTIDocument.empty()))

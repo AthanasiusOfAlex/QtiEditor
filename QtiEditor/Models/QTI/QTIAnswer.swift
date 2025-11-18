@@ -48,3 +48,26 @@ final class QTIAnswer: Sendable {
 
 // MARK: - Identifiable Conformance
 extension QTIAnswer: Identifiable {}
+
+// MARK: - Helper Methods
+extension QTIAnswer {
+    /// Creates a deep copy of this answer with a new UUID
+    /// - Parameter preserveCanvasIdentifier: If false, removes canvas_identifier from metadata
+    /// - Returns: A new QTIAnswer instance with copied properties
+    func duplicate(preserveCanvasIdentifier: Bool = false) -> QTIAnswer {
+        // Copy metadata, optionally removing canvas_identifier
+        var copiedMetadata = metadata
+        if !preserveCanvasIdentifier {
+            copiedMetadata.removeValue(forKey: "canvas_identifier")
+        }
+
+        return QTIAnswer(
+            id: UUID(), // New UUID for the copy
+            text: text,
+            isCorrect: isCorrect,
+            feedback: feedback,
+            weight: weight,
+            metadata: copiedMetadata
+        )
+    }
+}

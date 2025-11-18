@@ -111,6 +111,54 @@ final class EditorState {
         }
     }
 
+    /// Duplicate the specified question and insert it after the original
+    /// - Parameter question: The question to duplicate
+    func duplicateQuestion(_ question: QTIQuestion) {
+        guard let document = document else { return }
+
+        // Find the index of the original question
+        guard let index = document.questions.firstIndex(where: { $0.id == question.id }) else {
+            return
+        }
+
+        // Create a deep copy
+        let duplicatedQuestion = question.duplicate(preserveCanvasIdentifier: false)
+
+        // Insert after the original
+        document.questions.insert(duplicatedQuestion, at: index + 1)
+
+        // Select the new question
+        selectedQuestionID = duplicatedQuestion.id
+    }
+
+    /// Duplicate the currently selected question
+    func duplicateSelectedQuestion() {
+        guard let question = selectedQuestion else { return }
+        duplicateQuestion(question)
+    }
+
+    /// Duplicate an answer and add it after the original
+    /// - Parameters:
+    ///   - answer: The answer to duplicate
+    ///   - question: The question containing the answer
+    func duplicateAnswer(_ answer: QTIAnswer, in question: QTIQuestion) {
+        // Find the index of the original answer
+        guard let index = question.answers.firstIndex(where: { $0.id == answer.id }) else {
+            return
+        }
+
+        // Create a deep copy
+        var duplicatedAnswer = answer.duplicate(preserveCanvasIdentifier: false)
+
+        // For multiple choice, reset isCorrect to avoid multiple correct answers
+        if question.type == .multipleChoice {
+            duplicatedAnswer.isCorrect = false
+        }
+
+        // Insert after the original
+        question.answers.insert(duplicatedAnswer, at: index + 1)
+    }
+
     // MARK: - File Operations
 
     /// Opens a QTI document from a file

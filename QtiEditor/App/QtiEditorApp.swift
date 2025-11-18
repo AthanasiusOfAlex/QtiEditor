@@ -65,6 +65,18 @@ struct FileCommands: Commands {
             .keyboardShortcut("s", modifiers: [.command, .shift])
             .disabled(editorState.document == nil)
         }
+
+        CommandGroup(after: .newItem) {
+            Button("Duplicate Question") {
+                Task { @MainActor in
+                    editorState.duplicateSelectedQuestion()
+                }
+            }
+            .keyboardShortcut("d", modifiers: .command)
+            .disabled(editorState.selectedQuestion == nil)
+
+            Divider()
+        }
     }
 
     @MainActor

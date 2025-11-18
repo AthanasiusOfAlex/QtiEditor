@@ -40,6 +40,14 @@ struct QuestionListView: View {
                             .tag(question.id)
                             .contextMenu {
                                 Button(action: {
+                                    editorState.duplicateQuestion(question)
+                                }) {
+                                    Label("Duplicate", systemImage: "plus.square.on.square")
+                                }
+
+                                Divider()
+
+                                Button(action: {
                                     confirmDelete(question)
                                 }) {
                                     Label("Delete", systemImage: "trash")
@@ -70,6 +78,14 @@ struct QuestionListView: View {
                 }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
                 .help("Add a new question (Cmd+Shift+N)")
+
+                Button(action: {
+                    editorState.duplicateSelectedQuestion()
+                }) {
+                    Label("Duplicate Question", systemImage: "plus.square.on.square")
+                }
+                .disabled(editorState.selectedQuestion == nil)
+                .help("Duplicate selected question (Cmd+D)")
 
                 Button(action: {
                     if let selected = editorState.selectedQuestion {
