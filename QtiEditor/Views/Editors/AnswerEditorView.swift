@@ -14,7 +14,8 @@ struct AnswerEditorView: View {
     let index: Int
     let onDelete: () -> Void
     let onCorrectChanged: (Bool) -> Void
-    @AppStorage("answerEditorHeight") private var editorHeight: CGFloat = 50
+    @AppStorage("answerEditorHeight") private var storedAnswerHeight: Double = 50
+    @State private var editorHeight: CGFloat = 50
 
     var body: some View {
         @Bindable var answer = answer
@@ -67,6 +68,12 @@ struct AnswerEditorView: View {
             RoundedRectangle(cornerRadius: 8)
                 .stroke(answer.isCorrect ? Color.green.opacity(0.3) : Color.secondary.opacity(0.2), lineWidth: 1)
         )
+        .onAppear {
+            editorHeight = CGFloat(storedAnswerHeight)
+        }
+        .onChange(of: editorHeight) { _, newValue in
+            storedAnswerHeight = Double(newValue)
+        }
     }
 }
 

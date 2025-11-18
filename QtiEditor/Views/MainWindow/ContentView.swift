@@ -11,7 +11,8 @@ import SwiftUI
 /// Provides the three-pane layout: Question List (sidebar), Editor (main), Inspector (trailing)
 struct ContentView: View {
     @Environment(EditorState.self) private var editorState
-    @AppStorage("questionEditorHeight") private var questionEditorHeight: CGFloat = 100
+    @AppStorage("questionEditorHeight") private var storedQuestionHeight: Double = 100
+    @State private var questionEditorHeight: CGFloat = 100
 
     var body: some View {
         @Bindable var editorState = editorState
@@ -236,6 +237,12 @@ struct ContentView: View {
             if let message = editorState.alertMessage {
                 Text(message)
             }
+        }
+        .onAppear {
+            questionEditorHeight = CGFloat(storedQuestionHeight)
+        }
+        .onChange(of: questionEditorHeight) { _, newValue in
+            storedQuestionHeight = Double(newValue)
         }
     }
 
