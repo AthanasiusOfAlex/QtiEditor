@@ -21,53 +21,21 @@ struct AnswerEditorView: View {
     var body: some View {
         @Bindable var answer = answer
 
-        VStack(alignment: .leading, spacing: 8) {
-            // Header row: Answer number, correct checkbox, duplicate, delete button
-            HStack {
-                Text("Answer \(index + 1)")
-                    .font(.headline)
-
-                Toggle("Correct Answer", isOn: Binding(
-                    get: { answer.isCorrect },
-                    set: { newValue in
-                        answer.isCorrect = newValue
-                        onCorrectChanged(newValue)
-                    }
-                ))
-                .toggleStyle(.checkbox)
-
-                Spacer()
-
-                Button(action: onDuplicate) {
-                    Label("Duplicate", systemImage: "plus.square.on.square")
-                        .foregroundStyle(.blue)
-                }
-                .buttonStyle(.plain)
-                .help("Duplicate this answer")
-
-                Button(action: onDelete) {
-                    Label("Delete", systemImage: "trash")
-                        .foregroundStyle(.red)
-                }
-                .buttonStyle(.plain)
-                .help("Delete this answer")
+        answerContent
+            .onAppear {
+                editorHeight = CGFloat(storedAnswerHeight)
             }
-
-            // Answer text editor (HTML or Rich Text based on mode) with resize handle
-            VStack(spacing: 0) {
-                if editorState.editorMode == .html {
-                    HTMLEditorView(text: $answer.text)
-                        .frame(height: editorHeight)
-                } else {
-                    RichTextEditorView(htmlText: $answer.text)
-                        .frame(height: editorHeight)
-                }
-
-                // Resize handle
-                AnswerResizeHandle(height: $editorHeight)
+            .onChange(of: editorHeight) { _, newValue in
+                storedAnswerHeight = Double(newValue)
             }
-            .border(Color.secondary.opacity(0.3), width: 1)
-            .cornerRadius(4)
+    }
+
+    private var answerContent: some View {
+        @Bindable var answer = answer
+
+        return VStack(alignment: .leading, spacing: 8) {
+            headerRow
+            editorView
         }
         .padding()
         .background(answer.isCorrect ? Color.green.opacity(0.05) : Color.secondary.opacity(0.05))
@@ -77,27 +45,78 @@ struct AnswerEditorView: View {
                 .stroke(answer.isCorrect ? Color.green.opacity(0.3) : Color.secondary.opacity(0.2), lineWidth: 1)
         )
         .contextMenu {
-            Button(action: {
-                editorState.copyAnswer(answer)
-            }) {
-                Label("Copy Answer", systemImage: "doc.on.doc")
-            }
+            contextMenuContent
+        }
+    }
+
+    private var headerRow: some View {
+        @Bindable var answer = answer
+
+        return HStack {
+            Text("Answer \(index + 1)")
+                .font(.headline)
+
+            Toggle("Correct Answer", isOn: Binding(
+                get: { answer.isCorrect },
+                set: { newValue in
+                    answer.isCorrect = newValue
+                    onCorrectChanged(newValue)
+                }
+            ))
+            .toggleStyle(.checkbox)
+
+            Spacer()
 
             Button(action: onDuplicate) {
-                Label("Duplicate Answer", systemImage: "plus.square.on.square")
+                Label("Duplicate", systemImage: "plus.square.on.square")
+                    .foregroundStyle(.blue)
+            }
+            .buttonStyle(.plain)
+            .help("Duplicate this answer")
+
+            Button(action: onDelete) {
+                Label("Delete", systemImage: "trash")
+                    .foregroundStyle(.red)
+            }
+            .buttonStyle(.plain)
+            .help("Delete this answer")
+        }
+    }
+
+    private var editorView: some View {
+        @Bindable var answer = answer
+
+        return VStack(spacing: 0) {
+            if editorState.editorMode == .html {
+                HTMLEditorView(text: $answer.text)
+                    .frame(height: editorHeight)
+            } else {
+                RichTextEditorView(htmlText: $answer.text)
+                    .frame(height: editorHeight)
             }
 
-            Divider()
+            AnswerResizeHandle(height: $editorHeight)
+        }
+        .border(Color.secondary.opacity(0.3), width: 1)
+        .cornerRadius(4)
+    }
 
-            Button(action: onDelete, role: .destructive) {
-                Label("Delete Answer", systemImage: "trash")
-            }
+    @ViewBuilder
+    private var contextMenuContent: some View {
+        Button(action: {
+            editorState.copyAnswer(answer)
+        }) {
+            Label("Copy Answer", systemImage: "doc.on.doc")
         }
-        .onAppear {
-            editorHeight = CGFloat(storedAnswerHeight)
+
+        Button(action: onDuplicate) {
+            Label("Duplicate Answer", systemImage: "plus.square.on.square")
         }
-        .onChange(of: editorHeight) { _, newValue in
-            storedAnswerHeight = Double(newValue)
+
+        Divider()
+
+        Button(action: onDelete, role: .destructive) {
+            Label("Delete Answer", systemImage: "trash")
         }
     }
 }
