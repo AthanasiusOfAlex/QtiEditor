@@ -26,8 +26,14 @@ final class EditorState {
     /// Currently open document
     var document: QTIDocument?
 
-    /// Currently selected question ID
+    /// Currently selected question ID (focused for editing)
     var selectedQuestionID: UUID?
+
+    /// Set of selected question IDs for multi-selection operations
+    var selectedQuestionIDs: Set<UUID> = []
+
+    /// Set of selected answer IDs for multi-selection operations (scoped to current question)
+    var selectedAnswerIDs: Set<UUID> = []
 
     /// Current editor mode (HTML or Rich Text)
     var editorMode: EditorMode = .richText
@@ -110,6 +116,25 @@ final class EditorState {
         if selectedQuestionID == question.id {
             selectedQuestionID = nil
         }
+        selectedQuestionIDs.remove(question.id)
+    }
+
+    /// Delete all currently selected questions
+    func deleteSelectedQuestions() {
+        guard let document = document else { return }
+
+        // If no multi-selection, delete the focused question
+        let idsToDelete = selectedQuestionIDs.isEmpty
+            ? (selectedQuestionID.map { Set([$0]) } ?? [])
+            : selectedQuestionIDs
+
+        document.questions.removeAll { idsToDelete.contains($0.id) }
+
+        // Clear selections
+        if let selectedID = selectedQuestionID, idsToDelete.contains(selectedID) {
+            selectedQuestionID = nil
+        }
+        selectedQuestionIDs.removeAll()
     }
 
     /// Duplicate the specified question and insert it after the original
@@ -136,6 +161,35 @@ final class EditorState {
     func duplicateSelectedQuestion() {
         guard let question = selectedQuestion else { return }
         duplicateQuestion(question)
+    }
+
+    /// Duplicate all currently selected questions
+    func duplicateSelectedQuestions() {
+        guard let document = document else { return }
+
+        // If no multi-selection, duplicate the focused question
+        let idsToDuplicate = selectedQuestionIDs.isEmpty
+            ? (selectedQuestionID.map { Set([$0]) } ?? [])
+            : selectedQuestionIDs
+
+        // Find questions to duplicate (in order)
+        let questionsToDuplicate = document.questions.filter { idsToDuplicate.contains($0.id) }
+
+        // Duplicate each question and insert after the original
+        var newQuestionIDs: Set<UUID> = []
+        for question in questionsToDuplicate.reversed() {
+            guard let index = document.questions.firstIndex(where: { $0.id == question.id }) else {
+                continue
+            }
+
+            let duplicatedQuestion = question.duplicate(preserveCanvasIdentifier: false)
+            document.questions.insert(duplicatedQuestion, at: index + 1)
+            newQuestionIDs.insert(duplicatedQuestion.id)
+        }
+
+        // Select the duplicated questions
+        selectedQuestionIDs = newQuestionIDs
+        selectedQuestionID = newQuestionIDs.first
     }
 
     /// Duplicate an answer and add it after the original
@@ -168,10 +222,30 @@ final class EditorState {
     /// Custom pasteboard type for QTI answers
     private static let answerPasteboardType = NSPasteboard.PasteboardType("com.qti-editor.answer")
 
-    /// Copy the selected question to the pasteboard
+    /// Copy the selected question(s) to the pasteboard
     func copySelectedQuestion() {
-        guard let question = selectedQuestion else { return }
-        copyQuestion(question)
+        guard let document = document else { return }
+
+        // If no multi-selection, copy the focused question
+        let idsToCopy = selectedQuestionIDs.isEmpty
+            ? (selectedQuestionID.map { Set([$0]) } ?? [])
+            : selectedQuestionIDs
+
+        // Find questions to copy (in order)
+        let questionsToCopy = document.questions.filter { idsToCopy.contains($0.id) }
+
+        guard !questionsToCopy.isEmpty else { return }
+
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+
+        do {
+            let encoder = JSONEncoder()
+            let data = try encoder.encode(questionsToCopy)
+            pasteboard.setData(data, forType: Self.questionPasteboardType)
+        } catch {
+            showError("Failed to copy question(s): \(error.localizedDescription)")
+        }
     }
 
     /// Copy a specific question to the pasteboard
@@ -181,39 +255,52 @@ final class EditorState {
 
         do {
             let encoder = JSONEncoder()
-            let data = try encoder.encode(question)
+            let data = try encoder.encode([question])
             pasteboard.setData(data, forType: Self.questionPasteboardType)
         } catch {
             showError("Failed to copy question: \(error.localizedDescription)")
         }
     }
 
-    /// Paste a question from the pasteboard
+    /// Paste question(s) from the pasteboard
     func pasteQuestion() {
-        guard document != nil else { return }
+        guard let document = document else { return }
 
         let pasteboard = NSPasteboard.general
         guard let data = pasteboard.data(forType: Self.questionPasteboardType) else { return }
 
         do {
             let decoder = JSONDecoder()
-            let pastedQuestion = try decoder.decode(QTIQuestion.self, from: data)
+            let pastedQuestions = try decoder.decode([QTIQuestion].self, from: data)
 
-            // Generate new UUIDs for the pasted question
-            let newQuestion = pastedQuestion.duplicate(preserveCanvasIdentifier: false)
+            guard !pastedQuestions.isEmpty else { return }
+
+            // Generate new UUIDs for all pasted questions
+            var newQuestions: [QTIQuestion] = []
+            var newQuestionIDs: Set<UUID> = []
+
+            for pastedQuestion in pastedQuestions {
+                let newQuestion = pastedQuestion.duplicate(preserveCanvasIdentifier: false)
+                newQuestions.append(newQuestion)
+                newQuestionIDs.insert(newQuestion.id)
+            }
 
             // Insert after currently selected question, or at the end
             if let selectedID = selectedQuestionID,
-               let index = document?.questions.firstIndex(where: { $0.id == selectedID }) {
-                document?.questions.insert(newQuestion, at: index + 1)
+               let index = document.questions.firstIndex(where: { $0.id == selectedID }) {
+                // Insert all questions starting from index + 1
+                for (offset, question) in newQuestions.enumerated() {
+                    document.questions.insert(question, at: index + 1 + offset)
+                }
             } else {
-                document?.questions.append(newQuestion)
+                document.questions.append(contentsOf: newQuestions)
             }
 
-            // Select the pasted question
-            selectedQuestionID = newQuestion.id
+            // Select the pasted questions
+            selectedQuestionIDs = newQuestionIDs
+            selectedQuestionID = newQuestions.first?.id
         } catch {
-            showError("Failed to paste question: \(error.localizedDescription)")
+            showError("Failed to paste question(s): \(error.localizedDescription)")
         }
     }
 

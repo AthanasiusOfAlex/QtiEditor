@@ -69,13 +69,17 @@ struct FileCommands: Commands {
 
         CommandGroup(after: .newItem) {
             // Question operations
-            Button("Copy Question") {
+            let selectionCount = editorState.selectedQuestionIDs.isEmpty
+                ? (editorState.selectedQuestion != nil ? 1 : 0)
+                : editorState.selectedQuestionIDs.count
+
+            Button(selectionCount > 1 ? "Copy \(selectionCount) Questions" : "Copy Question") {
                 Task { @MainActor in
                     editorState.copySelectedQuestion()
                 }
             }
             .keyboardShortcut("c", modifiers: [.command, .shift])
-            .disabled(editorState.selectedQuestion == nil)
+            .disabled(selectionCount == 0)
 
             Button("Paste Question") {
                 Task { @MainActor in
@@ -85,13 +89,25 @@ struct FileCommands: Commands {
             .keyboardShortcut("v", modifiers: [.command, .shift])
             .disabled(editorState.document == nil)
 
-            Button("Duplicate Question") {
+            Button(selectionCount > 1 ? "Duplicate \(selectionCount) Questions" : "Duplicate Question") {
                 Task { @MainActor in
-                    editorState.duplicateSelectedQuestion()
+                    editorState.duplicateSelectedQuestions()
                 }
             }
             .keyboardShortcut("d", modifiers: .command)
-            .disabled(editorState.selectedQuestion == nil)
+            .disabled(selectionCount == 0)
+
+            Divider()
+
+            Button("Select All Questions") {
+                Task { @MainActor in
+                    if let document = editorState.document {
+                        editorState.selectedQuestionIDs = Set(document.questions.map { $0.id })
+                    }
+                }
+            }
+            .keyboardShortcut("a", modifiers: .command)
+            .disabled(editorState.document?.questions.isEmpty != false || questionListFocused != true)
 
             Divider()
         }

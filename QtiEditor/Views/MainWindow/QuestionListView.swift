@@ -11,13 +11,19 @@ import SwiftUI
 struct QuestionListView: View {
     @Environment(EditorState.self) private var editorState
     @State private var showDeleteConfirmation = false
-    @State private var questionToDelete: QTIQuestion?
     @FocusState private var isListFocused: Bool
+
+    /// Number of currently selected questions
+    private var selectionCount: Int {
+        editorState.selectedQuestionIDs.isEmpty
+            ? (editorState.selectedQuestion != nil ? 1 : 0)
+            : editorState.selectedQuestionIDs.count
+    }
 
     var body: some View {
         @Bindable var editorState = editorState
 
-        List(selection: $editorState.selectedQuestionID) {
+        List(selection: $editorState.selectedQuestionIDs) {
             if let document = editorState.document {
                 // Quiz settings button
                 Section {
@@ -87,6 +93,17 @@ struct QuestionListView: View {
             // Give focus to the list when it appears
             isListFocused = true
         }
+        .onChange(of: editorState.selectedQuestionIDs) { _, newSelection in
+            // Keep selectedQuestionID in sync with the focused question
+            if newSelection.isEmpty {
+                editorState.selectedQuestionID = nil
+            } else if let current = editorState.selectedQuestionID, newSelection.contains(current) {
+                // Keep current selection if it's still in the set
+            } else {
+                // Use the first selected question
+                editorState.selectedQuestionID = editorState.document?.questions.first { newSelection.contains($0.id) }?.id
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button(action: {
@@ -100,47 +117,46 @@ struct QuestionListView: View {
 
             ToolbarItem(placement: .primaryAction) {
                 Button(action: {
-                    editorState.duplicateSelectedQuestion()
+                    editorState.duplicateSelectedQuestions()
                 }) {
                     Label("Duplicate Question", systemImage: "plus.square.on.square")
                 }
-                .disabled(editorState.selectedQuestion == nil)
-                .help("Duplicate selected question (Cmd+D)")
+                .disabled(editorState.selectedQuestionIDs.isEmpty && editorState.selectedQuestion == nil)
+                .help(selectionCount > 1 ? "Duplicate \(selectionCount) questions (Cmd+D)" : "Duplicate selected question (Cmd+D)")
             }
 
             ToolbarItem(placement: .primaryAction) {
                 Button(action: {
-                    if let selected = editorState.selectedQuestion {
-                        confirmDelete(selected)
-                    }
+                    confirmDelete()
                 }) {
                     Label("Delete Question", systemImage: "trash")
                 }
-                .disabled(editorState.selectedQuestion == nil)
-                .help("Delete selected question (Delete key)")
+                .disabled(editorState.selectedQuestionIDs.isEmpty && editorState.selectedQuestion == nil)
+                .help(selectionCount > 1 ? "Delete \(selectionCount) questions (Delete key)" : "Delete selected question (Delete key)")
             }
         }
         .onDeleteCommand {
-            if let selected = editorState.selectedQuestion {
-                confirmDelete(selected)
-            }
+            confirmDelete()
         }
         .confirmationDialog(
-            "Delete Question?",
-            isPresented: $showDeleteConfirmation,
-            presenting: questionToDelete
-        ) { question in
+            selectionCount > 1 ? "Delete \(selectionCount) Questions?" : "Delete Question?",
+            isPresented: $showDeleteConfirmation
+        ) {
             Button("Delete", role: .destructive) {
-                editorState.deleteQuestion(question)
+                editorState.deleteSelectedQuestions()
             }
             Button("Cancel", role: .cancel) {}
-        } message: { question in
-            Text("Are you sure you want to delete this question? This action cannot be undone.")
+        } message: {
+            if selectionCount > 1 {
+                Text("Are you sure you want to delete \(selectionCount) questions? This action cannot be undone.")
+            } else {
+                Text("Are you sure you want to delete this question? This action cannot be undone.")
+            }
         }
     }
 
-    private func confirmDelete(_ question: QTIQuestion) {
-        questionToDelete = question
+    private func confirmDelete() {
+        guard selectionCount > 0 else { return }
         showDeleteConfirmation = true
     }
 }
