@@ -32,114 +32,121 @@ struct ContentView: View {
 
                 // Question editor
                 if let question = editorState.selectedQuestion {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Question \(editorState.document?.questions.firstIndex(where: { $0.id == question.id }).map { $0 + 1 } ?? 0)")
-                            .font(.title)
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Question \(editorState.document?.questions.firstIndex(where: { $0.id == question.id }).map { $0 + 1 } ?? 0)")
+                                .font(.title)
 
-                        Text(question.type.displayName)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            Text(question.type.displayName)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
 
-                        Divider()
+                            Divider()
 
-                        // Question text preview (stripped HTML with search highlighting)
-                        VStack(alignment: .leading, spacing: 8) {
-                            highlightedQuestionText(question: question, match: editorState.currentSearchMatch)
-                                .font(.body)
-                                .padding()
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(Color.secondary.opacity(0.1))
-                                .cornerRadius(8)
+                            // Question text preview (stripped HTML with search highlighting)
+                            VStack(alignment: .leading, spacing: 8) {
+                                highlightedQuestionText(question: question, match: editorState.currentSearchMatch)
+                                    .font(.body)
+                                    .padding()
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(Color.secondary.opacity(0.1))
+                                    .cornerRadius(8)
 
-                            // Show answers with highlighting if matched
-                            if editorState.currentSearchMatch?.field == .answerText {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Answers:")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                // Show answers with highlighting if matched
+                                if editorState.currentSearchMatch?.field == .answerText {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Answers:")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
 
-                                    ForEach(Array(question.answers.enumerated()), id: \.element.id) { index, answer in
-                                        highlightedAnswerText(
-                                            answer: answer,
-                                            index: index,
-                                            match: editorState.currentSearchMatch
-                                        )
-                                        .font(.caption)
-                                        .padding(4)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .background(Color.secondary.opacity(0.05))
-                                        .cornerRadius(4)
+                                        ForEach(Array(question.answers.enumerated()), id: \.element.id) { index, answer in
+                                            highlightedAnswerText(
+                                                answer: answer,
+                                                index: index,
+                                                match: editorState.currentSearchMatch
+                                            )
+                                            .font(.caption)
+                                            .padding(4)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .background(Color.secondary.opacity(0.05))
+                                            .cornerRadius(4)
+                                        }
                                     }
                                 }
                             }
-                        }
 
-                        Text("Answers: \(question.answers.count)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            Text("Answers: \(question.answers.count)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
 
-                        Divider()
+                            Divider()
 
-                        // Editor mode toggle
-                        HStack {
-                            Text("Edit Question:")
-                                .font(.headline)
-                            Spacer()
-                            EditorModeToggle()
-                        }
+                            // Editor mode toggle
+                            HStack {
+                                Text("Edit Question:")
+                                    .font(.headline)
+                                Spacer()
+                                EditorModeToggle()
+                            }
 
-                        // Editor view based on mode
-                        if editorState.editorMode == .html {
-                            VStack(spacing: 0) {
-                                // HTML editor toolbar
-                                HStack {
-                                    Button(action: {
-                                        Task {
-                                            await beautifyHTML(for: question)
+                            // Editor view based on mode
+                            if editorState.editorMode == .html {
+                                VStack(spacing: 0) {
+                                    // HTML editor toolbar
+                                    HStack {
+                                        Button(action: {
+                                            Task {
+                                                await beautifyHTML(for: question)
+                                            }
+                                        }) {
+                                            Label("Beautify", systemImage: "wand.and.stars")
                                         }
-                                    }) {
-                                        Label("Beautify", systemImage: "wand.and.stars")
-                                    }
-                                    .buttonStyle(.bordered)
+                                        .buttonStyle(.bordered)
 
-                                    Button(action: {
-                                        Task {
-                                            await validateHTML(for: question)
+                                        Button(action: {
+                                            Task {
+                                                await validateHTML(for: question)
+                                            }
+                                        }) {
+                                            Label("Validate", systemImage: "checkmark.circle")
                                         }
-                                    }) {
-                                        Label("Validate", systemImage: "checkmark.circle")
-                                    }
-                                    .buttonStyle(.bordered)
+                                        .buttonStyle(.bordered)
 
-                                    Spacer()
+                                        Spacer()
+                                    }
+                                    .padding(8)
+                                    .background(Color.secondary.opacity(0.1))
+
+                                    // HTML editor
+                                    HTMLEditorView(text: Binding(
+                                        get: { question.questionText },
+                                        set: { newValue in
+                                            question.questionText = newValue
+                                        }
+                                    ))
                                 }
-                                .padding(8)
-                                .background(Color.secondary.opacity(0.1))
-
-                                // HTML editor
-                                HTMLEditorView(text: Binding(
+                                .frame(minHeight: 200, idealHeight: 300)
+                                .border(Color.secondary.opacity(0.3), width: 1)
+                                .cornerRadius(4)
+                            } else {
+                                RichTextEditorView(htmlText: Binding(
                                     get: { question.questionText },
                                     set: { newValue in
                                         question.questionText = newValue
                                     }
                                 ))
+                                .frame(minHeight: 200, idealHeight: 300)
+                                .border(Color.secondary.opacity(0.3), width: 1)
+                                .cornerRadius(4)
                             }
-                            .frame(minHeight: 200, maxHeight: .infinity)
-                            .border(Color.secondary.opacity(0.3), width: 1)
-                            .cornerRadius(4)
-                        } else {
-                            RichTextEditorView(htmlText: Binding(
-                                get: { question.questionText },
-                                set: { newValue in
-                                    question.questionText = newValue
-                                }
-                            ))
-                            .frame(minHeight: 200, maxHeight: .infinity)
-                            .border(Color.secondary.opacity(0.3), width: 1)
-                            .cornerRadius(4)
+
+                            Divider()
+
+                            // Answer editor
+                            AnswerListEditorView(question: question)
                         }
+                        .padding()
                     }
-                    .padding()
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 } else {
                     ContentUnavailableView(
