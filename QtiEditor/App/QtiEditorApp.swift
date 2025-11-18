@@ -73,8 +73,11 @@ struct FileCommands: Commands {
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
-        panel.allowedContentTypes = [.init(filenameExtension: "imscc")!]
-        panel.message = "Select a Canvas .imscc quiz export file"
+        panel.allowedContentTypes = [
+            .init(filenameExtension: "imscc")!,
+            .init(filenameExtension: "zip")!
+        ]
+        panel.message = "Select a Canvas quiz export file (.imscc or .zip)"
 
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
@@ -88,9 +91,12 @@ struct FileCommands: Commands {
     @MainActor
     private func saveDocumentAs() {
         let panel = NSSavePanel()
-        panel.allowedContentTypes = [.init(filenameExtension: "imscc")!]
+        panel.allowedContentTypes = [
+            .init(filenameExtension: "zip")!,
+            .init(filenameExtension: "imscc")!
+        ]
         panel.nameFieldStringValue = editorState.document?.title ?? "quiz"
-        panel.message = "Export quiz as .imscc package"
+        panel.message = "Export quiz as Canvas package (.zip recommended)"
 
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }

@@ -183,19 +183,23 @@ extension FileManager {
             throw QTIError.cannotCreatePackage("zip failed with status \(process.terminationStatus): \(errorMessage)")
         }
 
-        // Move the zip file from temp to final destination
+        // Copy the zip file from temp to final destination
+        // Use copyItem instead of moveItem to avoid sandbox permission issues
         do {
             // Remove destination if it exists
             if FileManager.default.fileExists(atPath: destinationURL.path) {
                 try FileManager.default.removeItem(at: destinationURL)
             }
 
-            // Move temp zip to final location
-            try FileManager.default.moveItem(at: tempZip, to: destinationURL)
+            // Copy temp zip to final location (copyItem works better with sandbox)
+            try FileManager.default.copyItem(at: tempZip, to: destinationURL)
+
+            // Clean up temp zip after successful copy
+            try? FileManager.default.removeItem(at: tempZip)
         } catch {
             // Clean up temp zip on failure
             try? FileManager.default.removeItem(at: tempZip)
-            throw QTIError.cannotCreatePackage("Failed to move zip file: \(error.localizedDescription)")
+            throw QTIError.cannotCreatePackage("Failed to copy zip file: \(error.localizedDescription)")
         }
     }
 }
