@@ -183,38 +183,38 @@ This document tracks the implementation progress of the QTI Quiz Editor.
   - [ ] Quiz metadata when no question selected
   - [ ] Conditional display based on selection
 
-### Editor Views (Not Yet Implemented)
-- [ ] `EditorModeToggle.swift` - Mode switcher
-  - [ ] Segmented control (HTML / Rich Text)
-  - [ ] Update state on change
-  - [ ] Warning when switching modes
+### Editor Views ✅
+- [x] `EditorModeToggle.swift` - Mode switcher
+  - [x] Segmented control (HTML / Rich Text)
+  - [x] Update state on change
+  - [ ] Warning when switching modes (future enhancement)
 
-- [ ] `HTMLEditorView.swift` - HTML code editor
-  - [ ] NSTextView integration with SwiftUI
-  - [ ] Basic syntax highlighting
-    - [ ] HTML tags
-    - [ ] Attributes
-    - [ ] Text content
-  - [ ] Line numbers (optional)
-  - [ ] Monospace font
-  - [ ] Bind to question HTML
-  - [ ] Validate HTML button
-  - [ ] Beautify HTML button
+- [x] `HTMLEditorView.swift` - HTML code editor
+  - [x] NSTextView integration with SwiftUI
+  - [x] Basic syntax highlighting
+    - [x] HTML tags
+    - [x] Attributes
+    - [x] Text content
+  - [ ] Line numbers (optional - future enhancement)
+  - [x] Monospace font
+  - [x] Bind to question HTML
+  - [ ] Validate HTML button (future enhancement)
+  - [ ] Beautify HTML button (future enhancement)
 
-- [ ] `RichTextEditorView.swift` - WYSIWYG editor
-  - [ ] NSTextView with rich text editing
-  - [ ] HTML to NSAttributedString conversion
-  - [ ] NSAttributedString to HTML conversion
-  - [ ] Bidirectional sync with model
-  - [ ] Formatting toolbar (bold, italic, lists, etc.)
-  - [ ] Handle common HTML elements
+- [x] `RichTextEditorView.swift` - WYSIWYG editor
+  - [x] NSTextView with rich text editing
+  - [x] HTML to NSAttributedString conversion
+  - [x] NSAttributedString to HTML conversion
+  - [x] Bidirectional sync with model
+  - [ ] Formatting toolbar (bold, italic, lists, etc.) (future enhancement)
+  - [x] Handle common HTML elements
 
-### Supporting Services
-- [ ] `HTMLBeautifier.swift` - HTML formatting
-  - [ ] Pretty-print HTML
-  - [ ] Validate HTML structure
-  - [ ] Fix common issues
-  - [ ] Consider HTMLTidy integration
+### Supporting Services ✅
+- [x] `HTMLBeautifier.swift` - HTML formatting
+  - [x] Pretty-print HTML
+  - [x] Validate HTML structure
+  - [x] Fix common issues
+  - [ ] Consider HTMLTidy integration (not needed - built custom solution)
 
 ---
 
@@ -380,6 +380,40 @@ open QtiEditor.xcodeproj
 
 ---
 
-*Last updated: 2025-11-16*
-*Current phase: Phase 4 - User Interface (Editor Views)*
-*Status: Foundation complete, search/replace fully functional, ready for editor views*
+## Recent Accomplishments (2025-11-18)
+
+### Editor Views Implementation
+- Created complete editor view system with mode switching
+- Implemented `EditorModeToggle.swift` - seamless switching between HTML and Rich Text modes
+- Implemented `HTMLEditorView.swift`:
+  - NSTextView wrapper with SwiftUI integration
+  - Real-time syntax highlighting for HTML tags, attributes, and strings
+  - Monospace font for code editing
+  - Proper cursor position maintenance during updates
+- Implemented `RichTextEditorView.swift`:
+  - WYSIWYG editor with bidirectional HTML conversion
+  - HTML to NSAttributedString conversion for display
+  - NSAttributedString to HTML conversion for saving
+  - Standard rich text editing capabilities
+- Implemented `HTMLBeautifier.swift`:
+  - Actor-based service for thread-safe HTML processing
+  - HTML beautification with proper indentation
+  - HTML validation with tag matching
+  - Detection of unclosed and mismatched tags
+- Updated `ContentView.swift`:
+  - Integrated editor views with conditional rendering based on mode
+  - Added editor mode toggle in question editor area
+  - Proper bindings to question model
+
+### Technical Achievements
+- All editors use NSViewRepresentable to bridge AppKit and SwiftUI
+- Maintained Swift 6 strict concurrency with @MainActor isolation
+- Implemented real-time syntax highlighting without external dependencies
+- Created custom HTML beautification without HTMLTidy dependency
+- Proper state management and bindings throughout
+
+---
+
+*Last updated: 2025-11-18*
+*Current phase: Phase 4 - User Interface (Main window complete, editor views complete)*
+*Status: Core editing functionality complete, ready for polish and testing*
