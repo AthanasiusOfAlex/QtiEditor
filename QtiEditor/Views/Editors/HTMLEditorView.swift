@@ -45,7 +45,11 @@ struct HTMLEditorView: NSViewRepresentable {
         // Only update if text has changed to avoid cursor jumping
         if textView.string != text {
             let selectedRange = textView.selectedRange()
+
+            // Disable undo registration for programmatic updates to prevent crashes
+            textView.undoManager?.disableUndoRegistration()
             textView.string = text
+            textView.undoManager?.enableUndoRegistration()
 
             // Apply syntax highlighting
             applySyntaxHighlighting(to: textView)
@@ -101,8 +105,14 @@ struct HTMLEditorView: NSViewRepresentable {
         // Store current selection
         let selectedRange = textView.selectedRange()
 
+        // Disable undo for syntax highlighting changes
+        textView.undoManager?.disableUndoRegistration()
+
         // Update text view with highlighting
         textView.textStorage?.setAttributedString(attributedString)
+
+        // Re-enable undo
+        textView.undoManager?.enableUndoRegistration()
 
         // Restore selection
         textView.setSelectedRange(selectedRange)

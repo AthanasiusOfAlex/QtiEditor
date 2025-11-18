@@ -52,7 +52,11 @@ struct RichTextEditorView: NSViewRepresentable {
         // Only update if content has changed to avoid cursor jumping
         if !textView.attributedString().isEqual(to: attributedString) {
             let selectedRange = textView.selectedRange()
+
+            // Disable undo registration for programmatic updates to prevent crashes
+            textView.undoManager?.disableUndoRegistration()
             textView.textStorage?.setAttributedString(attributedString)
+            textView.undoManager?.enableUndoRegistration()
 
             // Restore cursor position if possible
             if selectedRange.location <= textView.string.count {

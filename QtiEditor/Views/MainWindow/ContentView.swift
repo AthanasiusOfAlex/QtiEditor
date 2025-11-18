@@ -89,26 +89,55 @@ struct ContentView: View {
                         }
 
                         // Editor view based on mode
-                        Group {
-                            if editorState.editorMode == .html {
+                        if editorState.editorMode == .html {
+                            VStack(spacing: 0) {
+                                // HTML editor toolbar
+                                HStack {
+                                    Button(action: {
+                                        Task {
+                                            await beautifyHTML(for: question)
+                                        }
+                                    }) {
+                                        Label("Beautify", systemImage: "wand.and.stars")
+                                    }
+                                    .buttonStyle(.bordered)
+
+                                    Button(action: {
+                                        Task {
+                                            await validateHTML(for: question)
+                                        }
+                                    }) {
+                                        Label("Validate", systemImage: "checkmark.circle")
+                                    }
+                                    .buttonStyle(.bordered)
+
+                                    Spacer()
+                                }
+                                .padding(8)
+                                .background(Color.secondary.opacity(0.1))
+
+                                // HTML editor
                                 HTMLEditorView(text: Binding(
                                     get: { question.questionText },
                                     set: { newValue in
                                         question.questionText = newValue
                                     }
                                 ))
-                            } else {
-                                RichTextEditorView(htmlText: Binding(
-                                    get: { question.questionText },
-                                    set: { newValue in
-                                        question.questionText = newValue
-                                    }
-                                ))
                             }
+                            .frame(minHeight: 200, maxHeight: .infinity)
+                            .border(Color.secondary.opacity(0.3), width: 1)
+                            .cornerRadius(4)
+                        } else {
+                            RichTextEditorView(htmlText: Binding(
+                                get: { question.questionText },
+                                set: { newValue in
+                                    question.questionText = newValue
+                                }
+                            ))
+                            .frame(minHeight: 200, maxHeight: .infinity)
+                            .border(Color.secondary.opacity(0.3), width: 1)
+                            .cornerRadius(4)
                         }
-                        .frame(minHeight: 200, maxHeight: .infinity)
-                        .border(Color.secondary.opacity(0.3), width: 1)
-                        .cornerRadius(4)
                     }
                     .padding()
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -175,6 +204,31 @@ struct ContentView: View {
     private func stripHTML(_ html: String) -> String {
         html.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Beautify HTML for the given question
+    private func beautifyHTML(for question: QTIQuestion) async {
+        let beautifier = HTMLBeautifier()
+        let beautified = await beautifier.beautify(question.questionText)
+        await MainActor.run {
+            question.questionText = beautified
+        }
+    }
+
+    /// Validate HTML for the given question
+    private func validateHTML(for question: QTIQuestion) async {
+        let beautifier = HTMLBeautifier()
+        let result = await beautifier.validate(question.questionText)
+
+        await MainActor.run {
+            if result.isValid {
+                editorState.alertMessage = "✓ HTML is valid!"
+            } else {
+                let errors = result.errors.joined(separator: "\n")
+                editorState.alertMessage = "HTML Validation Errors:\n\n\(errors)"
+            }
+            editorState.showAlert = true
+        }
     }
 
     /// Create highlighted text for question with search matches
