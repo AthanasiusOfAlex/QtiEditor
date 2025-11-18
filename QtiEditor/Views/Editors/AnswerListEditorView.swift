@@ -84,7 +84,7 @@ struct AnswerListEditorView: View {
         }
 
         // Create a deep copy
-        var duplicatedAnswer = answer.duplicate(preserveCanvasIdentifier: false)
+        let duplicatedAnswer = answer.duplicate(preserveCanvasIdentifier: false)
 
         // For multiple choice, reset isCorrect to avoid multiple correct answers
         if question.type == .multipleChoice || question.type == .trueFalse {
