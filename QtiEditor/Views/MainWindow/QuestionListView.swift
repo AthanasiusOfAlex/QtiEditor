@@ -16,120 +16,30 @@ struct QuestionListView: View {
     var body: some View {
         @Bindable var editorState = editorState
 
+        return buildQuestionList(editorState: editorState)
+    }
+
+    @ViewBuilder
+    private func buildQuestionList(editorState: EditorState) -> some View {
         let selectionCount = computeSelectionCount()
 
-        List(selection: $editorState.selectedQuestionIDs) {
-            if let document = editorState.document {
-                // Quiz settings button
-                Section {
-                    Button(action: {
-                        editorState.selectedQuestionID = nil
-                        editorState.selectedQuestionIDs.removeAll()
-                    }) {
-                        HStack {
-                            Image(systemName: "gearshape")
-                                .foregroundStyle(.blue)
-                            Text("Quiz Settings")
-                                .foregroundStyle(.primary)
-                            Spacer()
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                Section("Questions (\(document.questions.count))") {
-                    ForEach(Array(document.questions.enumerated()), id: \.element.id) { index, question in
-                        QuestionRowView(question: question, index: index + 1)
-                            .tag(question.id)
-                            .contextMenu {
-                                Button("Copy") {
-                                    editorState.copyQuestion(question)
-                                }
-
-                                Button("Paste") {
-                                    editorState.pasteQuestion()
-                                }
-                                .disabled(editorState.document == nil)
-
-                                Divider()
-
-                                Button(action: {
-                                    editorState.duplicateQuestion(question)
-                                }) {
-                                    Label("Duplicate", systemImage: "plus.square.on.square")
-                                }
-
-                                Divider()
-
-                                Button(action: {
-                                    confirmDelete(question)
-                                }) {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                    }
-                    .onMove { fromOffsets, toOffset in
-                        document.questions.move(fromOffsets: fromOffsets, toOffset: toOffset)
-                    }
-                }
-
-                if document.questions.isEmpty {
-                    ContentUnavailableView(
-                        "No Questions",
-                        systemImage: "questionmark.circle",
-                        description: Text("Add a question to get started")
-                    )
-                }
-            }
+        List(selection: Binding(
+            get: { editorState.selectedQuestionIDs },
+            set: { editorState.selectedQuestionIDs = $0 }
+        )) {
+            buildListContent(editorState: editorState)
         }
         .navigationTitle("Questions")
         .focused($isListFocused)
         .focusedSceneValue(\.questionListFocused, isListFocused)
         .onAppear {
-            // Give focus to the list when it appears
             isListFocused = true
         }
         .onChange(of: editorState.selectedQuestionIDs) { _, newSelection in
-            // Keep selectedQuestionID in sync with the focused question
-            if newSelection.isEmpty {
-                editorState.selectedQuestionID = nil
-            } else if let current = editorState.selectedQuestionID, newSelection.contains(current) {
-                // Keep current selection if it's still in the set
-            } else {
-                // Use the first selected question
-                editorState.selectedQuestionID = editorState.document?.questions.first { newSelection.contains($0.id) }?.id
-            }
+            handleSelectionChange(newSelection: newSelection)
         }
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button(action: {
-                    editorState.addQuestion()
-                }) {
-                    Label("Add Question", systemImage: "plus")
-                }
-                .keyboardShortcut("n", modifiers: [.command, .shift])
-                .help("Add a new question (Cmd+Shift+N)")
-            }
-
-            ToolbarItem(placement: .primaryAction) {
-                Button(action: {
-                    editorState.duplicateSelectedQuestions()
-                }) {
-                    Label("Duplicate Question", systemImage: "plus.square.on.square")
-                }
-                .disabled(editorState.selectedQuestionIDs.isEmpty && editorState.selectedQuestion == nil)
-                .help(duplicateHelpText(count: selectionCount))
-            }
-
-            ToolbarItem(placement: .primaryAction) {
-                Button(action: {
-                    confirmDelete()
-                }) {
-                    Label("Delete Question", systemImage: "trash")
-                }
-                .disabled(editorState.selectedQuestionIDs.isEmpty && editorState.selectedQuestion == nil)
-                .help(deleteHelpText(count: selectionCount))
-            }
+            buildToolbarContent(selectionCount: selectionCount)
         }
         .onDeleteCommand {
             confirmDelete()
@@ -144,6 +54,120 @@ struct QuestionListView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text(deleteDialogMessage(count: selectionCount))
+        }
+    }
+
+    @ViewBuilder
+    private func buildListContent(editorState: EditorState) -> some View {
+        if let document = editorState.document {
+            Section {
+                Button(action: {
+                    editorState.selectedQuestionID = nil
+                    editorState.selectedQuestionIDs.removeAll()
+                }) {
+                    HStack {
+                        Image(systemName: "gearshape")
+                            .foregroundStyle(.blue)
+                        Text("Quiz Settings")
+                            .foregroundStyle(.primary)
+                        Spacer()
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+
+            Section("Questions (\(document.questions.count))") {
+                ForEach(Array(document.questions.enumerated()), id: \.element.id) { index, question in
+                    QuestionRowView(question: question, index: index + 1)
+                        .tag(question.id)
+                        .contextMenu {
+                            buildContextMenu(question: question)
+                        }
+                }
+                .onMove { fromOffsets, toOffset in
+                    document.questions.move(fromOffsets: fromOffsets, toOffset: toOffset)
+                }
+            }
+
+            if document.questions.isEmpty {
+                ContentUnavailableView(
+                    "No Questions",
+                    systemImage: "questionmark.circle",
+                    description: Text("Add a question to get started")
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func buildContextMenu(question: QTIQuestion) -> some View {
+        Button("Copy") {
+            editorState.copyQuestion(question)
+        }
+
+        Button("Paste") {
+            editorState.pasteQuestion()
+        }
+        .disabled(editorState.document == nil)
+
+        Divider()
+
+        Button(action: {
+            editorState.duplicateQuestion(question)
+        }) {
+            Label("Duplicate", systemImage: "plus.square.on.square")
+        }
+
+        Divider()
+
+        Button(action: {
+            confirmDelete()
+        }) {
+            Label("Delete", systemImage: "trash")
+        }
+    }
+
+    @ToolbarContentBuilder
+    private func buildToolbarContent(selectionCount: Int) -> some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            Button(action: {
+                editorState.addQuestion()
+            }) {
+                Label("Add Question", systemImage: "plus")
+            }
+            .keyboardShortcut("n", modifiers: [.command, .shift])
+            .help("Add a new question (Cmd+Shift+N)")
+        }
+
+        ToolbarItem(placement: .primaryAction) {
+            Button(action: {
+                editorState.duplicateSelectedQuestions()
+            }) {
+                Label("Duplicate Question", systemImage: "plus.square.on.square")
+            }
+            .disabled(editorState.selectedQuestionIDs.isEmpty && editorState.selectedQuestion == nil)
+            .help(duplicateHelpText(count: selectionCount))
+        }
+
+        ToolbarItem(placement: .primaryAction) {
+            Button(action: {
+                confirmDelete()
+            }) {
+                Label("Delete Question", systemImage: "trash")
+            }
+            .disabled(editorState.selectedQuestionIDs.isEmpty && editorState.selectedQuestion == nil)
+            .help(deleteHelpText(count: selectionCount))
+        }
+    }
+
+    private func handleSelectionChange(newSelection: Set<UUID>) {
+        if newSelection.isEmpty {
+            editorState.selectedQuestionID = nil
+        } else if let current = editorState.selectedQuestionID, newSelection.contains(current) {
+            // Keep current selection if it's still in the set
+        } else {
+            // Use the first selected question
+            editorState.selectedQuestionID = editorState.document?.questions.first { newSelection.contains($0.id) }?.id
         }
     }
 
