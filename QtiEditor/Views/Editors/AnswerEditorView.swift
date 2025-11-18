@@ -62,7 +62,7 @@ struct AnswerEditorView: View {
     private var headerRow: some View {
         @Bindable var answer = answer
 
-        HStack {
+        return HStack {
             Text("Answer \(index + 1)")
                 .font(.headline)
 
@@ -96,7 +96,7 @@ struct AnswerEditorView: View {
     private var editorView: some View {
         @Bindable var answer = answer
 
-        VStack(spacing: 0) {
+        return VStack(spacing: 0) {
             if editorState.editorMode == .html {
                 HTMLEditorView(text: $answer.text)
                     .frame(height: editorHeight)
