@@ -113,11 +113,18 @@ This document tracks the implementation progress of the QTI Quiz Editor.
     - [x] Answer text only
     - [x] Feedback text only
     - [x] All text fields
+    - [ ] **Question titles** - Need to add as searchable field
   - [x] Return match locations and context with HTML stripping
   - [x] Replace operations (single match and replace-all)
   - [x] Full capture group support ($0, $1, $2, etc.)
   - [x] Case-sensitive/insensitive toggle
   - [x] Preserve HTML structure during replace
+
+### Known Issues / Future Enhancements
+- [ ] **Question titles not searchable** - Add question title as a separate searchable scope
+  - Need to update SearchField enum
+  - Need to update SearchEngine to search question titles
+  - Need to add "Question Titles" option to field selector UI
 
 ### Search Data Models
 - [x] `SearchResult.swift` - Search data structures
@@ -254,19 +261,20 @@ This document tracks the implementation progress of the QTI Quiz Editor.
   - [x] Multiple choice validation (only one correct answer)
   - [x] Visual feedback on resize handles
 
-### Dark Mode Support
+### Dark Mode Support ✅
 - [x] HTML editor dark mode support (native NSTextView)
 - [x] Rich text editor dark mode support
   - [x] Strip explicit black colors from HTML
   - [x] Replace default black text with adaptive NSColor.labelColor
   - [x] Preserve intentional colors (red, blue, etc.)
+- [x] All UI elements properly support dark mode
 
 ### Implementation Status
 - [x] Add question functionality
 - [x] Delete question functionality
 - [x] Inspector panel creation
 - [x] Drag & drop reordering
-- [x] UI polish and dark mode
+- [x] UI polish and dark mode (complete)
 - [x] Settings persistence
 
 ---
@@ -400,6 +408,29 @@ This document tracks the implementation progress of the QTI Quiz Editor.
 
 ---
 
+## Phase 5.7: Answer Reordering
+
+### Drag & Drop for Answers
+- [ ] Enable drag & drop reordering in AnswerListEditorView
+  - [ ] Add .onMove modifier to ForEach in answer list
+  - [ ] Visual feedback during drag operation
+  - [ ] Update answer array when reordered
+  - [ ] Preserve all answer properties during move
+
+### UI Updates
+- [ ] Remove "Paste Answer" button (no longer needed with reordering)
+- [ ] Keep "Duplicate Answer" button
+- [ ] Update answer context menu (remove paste, keep copy for cross-question use)
+
+### Implementation Status
+- [ ] Add .onMove to answer ForEach
+- [ ] Remove paste button from AnswerListEditorView
+- [ ] Update context menus
+- [ ] Test reordering with multiple choice questions
+- [ ] Ensure reordering works correctly
+
+---
+
 ## Phase 6: Polish & Testing
 
 ### User Experience
@@ -463,19 +494,16 @@ These are potential features for future development:
 - [ ] Canvas preview mode
 - [ ] Diff view (compare before/after)
 - [ ] Version history
-- [ ] **Answer reordering** - Drag & drop to reorder answers like questions
-  - If implemented, could remove answer copy/paste (duplicate is sufficient)
 
 ### Quality of Life
 - [ ] Undo/redo support
 - [ ] Multiple document windows
 - [ ] Split editor view
 - [ ] Customizable keyboard shortcuts
-- [ ] Dark mode support (partially done - text editors work)
+- [x] Dark mode support (complete)
 - [ ] Export to other formats (PDF, Markdown, etc.)
 - [ ] Statistics (question count, average difficulty, etc.)
 - [ ] **Cmd+A to select all questions** when question list has focus
-- [ ] **Remove answer paste button** if answer reordering implemented
 
 ---
 
