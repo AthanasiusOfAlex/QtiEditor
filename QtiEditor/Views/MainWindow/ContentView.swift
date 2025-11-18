@@ -11,9 +11,8 @@ import SwiftUI
 /// Provides the three-pane layout: Question List (sidebar), Editor (main), Inspector (trailing)
 struct ContentView: View {
     @Environment(EditorState.self) private var editorState
-    @AppStorage("questionSectionHeight") private var storedQuestionSectionHeight: Double = 400
-    @State private var questionSectionHeight: CGFloat = 400
-    @State private var questionEditorHeight: CGFloat = 100
+    @AppStorage("questionEditorHeight") private var storedQuestionEditorHeight: Double = 300
+    @State private var questionEditorHeight: CGFloat = 300
 
     var body: some View {
         @Bindable var editorState = editorState
@@ -36,149 +35,143 @@ struct ContentView: View {
                 // Question editor
                 if let question = editorState.selectedQuestion {
                     VStack(spacing: 0) {
-                        // Question section with fixed height
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 16) {
-                                HStack {
-                                    Text("Question \(editorState.document?.questions.firstIndex(where: { $0.id == question.id }).map { $0 + 1 } ?? 0)")
-                                        .font(.title)
-                                    Text("·")
-                                        .foregroundStyle(.secondary)
-                                    Text(question.type.displayName)
-                                        .font(.title3)
-                                        .foregroundStyle(.secondary)
-                                }
+                        // Fixed metadata section (header, title, search preview, toggle)
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack {
+                                Text("Question \(editorState.document?.questions.firstIndex(where: { $0.id == question.id }).map { $0 + 1 } ?? 0)")
+                                    .font(.title)
+                                Text("·")
+                                    .foregroundStyle(.secondary)
+                                Text(question.type.displayName)
+                                    .font(.title3)
+                                    .foregroundStyle(.secondary)
+                            }
 
-                                // Question title/label
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Title / Label (optional)")
-                                        .font(.caption)
+                            // Question title/label
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Title / Label (optional)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+
+                                TextField("Question title or label", text: Binding(
+                                    get: { question.metadata["canvas_title"] ?? "" },
+                                    set: { question.metadata["canvas_title"] = $0 }
+                                ))
+                                .textFieldStyle(.roundedBorder)
+                            }
+
+                            Divider()
+
+                            // Only show preview when there's an active search match
+                            if editorState.currentSearchMatch != nil {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Search Results Preview")
+                                        .font(.headline)
                                         .foregroundStyle(.secondary)
 
-                                    TextField("Question title or label", text: Binding(
-                                        get: { question.metadata["canvas_title"] ?? "" },
-                                        set: { question.metadata["canvas_title"] = $0 }
-                                    ))
-                                    .textFieldStyle(.roundedBorder)
+                                    highlightedQuestionText(question: question, match: editorState.currentSearchMatch)
+                                        .font(.body)
+                                        .padding()
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .background(Color.secondary.opacity(0.1))
+                                        .cornerRadius(8)
+
+                                    // Show answers with highlighting if matched
+                                    if editorState.currentSearchMatch?.field == .answerText {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text("Answers:")
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+
+                                            ForEach(Array(question.answers.enumerated()), id: \.element.id) { index, answer in
+                                                highlightedAnswerText(
+                                                    answer: answer,
+                                                    index: index,
+                                                    match: editorState.currentSearchMatch
+                                                )
+                                                .font(.caption)
+                                                .padding(4)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                                .background(Color.secondary.opacity(0.05))
+                                                .cornerRadius(4)
+                                            }
+                                        }
+                                    }
                                 }
+                                .padding()
+                                .background(Color.yellow.opacity(0.1))
+                                .cornerRadius(8)
 
                                 Divider()
-
-                                // Only show preview when there's an active search match
-                                if editorState.currentSearchMatch != nil {
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        Text("Search Results Preview")
-                                            .font(.headline)
-                                            .foregroundStyle(.secondary)
-
-                                        highlightedQuestionText(question: question, match: editorState.currentSearchMatch)
-                                            .font(.body)
-                                            .padding()
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                            .background(Color.secondary.opacity(0.1))
-                                            .cornerRadius(8)
-
-                                        // Show answers with highlighting if matched
-                                        if editorState.currentSearchMatch?.field == .answerText {
-                                            VStack(alignment: .leading, spacing: 4) {
-                                                Text("Answers:")
-                                                    .font(.caption)
-                                                    .foregroundStyle(.secondary)
-
-                                                ForEach(Array(question.answers.enumerated()), id: \.element.id) { index, answer in
-                                                    highlightedAnswerText(
-                                                        answer: answer,
-                                                        index: index,
-                                                        match: editorState.currentSearchMatch
-                                                    )
-                                                    .font(.caption)
-                                                    .padding(4)
-                                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                                    .background(Color.secondary.opacity(0.05))
-                                                    .cornerRadius(4)
-                                                }
-                                            }
-                                        }
-                                    }
-                                    .padding()
-                                    .background(Color.yellow.opacity(0.1))
-                                    .cornerRadius(8)
-
-                                    Divider()
-                                }
-
-                                // Editor mode toggle
-                                HStack {
-                                    Text("Edit Question:")
-                                        .font(.headline)
-                                    Spacer()
-                                    EditorModeToggle()
-                                }
-
-                                // Editor view based on mode
-                                VStack(spacing: 0) {
-                                    if editorState.editorMode == .html {
-                                        VStack(spacing: 0) {
-                                            // HTML editor toolbar
-                                            HStack {
-                                                Button(action: {
-                                                    Task {
-                                                        await beautifyHTML(for: question)
-                                                    }
-                                                }) {
-                                                    Label("Beautify", systemImage: "wand.and.stars")
-                                                }
-                                                .buttonStyle(.bordered)
-
-                                                Button(action: {
-                                                    Task {
-                                                        await validateHTML(for: question)
-                                                    }
-                                                }) {
-                                                    Label("Validate", systemImage: "checkmark.circle")
-                                                }
-                                                .buttonStyle(.bordered)
-
-                                                Spacer()
-                                            }
-                                            .padding(8)
-                                            .background(Color.secondary.opacity(0.1))
-
-                                            // HTML editor
-                                            HTMLEditorView(text: Binding(
-                                                get: { question.questionText },
-                                                set: { newValue in
-                                                    question.questionText = newValue
-                                                }
-                                            ))
-                                        }
-                                        .frame(height: questionEditorHeight)
-                                        .border(Color.secondary.opacity(0.3), width: 1)
-                                        .cornerRadius(4)
-                                    } else {
-                                        RichTextEditorView(htmlText: Binding(
-                                            get: { question.questionText },
-                                            set: { newValue in
-                                                question.questionText = newValue
-                                            }
-                                        ))
-                                        .frame(height: questionEditorHeight)
-                                        .border(Color.secondary.opacity(0.3), width: 1)
-                                        .cornerRadius(4)
-                                    }
-
-                                    // Resize handle
-                                    ResizeHandle(height: $questionEditorHeight)
-                                }
                             }
-                            .padding()
+
+                            // Editor mode toggle
+                            HStack {
+                                Text("Edit Question:")
+                                    .font(.headline)
+                                Spacer()
+                                EditorModeToggle()
+                            }
                         }
-                        .frame(height: questionSectionHeight)
+                        .padding()
 
-                        // Single resize handle between question section and answer list
-                        QuestionSectionResizeHandle(height: $questionSectionHeight)
+                        // Resizable question editor box (has internal scrolling)
+                        VStack(spacing: 0) {
+                            if editorState.editorMode == .html {
+                                VStack(spacing: 0) {
+                                    // HTML editor toolbar
+                                    HStack {
+                                        Button(action: {
+                                            Task {
+                                                await beautifyHTML(for: question)
+                                            }
+                                        }) {
+                                            Label("Beautify", systemImage: "wand.and.stars")
+                                        }
+                                        .buttonStyle(.bordered)
 
-                        // Answer editor - fills remaining space
+                                        Button(action: {
+                                            Task {
+                                                await validateHTML(for: question)
+                                            }
+                                        }) {
+                                            Label("Validate", systemImage: "checkmark.circle")
+                                        }
+                                        .buttonStyle(.bordered)
+
+                                        Spacer()
+                                    }
+                                    .padding(8)
+                                    .background(Color.secondary.opacity(0.1))
+
+                                    // HTML editor
+                                    HTMLEditorView(text: Binding(
+                                        get: { question.questionText },
+                                        set: { newValue in
+                                            question.questionText = newValue
+                                        }
+                                    ))
+                                }
+                                .border(Color.secondary.opacity(0.3), width: 1)
+                                .cornerRadius(4)
+                            } else {
+                                RichTextEditorView(htmlText: Binding(
+                                    get: { question.questionText },
+                                    set: { newValue in
+                                        question.questionText = newValue
+                                    }
+                                ))
+                                .border(Color.secondary.opacity(0.3), width: 1)
+                                .cornerRadius(4)
+                            }
+                        }
+                        .frame(height: questionEditorHeight)
+                        .padding(.horizontal)
+
+                        // Resize handle between editor and answer list
+                        QuestionEditorResizeHandle(height: $questionEditorHeight)
+
+                        // Answer list - fills remaining space
                         AnswerListEditorView(question: question)
                             .frame(maxHeight: .infinity)
                     }
@@ -246,10 +239,10 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            questionSectionHeight = CGFloat(storedQuestionSectionHeight)
+            questionEditorHeight = CGFloat(storedQuestionEditorHeight)
         }
-        .onChange(of: questionSectionHeight) { _, newValue in
-            storedQuestionSectionHeight = Double(newValue)
+        .onChange(of: questionEditorHeight) { _, newValue in
+            storedQuestionEditorHeight = Double(newValue)
         }
     }
 
@@ -375,10 +368,10 @@ struct ResizeHandle: View {
     }
 }
 
-/// Resize handle for question section divider
-/// Drag down = grow question section, drag up = shrink question section
+/// Resize handle for question editor divider
+/// Drag down = grow question editor, drag up = shrink question editor
 /// Answer list automatically fills remaining space
-struct QuestionSectionResizeHandle: View {
+struct QuestionEditorResizeHandle: View {
     @Binding var height: CGFloat
     @State private var isDragging = false
     @State private var isHovering = false
@@ -397,8 +390,8 @@ struct QuestionSectionResizeHandle: View {
                         DragGesture()
                             .onChanged { value in
                                 isDragging = true
-                                let newHeight = height + value.translation.height  // Drag down = grow question section
-                                height = min(max(newHeight, 200), 1000)
+                                let newHeight = height + value.translation.height  // Drag down = grow question editor
+                                height = min(max(newHeight, 150), 1000)
                             }
                             .onEnded { _ in
                                 isDragging = false
