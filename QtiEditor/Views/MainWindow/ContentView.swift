@@ -172,7 +172,7 @@ struct ContentView: View {
 
                             // Answer editor
                             AnswerListEditorView(question: question)
-                                .frame(minHeight: 300)
+                                .frame(maxHeight: .infinity)
                         }
                         .padding()
                     }
