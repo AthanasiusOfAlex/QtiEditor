@@ -107,8 +107,6 @@ struct ContentView: View {
 
                             // Editor mode toggle
                             HStack {
-                                Text("Edit Question:")
-                                    .font(.headline)
                                 Spacer()
                                 EditorModeToggle()
                             }
