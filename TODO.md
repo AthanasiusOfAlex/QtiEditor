@@ -271,21 +271,22 @@ This document tracks the implementation progress of the QTI Quiz Editor.
 
 ---
 
-## Phase 5: Duplicate & Templates (Next Priority)
+## Phase 5: Duplicate & Templates (In Progress)
 
-### Question Duplication
-- [ ] Deep copy utility for questions
-  - [ ] Copy all question properties
-  - [ ] Copy all answers with their properties
-  - [ ] Generate new UUIDs for question and answers
-  - [ ] Preserve metadata structure (but reset canvas_identifier)
-  - [ ] Apple naming convention ("Question copy", "Question copy 2")
+### Question Duplication ✅
+- [x] Deep copy utility for questions
+  - [x] Copy all question properties
+  - [x] Copy all answers with their properties
+  - [x] Generate new UUIDs for question and answers
+  - [x] Preserve metadata structure (reset canvas_identifier)
+  - [ ] Apple naming convention ("Question copy", "Question copy 2") - Future enhancement
 
-- [ ] Duplicate UI
-  - [ ] Edit > Duplicate menu item (Cmd+D)
-  - [ ] Duplicate button in question list toolbar
-  - [ ] Multi-duplicate dialog (create N copies at once)
-  - [ ] Insert duplicates after original question
+- [x] Duplicate UI
+  - [x] Edit > Duplicate menu item (Cmd+D)
+  - [x] Duplicate button in question list toolbar
+  - [x] Duplicate in context menu
+  - [x] Insert duplicates after original question
+  - [ ] Multi-duplicate dialog (create N copies at once) - Future enhancement
 
 ### Question Copy/Paste
 - [ ] NSPasteboard integration
@@ -301,11 +302,12 @@ This document tracks the implementation progress of the QTI Quiz Editor.
   - [ ] Paste at current selection or end of list
   - [ ] Visual feedback during copy/paste
 
-### Answer Duplication
-- [ ] Duplicate answer functionality
-  - [ ] Duplicate button in answer editor
-  - [ ] Generate new UUID for duplicated answer
-  - [ ] Reset "isCorrect" for multiple choice (avoid multiple correct)
+### Answer Duplication ✅
+- [x] Duplicate answer functionality
+  - [x] Duplicate button in answer editor
+  - [x] Generate new UUID for duplicated answer
+  - [x] Reset "isCorrect" for multiple choice (avoid multiple correct)
+  - [x] Insert after original answer
 
 - [ ] Answer Copy/Paste
   - [ ] Copy answer to pasteboard (JSON)
@@ -315,11 +317,11 @@ This document tracks the implementation progress of the QTI Quiz Editor.
   - [ ] Cross-question paste support
 
 ### Implementation Status
-- [ ] Question deep copy utility
-- [ ] Duplicate command implementation
-- [ ] Multi-duplicate dialog
+- [x] Question deep copy utility
+- [x] Duplicate command implementation
+- [x] Answer duplicate button
+- [ ] Multi-duplicate dialog (optional enhancement)
 - [ ] Copy/Paste for questions
-- [ ] Answer duplicate button
 - [ ] Answer copy/paste
 - [ ] Testing and polish
 
@@ -523,5 +525,5 @@ open QtiEditor.xcodeproj
 ---
 
 *Last updated: 2025-11-18*
-*Current phase: Phase 4.5 Complete - Ready for Phase 5 (Duplicate & Templates)*
-*Status: Core editing functionality complete with full dark mode support*
+*Current phase: Phase 5 - Duplicate & Templates (Duplication complete, Copy/Paste remaining)*
+*Status: Question and answer duplication fully implemented with Cmd+D support*
