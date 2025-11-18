@@ -222,30 +222,52 @@ This document tracks the implementation progress of the QTI Quiz Editor.
 
 ---
 
-## Phase 4.5: Question Management (In Progress)
+## Phase 4.5: Question Management ✅
 
 ### Question Operations
-- [ ] `QuestionListView.swift` - Add question operations
-  - [ ] Add question button with toolbar placement
-  - [ ] Keyboard shortcut: Cmd+N for new question
-  - [ ] Delete question button in toolbar
-  - [ ] Delete key support with confirmation dialog
-  - [ ] Drag & drop reordering (.onMove modifier)
-  - [ ] Question type indicator icons
+- [x] `QuestionListView.swift` - Add question operations
+  - [x] Add question button with toolbar placement
+  - [x] Keyboard shortcut: Cmd+Shift+N for new question
+  - [x] Delete question button in toolbar
+  - [x] Delete key support with confirmation dialog
+  - [x] Drag & drop reordering (.onMove modifier)
+  - [x] Question type indicator icons
+  - [x] Quiz settings button to access quiz metadata
 
-- [ ] `QuestionInspectorView.swift` - Question metadata editor
-  - [ ] Points field (number input)
-  - [ ] Question type picker (if allowing type changes)
-  - [ ] Question title/label field
-  - [ ] Display when question selected
-  - [ ] Show quiz metadata when no selection
+- [x] `QuestionInspectorView.swift` - Question metadata editor
+  - [x] Points field (number input)
+  - [x] Question type display (read-only)
+  - [x] Question title/label field (in ContentView)
+  - [x] Display when question selected
+  - [x] Show quiz metadata when no selection
+  - [x] Answer count and status indicators
+
+- [x] `ContentView.swift` - Main editor improvements
+  - [x] Resizable editor panes with visual feedback
+  - [x] Height persistence with @AppStorage
+  - [x] Question title editing in main pane
+  - [x] Minimum height defaults for better UX
+
+- [x] `AnswerEditorView.swift` - Answer editor polish
+  - [x] Individual resizable answer boxes
+  - [x] Height persistence per answer
+  - [x] Multiple choice validation (only one correct answer)
+  - [x] Visual feedback on resize handles
+
+### Dark Mode Support
+- [x] HTML editor dark mode support (native NSTextView)
+- [x] Rich text editor dark mode support
+  - [x] Strip explicit black colors from HTML
+  - [x] Replace default black text with adaptive NSColor.labelColor
+  - [x] Preserve intentional colors (red, blue, etc.)
 
 ### Implementation Status
-- [ ] Add question functionality
-- [ ] Delete question functionality
-- [ ] Inspector panel creation
-- [ ] Drag & drop reordering
-- [ ] Testing and polish
+- [x] Add question functionality
+- [x] Delete question functionality
+- [x] Inspector panel creation
+- [x] Drag & drop reordering
+- [x] UI polish and dark mode
+- [x] Settings persistence
 
 ---
 
@@ -501,5 +523,5 @@ open QtiEditor.xcodeproj
 ---
 
 *Last updated: 2025-11-18*
-*Current phase: Phase 4 - User Interface (Main window complete, editor views complete)*
-*Status: Core editing functionality complete, ready for polish and testing*
+*Current phase: Phase 4.5 Complete - Ready for Phase 5 (Duplicate & Templates)*
+*Status: Core editing functionality complete with full dark mode support*
