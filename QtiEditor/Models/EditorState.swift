@@ -107,6 +107,7 @@ final class EditorState {
 
         document.questions.append(question)
         selectedQuestionID = question.id
+        selectedQuestionIDs = [question.id]
     }
 
     /// Delete the specified question
@@ -155,6 +156,7 @@ final class EditorState {
 
         // Select the new question
         selectedQuestionID = duplicatedQuestion.id
+        selectedQuestionIDs = [duplicatedQuestion.id]
     }
 
     /// Duplicate the currently selected question

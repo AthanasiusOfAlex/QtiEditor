@@ -29,6 +29,7 @@ struct QuestionListView: View {
                 Section {
                     Button(action: {
                         editorState.selectedQuestionID = nil
+                        editorState.selectedQuestionIDs.removeAll()
                     }) {
                         HStack {
                             Image(systemName: "gearshape")
