@@ -26,18 +26,23 @@ final class QTIAnswer: Sendable {
     /// Weight/points for partial credit (default 100 for correct, 0 for incorrect)
     var weight: Double
 
+    /// Additional metadata (Canvas-specific fields, etc.)
+    var metadata: [String: String]
+
     init(
         id: UUID = UUID(),
         text: String = "",
         isCorrect: Bool = false,
         feedback: String = "",
-        weight: Double? = nil
+        weight: Double? = nil,
+        metadata: [String: String] = [:]
     ) {
         self.id = id
         self.text = text
         self.isCorrect = isCorrect
         self.feedback = feedback
         self.weight = weight ?? (isCorrect ? 100.0 : 0.0)
+        self.metadata = metadata
     }
 }
 
