@@ -78,9 +78,37 @@ struct ContentView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
-                        // TODO: Add HTMLEditorView / RichTextEditorView
-                        Text("Editor view will go here")
-                            .foregroundStyle(.secondary)
+                        Divider()
+
+                        // Editor mode toggle
+                        HStack {
+                            Text("Edit Question:")
+                                .font(.headline)
+                            Spacer()
+                            EditorModeToggle()
+                        }
+
+                        // Editor view based on mode
+                        Group {
+                            if editorState.editorMode == .html {
+                                HTMLEditorView(text: Binding(
+                                    get: { question.questionText },
+                                    set: { newValue in
+                                        question.questionText = newValue
+                                    }
+                                ))
+                            } else {
+                                RichTextEditorView(htmlText: Binding(
+                                    get: { question.questionText },
+                                    set: { newValue in
+                                        question.questionText = newValue
+                                    }
+                                ))
+                            }
+                        }
+                        .frame(minHeight: 200, maxHeight: .infinity)
+                        .border(Color.secondary.opacity(0.3), width: 1)
+                        .cornerRadius(4)
                     }
                     .padding()
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
