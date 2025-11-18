@@ -45,7 +45,21 @@ struct AnswerEditorView: View {
                 .stroke(answer.isCorrect ? Color.green.opacity(0.3) : Color.secondary.opacity(0.2), lineWidth: 1)
         )
         .contextMenu {
-            contextMenuContent
+            Button(action: {
+                editorState.copyAnswer(answer)
+            }) {
+                Label("Copy Answer", systemImage: "doc.on.doc")
+            }
+
+            Button(action: onDuplicate) {
+                Label("Duplicate Answer", systemImage: "plus.square.on.square")
+            }
+
+            Divider()
+
+            Button(action: onDelete, role: .destructive) {
+                Label("Delete Answer", systemImage: "trash")
+            }
         }
     }
 
@@ -99,25 +113,6 @@ struct AnswerEditorView: View {
         }
         .border(Color.secondary.opacity(0.3), width: 1)
         .cornerRadius(4)
-    }
-
-    @ViewBuilder
-    private var contextMenuContent: some View {
-        Button(action: {
-            editorState.copyAnswer(answer)
-        }) {
-            Label("Copy Answer", systemImage: "doc.on.doc")
-        }
-
-        Button(action: onDuplicate) {
-            Label("Duplicate Answer", systemImage: "plus.square.on.square")
-        }
-
-        Divider()
-
-        Button(action: onDelete, role: .destructive) {
-            Label("Delete Answer", systemImage: "trash")
-        }
     }
 }
 
