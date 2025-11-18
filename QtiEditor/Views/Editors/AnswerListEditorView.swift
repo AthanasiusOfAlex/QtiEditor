@@ -22,13 +22,6 @@ struct AnswerListEditorView: View {
 
                 Spacer()
 
-                // Paste Answer button
-                Button(action: pasteAnswer) {
-                    Label("Paste Answer", systemImage: "doc.on.clipboard")
-                }
-                .buttonStyle(.bordered)
-                .help("Paste answer from clipboard")
-
                 // Add Answer button
                 Button(action: addAnswer) {
                     Label("Add Answer", systemImage: "plus.circle.fill")
@@ -63,6 +56,9 @@ struct AnswerListEditorView: View {
                                     handleCorrectChanged(for: answer, isCorrect: isCorrect)
                                 }
                             )
+                        }
+                        .onMove { fromOffsets, toOffset in
+                            question.answers.move(fromOffsets: fromOffsets, toOffset: toOffset)
                         }
                     }
                 }
@@ -101,10 +97,6 @@ struct AnswerListEditorView: View {
 
         // Insert after the original
         question.answers.insert(duplicatedAnswer, at: index + 1)
-    }
-
-    private func pasteAnswer() {
-        editorState.pasteAnswer(into: question)
     }
 
     private func handleCorrectChanged(for answer: QTIAnswer, isCorrect: Bool) {
