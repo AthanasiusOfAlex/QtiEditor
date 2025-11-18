@@ -70,7 +70,7 @@ struct QuestionListView: View {
         }
         .navigationTitle("Questions")
         .toolbar {
-            ToolbarItemGroup {
+            ToolbarItem(placement: .primaryAction) {
                 Button(action: {
                     editorState.addQuestion()
                 }) {
@@ -78,7 +78,9 @@ struct QuestionListView: View {
                 }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
                 .help("Add a new question (Cmd+Shift+N)")
+            }
 
+            ToolbarItem(placement: .primaryAction) {
                 Button(action: {
                     editorState.duplicateSelectedQuestion()
                 }) {
@@ -86,7 +88,9 @@ struct QuestionListView: View {
                 }
                 .disabled(editorState.selectedQuestion == nil)
                 .help("Duplicate selected question (Cmd+D)")
+            }
 
+            ToolbarItem(placement: .primaryAction) {
                 Button(action: {
                     if let selected = editorState.selectedQuestion {
                         confirmDelete(selected)
