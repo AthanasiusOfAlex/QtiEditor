@@ -13,6 +13,7 @@ struct AnswerEditorView: View {
     let answer: QTIAnswer
     let index: Int
     let onDelete: () -> Void
+    let onCorrectChanged: (Bool) -> Void
 
     var body: some View {
         @Bindable var answer = answer
@@ -23,8 +24,14 @@ struct AnswerEditorView: View {
                 Text("Answer \(index + 1)")
                     .font(.headline)
 
-                Toggle("Correct Answer", isOn: $answer.isCorrect)
-                    .toggleStyle(.checkbox)
+                Toggle("Correct Answer", isOn: Binding(
+                    get: { answer.isCorrect },
+                    set: { newValue in
+                        answer.isCorrect = newValue
+                        onCorrectChanged(newValue)
+                    }
+                ))
+                .toggleStyle(.checkbox)
 
                 Spacer()
 
@@ -40,10 +47,10 @@ struct AnswerEditorView: View {
             Group {
                 if editorState.editorMode == .html {
                     HTMLEditorView(text: $answer.text)
-                        .frame(minHeight: 80, maxHeight: 120)
+                        .frame(minHeight: 100, maxHeight: 250)
                 } else {
                     RichTextEditorView(htmlText: $answer.text)
-                        .frame(minHeight: 80, maxHeight: 120)
+                        .frame(minHeight: 100, maxHeight: 250)
                 }
             }
             .border(Color.secondary.opacity(0.3), width: 1)
@@ -68,7 +75,8 @@ struct AnswerEditorView: View {
     return AnswerEditorView(
         answer: sampleAnswer,
         index: 0,
-        onDelete: { print("Delete tapped") }
+        onDelete: { print("Delete tapped") },
+        onCorrectChanged: { isCorrect in print("Correct changed to: \(isCorrect)") }
     )
     .environment(EditorState(document: QTIDocument.empty()))
     .padding()

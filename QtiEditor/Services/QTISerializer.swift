@@ -138,6 +138,19 @@ final class QTISerializer {
         return item
     }
 
+    // MARK: - Helper Methods
+
+    /// Ensures an answer has a canvas_identifier, generating one if needed
+    private func ensureCanvasIdentifier(for answer: QTIAnswer) -> String {
+        if let existing = answer.metadata["canvas_identifier"] {
+            return existing
+        }
+        // Generate new UUID and store it
+        let identifier = UUID().uuidString.lowercased()
+        answer.metadata["canvas_identifier"] = identifier
+        return identifier
+    }
+
     private func createItemMetadata(for question: QTIQuestion) -> XMLElement {
         let itemmetadata = XMLElement(name: "itemmetadata")
         let qtimetadata = XMLElement(name: "qtimetadata")
@@ -148,9 +161,9 @@ final class QTISerializer {
         // Points possible
         addMetadataField(to: qtimetadata, label: "points_possible", entry: String(format: "%.1f", question.points))
 
-        // Original answer IDs (comma-separated UUIDs)
+        // Original answer IDs (comma-separated UUIDs) - ensure each has an identifier
         let answerIDs = question.answers.map { answer in
-            answer.metadata["canvas_identifier"] ?? UUID().uuidString
+            ensureCanvasIdentifier(for: answer)
         }.joined(separator: ",")
         addMetadataField(to: qtimetadata, label: "original_answer_ids", entry: answerIDs)
 
@@ -222,8 +235,8 @@ final class QTISerializer {
         // Add response labels for each answer with UUIDs
         for answer in question.answers {
             let responseLabel = XMLElement(name: "response_label")
-            // Use stored UUID or generate new one
-            let identifier = answer.metadata["canvas_identifier"] ?? UUID().uuidString
+            // Ensure answer has a consistent identifier
+            let identifier = ensureCanvasIdentifier(for: answer)
             responseLabel.addAttribute(XMLNode.attribute(withName: "ident", stringValue: identifier) as! XMLNode)
 
             let material = createMaterialElement(with: answer.text)
@@ -264,7 +277,7 @@ final class QTISerializer {
 
         // Add correct answer conditions (Canvas uses score of 100 for correct answers)
         for answer in question.answers where answer.isCorrect {
-            let identifier = answer.metadata["canvas_identifier"] ?? UUID().uuidString
+            let identifier = ensureCanvasIdentifier(for: answer)
             let respcondition = createResponseCondition(
                 identifier: identifier,
                 score: 100 // Canvas expects 100 for correct answers

@@ -47,6 +47,9 @@ struct AnswerListEditorView: View {
                                 index: index,
                                 onDelete: {
                                     deleteAnswer(answer)
+                                },
+                                onCorrectChanged: { isCorrect in
+                                    handleCorrectChanged(for: answer, isCorrect: isCorrect)
                                 }
                             )
                         }
@@ -69,6 +72,16 @@ struct AnswerListEditorView: View {
 
     private func deleteAnswer(_ answer: QTIAnswer) {
         question.answers.removeAll { $0.id == answer.id }
+    }
+
+    private func handleCorrectChanged(for answer: QTIAnswer, isCorrect: Bool) {
+        // For multiple choice and true/false questions, only one answer can be correct
+        if isCorrect && (question.type == .multipleChoice || question.type == .trueFalse) {
+            // Uncheck all other answers
+            for otherAnswer in question.answers where otherAnswer.id != answer.id {
+                otherAnswer.isCorrect = false
+            }
+        }
     }
 }
 

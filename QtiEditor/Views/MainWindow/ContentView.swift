@@ -43,43 +43,48 @@ struct ContentView: View {
 
                             Divider()
 
-                            // Question text preview (stripped HTML with search highlighting)
-                            VStack(alignment: .leading, spacing: 8) {
-                                highlightedQuestionText(question: question, match: editorState.currentSearchMatch)
-                                    .font(.body)
-                                    .padding()
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .background(Color.secondary.opacity(0.1))
-                                    .cornerRadius(8)
+                            // Only show preview when there's an active search match
+                            if editorState.currentSearchMatch != nil {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Search Results Preview")
+                                        .font(.headline)
+                                        .foregroundStyle(.secondary)
 
-                                // Show answers with highlighting if matched
-                                if editorState.currentSearchMatch?.field == .answerText {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text("Answers:")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
+                                    highlightedQuestionText(question: question, match: editorState.currentSearchMatch)
+                                        .font(.body)
+                                        .padding()
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .background(Color.secondary.opacity(0.1))
+                                        .cornerRadius(8)
 
-                                        ForEach(Array(question.answers.enumerated()), id: \.element.id) { index, answer in
-                                            highlightedAnswerText(
-                                                answer: answer,
-                                                index: index,
-                                                match: editorState.currentSearchMatch
-                                            )
-                                            .font(.caption)
-                                            .padding(4)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                            .background(Color.secondary.opacity(0.05))
-                                            .cornerRadius(4)
+                                    // Show answers with highlighting if matched
+                                    if editorState.currentSearchMatch?.field == .answerText {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text("Answers:")
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+
+                                            ForEach(Array(question.answers.enumerated()), id: \.element.id) { index, answer in
+                                                highlightedAnswerText(
+                                                    answer: answer,
+                                                    index: index,
+                                                    match: editorState.currentSearchMatch
+                                                )
+                                                .font(.caption)
+                                                .padding(4)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                                .background(Color.secondary.opacity(0.05))
+                                                .cornerRadius(4)
+                                            }
                                         }
                                     }
                                 }
+                                .padding()
+                                .background(Color.yellow.opacity(0.1))
+                                .cornerRadius(8)
+
+                                Divider()
                             }
-
-                            Text("Answers: \(question.answers.count)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-
-                            Divider()
 
                             // Editor mode toggle
                             HStack {
@@ -125,7 +130,7 @@ struct ContentView: View {
                                         }
                                     ))
                                 }
-                                .frame(minHeight: 200, idealHeight: 300)
+                                .frame(minHeight: 300, maxHeight: 600)
                                 .border(Color.secondary.opacity(0.3), width: 1)
                                 .cornerRadius(4)
                             } else {
@@ -135,7 +140,7 @@ struct ContentView: View {
                                         question.questionText = newValue
                                     }
                                 ))
-                                .frame(minHeight: 200, idealHeight: 300)
+                                .frame(minHeight: 300, maxHeight: 600)
                                 .border(Color.secondary.opacity(0.3), width: 1)
                                 .cornerRadius(4)
                             }
