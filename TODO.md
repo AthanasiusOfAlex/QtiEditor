@@ -329,6 +329,75 @@ This document tracks the implementation progress of the QTI Quiz Editor.
 
 ---
 
+## Phase 5.5: Multi-Selection Support
+
+### Question Multi-Selection
+- [ ] Update QuestionListView to support multi-selection
+  - [ ] Enable List selection with Set<UUID> binding
+  - [ ] Cmd+Click for multi-selection (add/remove individual items)
+  - [ ] Shift+Click for range selection
+  - [ ] Visual feedback for selected items
+  - [ ] Update toolbar buttons to work with selection set
+
+- [ ] Multi-Question Operations
+  - [ ] Copy multiple questions (Cmd+C with multiple selected)
+  - [ ] Paste multiple questions (Cmd+V)
+  - [ ] Duplicate multiple questions (Cmd+D)
+  - [ ] Delete multiple questions with confirmation
+  - [ ] Drag & drop multiple questions to reorder
+
+### Answer Multi-Selection
+- [ ] Update AnswerListEditorView for multi-selection
+  - [ ] Selection state management
+  - [ ] Cmd+Click and Shift+Click support
+  - [ ] Visual feedback for selected answers
+
+- [ ] Multi-Answer Operations
+  - [ ] Copy multiple answers
+  - [ ] Paste multiple answers
+  - [ ] Duplicate multiple answers
+  - [ ] Delete multiple answers with confirmation
+
+### Implementation Status
+- [ ] Question multi-selection UI
+- [ ] Question multi-selection operations
+- [ ] Answer multi-selection UI
+- [ ] Answer multi-selection operations
+- [ ] Testing and edge cases
+
+---
+
+## Phase 5.6: Question Preview Enhancement
+
+### Improved Question Display
+- [ ] Extract question preview text from HTML
+  - [ ] Strip HTML tags for plain text
+  - [ ] Handle mattext and other QTI elements
+  - [ ] Truncate long questions intelligently (word boundaries)
+  - [ ] Show first N characters with ellipsis
+
+- [ ] Enhanced Question List View
+  - [ ] Two-line display: title + preview
+  - [ ] Question type icon
+  - [ ] Point value badge/indicator
+  - [ ] Answer count indicator
+  - [ ] Visual distinction for questions with issues (no correct answer, etc.)
+
+- [ ] Preview Customization
+  - [ ] User preference for preview length
+  - [ ] Option to show/hide point values
+  - [ ] Option to show/hide answer counts
+  - [ ] Font size adjustment for preview text
+
+### Implementation Status
+- [ ] HTML text extraction utility
+- [ ] Two-line question list item view
+- [ ] Visual indicators and badges
+- [ ] Preference storage
+- [ ] Testing with various question types
+
+---
+
 ## Phase 6: Polish & Testing
 
 ### User Experience
