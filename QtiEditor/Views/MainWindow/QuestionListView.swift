@@ -133,21 +133,60 @@ struct QuestionRowView: View {
     let index: Int
 
     var body: some View {
-        HStack {
+        HStack(alignment: .top, spacing: 10) {
+            // Question type icon with status indicator
             Image(systemName: iconForQuestionType(question.type))
+                .font(.title3)
                 .foregroundStyle(question.hasCorrectAnswer ? .green : .orange)
-            VStack(alignment: .leading) {
-                Text("Question \(index)")
-                    .font(.headline)
-                Text(question.type.displayName)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                .help(question.hasCorrectAnswer ? "Has correct answer" : "No correct answer set")
+
+            // Question content
+            VStack(alignment: .leading, spacing: 4) {
+                // Question preview text
+                Text(question.previewText(maxLength: 80))
+                    .font(.body)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                // Metadata row: type, answer count, points
+                HStack(spacing: 8) {
+                    // Question type
+                    Text(question.type.displayName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    // Answer count
+                    if !question.answers.isEmpty {
+                        Text("•")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        HStack(spacing: 2) {
+                            Image(systemName: "list.bullet")
+                                .font(.caption2)
+                            Text("\(question.answers.count)")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+
+                    // Points
+                    Text("•")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("\(formatPoints(question.points))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
-            Spacer()
-            Text("\(Int(question.points))pt")
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
+        .padding(.vertical, 4)
+    }
+
+    private func formatPoints(_ points: Double) -> String {
+        if points.truncatingRemainder(dividingBy: 1) == 0 {
+            return "\(Int(points))pt"
+        }
+        return String(format: "%.1fpt", points)
     }
 
     private func iconForQuestionType(_ type: QTIQuestionType) -> String {

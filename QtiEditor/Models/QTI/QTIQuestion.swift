@@ -130,6 +130,46 @@ extension QTIQuestion {
         !correctAnswers.isEmpty
     }
 
+    /// Extracts plain text preview from HTML question text
+    /// - Parameter maxLength: Maximum length of preview (default: 100)
+    /// - Returns: Plain text preview with ellipsis if truncated
+    func previewText(maxLength: Int = 100) -> String {
+        // Strip HTML tags
+        let stripped = questionText
+            .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Decode common HTML entities
+        let decoded = stripped
+            .replacingOccurrences(of: "&nbsp;", with: " ")
+            .replacingOccurrences(of: "&lt;", with: "<")
+            .replacingOccurrences(of: "&gt;", with: ">")
+            .replacingOccurrences(of: "&amp;", with: "&")
+            .replacingOccurrences(of: "&quot;", with: "\"")
+            .replacingOccurrences(of: "&#39;", with: "'")
+
+        // Collapse multiple spaces into one
+        let cleaned = decoded
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Return empty message if no text
+        if cleaned.isEmpty {
+            return "(Empty question)"
+        }
+
+        // Truncate at word boundary if too long
+        if cleaned.count > maxLength {
+            let truncated = String(cleaned.prefix(maxLength))
+            if let lastSpace = truncated.lastIndex(of: " ") {
+                return String(truncated[..<lastSpace]) + "..."
+            }
+            return truncated + "..."
+        }
+
+        return cleaned
+    }
+
     /// Creates a deep copy of this question with new UUIDs
     /// - Parameter preserveCanvasIdentifier: If false, removes canvas_identifier from metadata
     /// - Returns: A new QTIQuestion instance with copied properties
