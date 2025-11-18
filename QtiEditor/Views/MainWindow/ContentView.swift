@@ -175,7 +175,7 @@ struct ContentView: View {
                     }
 
                     // Resize handle for answer list
-                    AnswerResizeHandle(height: $answerListHeight)
+                    AnswerListResizeHandle(height: $answerListHeight)
 
                     // Answer editor
                     AnswerListEditorView(question: question)
@@ -379,7 +379,7 @@ struct ResizeHandle: View {
 }
 
 /// Resize handle for answer list divider
-struct AnswerResizeHandle: View {
+struct AnswerListResizeHandle: View {
     @Binding var height: CGFloat
     @State private var isDragging = false
     @State private var isHovering = false
