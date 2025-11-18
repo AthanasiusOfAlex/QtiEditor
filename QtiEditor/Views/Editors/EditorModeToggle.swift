@@ -14,7 +14,7 @@ struct EditorModeToggle: View {
     var body: some View {
         @Bindable var editorState = editorState
 
-        Picker("Editor Mode", selection: $editorState.editorMode) {
+        Picker("", selection: $editorState.editorMode) {
             ForEach(EditorMode.allCases, id: \.self) { mode in
                 Text(mode.rawValue)
                     .tag(mode)
@@ -22,6 +22,7 @@ struct EditorModeToggle: View {
         }
         .pickerStyle(.segmented)
         .frame(width: 200)
+        .labelsHidden()
     }
 }
 
