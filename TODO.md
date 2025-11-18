@@ -271,7 +271,7 @@ This document tracks the implementation progress of the QTI Quiz Editor.
 
 ---
 
-## Phase 5: Duplicate & Templates (In Progress)
+## Phase 5: Duplicate & Templates ✅
 
 ### Question Duplication ✅
 - [x] Deep copy utility for questions
@@ -288,19 +288,19 @@ This document tracks the implementation progress of the QTI Quiz Editor.
   - [x] Insert duplicates after original question
   - [ ] Multi-duplicate dialog (create N copies at once) - Future enhancement
 
-### Question Copy/Paste
-- [ ] NSPasteboard integration
-  - [ ] Serialize questions to JSON for pasteboard
-  - [ ] Deserialize from pasteboard
-  - [ ] Custom UTType for QTI questions
-  - [ ] Handle paste when no document open (graceful error)
+### Question Copy/Paste ✅
+- [x] NSPasteboard integration
+  - [x] Serialize questions to JSON for pasteboard
+  - [x] Deserialize from pasteboard
+  - [x] Custom UTType for QTI questions (com.qti-editor.question)
+  - [x] Handle paste when no document open (graceful error)
 
-- [ ] Copy/Paste UI
-  - [ ] Edit > Copy (Cmd+C)
-  - [ ] Edit > Paste (Cmd+V)
-  - [ ] Support multi-selection copy (multiple questions at once)
-  - [ ] Paste at current selection or end of list
-  - [ ] Visual feedback during copy/paste
+- [x] Copy/Paste UI
+  - [x] Edit > Copy (Cmd+C)
+  - [x] Edit > Paste (Cmd+V)
+  - [x] Paste at current selection or end of list
+  - [ ] Support multi-selection copy (multiple questions at once) - Future enhancement
+  - [ ] Visual feedback during copy/paste - Future enhancement
 
 ### Answer Duplication ✅
 - [x] Duplicate answer functionality
@@ -309,20 +309,22 @@ This document tracks the implementation progress of the QTI Quiz Editor.
   - [x] Reset "isCorrect" for multiple choice (avoid multiple correct)
   - [x] Insert after original answer
 
-- [ ] Answer Copy/Paste
-  - [ ] Copy answer to pasteboard (JSON)
-  - [ ] Paste answer into same or different question
-  - [ ] Edit > Copy Answer
-  - [ ] Edit > Paste Answer
-  - [ ] Cross-question paste support
+### Answer Copy/Paste ✅
+- [x] Answer Copy/Paste
+  - [x] Copy answer to pasteboard (JSON)
+  - [x] Paste answer into same or different question
+  - [x] Copy Answer (context menu)
+  - [x] Paste Answer (button in header)
+  - [x] Cross-question paste support
 
 ### Implementation Status
 - [x] Question deep copy utility
 - [x] Duplicate command implementation
 - [x] Answer duplicate button
+- [x] Copy/Paste for questions
+- [x] Answer copy/paste
+- [x] Codable conformance for QTIQuestion and QTIAnswer
 - [ ] Multi-duplicate dialog (optional enhancement)
-- [ ] Copy/Paste for questions
-- [ ] Answer copy/paste
 - [ ] Testing and polish
 
 ---
@@ -525,5 +527,5 @@ open QtiEditor.xcodeproj
 ---
 
 *Last updated: 2025-11-18*
-*Current phase: Phase 5 - Duplicate & Templates (Duplication complete, Copy/Paste remaining)*
-*Status: Question and answer duplication fully implemented with Cmd+D support*
+*Current phase: Phase 5 Complete - Ready for Phase 6 (Polish & Testing)*
+*Status: Full duplicate and copy/paste support for questions and answers with NSPasteboard*
