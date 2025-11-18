@@ -40,6 +40,17 @@ struct QuestionListView: View {
                         QuestionRowView(question: question, index: index + 1)
                             .tag(question.id)
                             .contextMenu {
+                                Button("Copy") {
+                                    editorState.copyQuestion(question)
+                                }
+
+                                Button("Paste") {
+                                    editorState.pasteQuestion()
+                                }
+                                .disabled(editorState.document == nil)
+
+                                Divider()
+
                                 Button(action: {
                                     editorState.duplicateQuestion(question)
                                 }) {

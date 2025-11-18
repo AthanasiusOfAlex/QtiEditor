@@ -171,7 +171,11 @@ final class EditorState {
     /// Copy the selected question to the pasteboard
     func copySelectedQuestion() {
         guard let question = selectedQuestion else { return }
+        copyQuestion(question)
+    }
 
+    /// Copy a specific question to the pasteboard
+    func copyQuestion(_ question: QTIQuestion) {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
 

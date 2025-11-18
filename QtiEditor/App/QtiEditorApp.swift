@@ -68,34 +68,32 @@ struct FileCommands: Commands {
         }
 
         CommandGroup(after: .newItem) {
-            Button("Duplicate Question") {
-                Task { @MainActor in
-                    editorState.duplicateSelectedQuestion()
-                }
-            }
-            .keyboardShortcut("d", modifiers: .command)
-            .disabled(editorState.selectedQuestion == nil || questionListFocused != true)
-
-            Divider()
-        }
-
-        CommandGroup(replacing: .pasteboard) {
-            // Question copy/paste - only active when question list is focused
+            // Question operations
             Button("Copy Question") {
                 Task { @MainActor in
                     editorState.copySelectedQuestion()
                 }
             }
-            .keyboardShortcut("c", modifiers: .command)
-            .disabled(questionListFocused != true || editorState.selectedQuestion == nil)
+            .keyboardShortcut("c", modifiers: [.command, .shift])
+            .disabled(editorState.selectedQuestion == nil)
 
             Button("Paste Question") {
                 Task { @MainActor in
                     editorState.pasteQuestion()
                 }
             }
-            .keyboardShortcut("v", modifiers: .command)
-            .disabled(questionListFocused != true || editorState.document == nil)
+            .keyboardShortcut("v", modifiers: [.command, .shift])
+            .disabled(editorState.document == nil)
+
+            Button("Duplicate Question") {
+                Task { @MainActor in
+                    editorState.duplicateSelectedQuestion()
+                }
+            }
+            .keyboardShortcut("d", modifiers: .command)
+            .disabled(editorState.selectedQuestion == nil)
+
+            Divider()
         }
     }
 
