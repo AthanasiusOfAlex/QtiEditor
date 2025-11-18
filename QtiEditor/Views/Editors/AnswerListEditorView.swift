@@ -40,28 +40,29 @@ struct AnswerListEditorView: View {
                 .frame(maxWidth: .infinity)
                 .padding()
             } else {
-                ScrollView {
-                    VStack(spacing: 12) {
-                        ForEach(Array(question.answers.enumerated()), id: \.element.id) { index, answer in
-                            AnswerEditorView(
-                                answer: answer,
-                                index: index,
-                                onDelete: {
-                                    deleteAnswer(answer)
-                                },
-                                onDuplicate: {
-                                    duplicateAnswer(answer)
-                                },
-                                onCorrectChanged: { isCorrect in
-                                    handleCorrectChanged(for: answer, isCorrect: isCorrect)
-                                }
-                            )
-                        }
-                        .onMove { fromOffsets, toOffset in
-                            question.answers.move(fromOffsets: fromOffsets, toOffset: toOffset)
-                        }
+                List {
+                    ForEach(Array(question.answers.enumerated()), id: \.element.id) { index, answer in
+                        AnswerEditorView(
+                            answer: answer,
+                            index: index,
+                            onDelete: {
+                                deleteAnswer(answer)
+                            },
+                            onDuplicate: {
+                                duplicateAnswer(answer)
+                            },
+                            onCorrectChanged: { isCorrect in
+                                handleCorrectChanged(for: answer, isCorrect: isCorrect)
+                            }
+                        )
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
+                    }
+                    .onMove { fromOffsets, toOffset in
+                        question.answers.move(fromOffsets: fromOffsets, toOffset: toOffset)
                     }
                 }
+                .listStyle(.plain)
             }
         }
         .padding()
