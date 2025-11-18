@@ -76,6 +76,23 @@ struct AnswerEditorView: View {
             RoundedRectangle(cornerRadius: 8)
                 .stroke(answer.isCorrect ? Color.green.opacity(0.3) : Color.secondary.opacity(0.2), lineWidth: 1)
         )
+        .contextMenu {
+            Button(action: {
+                editorState.copyAnswer(answer)
+            }) {
+                Label("Copy Answer", systemImage: "doc.on.doc")
+            }
+
+            Button(action: onDuplicate) {
+                Label("Duplicate Answer", systemImage: "plus.square.on.square")
+            }
+
+            Divider()
+
+            Button(action: onDelete, role: .destructive) {
+                Label("Delete Answer", systemImage: "trash")
+            }
+        }
         .onAppear {
             editorHeight = CGFloat(storedAnswerHeight)
         }

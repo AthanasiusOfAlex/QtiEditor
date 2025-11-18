@@ -9,6 +9,7 @@ import SwiftUI
 
 /// Container view for editing all answers of a question
 struct AnswerListEditorView: View {
+    @Environment(EditorState.self) private var editorState
     let question: QTIQuestion
 
     var body: some View {
@@ -20,6 +21,13 @@ struct AnswerListEditorView: View {
                     .bold()
 
                 Spacer()
+
+                // Paste Answer button
+                Button(action: pasteAnswer) {
+                    Label("Paste Answer", systemImage: "doc.on.clipboard")
+                }
+                .buttonStyle(.bordered)
+                .help("Paste answer from clipboard")
 
                 // Add Answer button
                 Button(action: addAnswer) {
@@ -93,6 +101,10 @@ struct AnswerListEditorView: View {
 
         // Insert after the original
         question.answers.insert(duplicatedAnswer, at: index + 1)
+    }
+
+    private func pasteAnswer() {
+        editorState.pasteAnswer(into: question)
     }
 
     private func handleCorrectChanged(for answer: QTIAnswer, isCorrect: Bool) {

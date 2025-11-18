@@ -165,6 +165,9 @@ final class EditorState {
     /// Custom pasteboard type for QTI questions
     private static let questionPasteboardType = NSPasteboard.PasteboardType("com.qti-editor.question")
 
+    /// Custom pasteboard type for QTI answers
+    private static let answerPasteboardType = NSPasteboard.PasteboardType("com.qti-editor.answer")
+
     /// Copy the selected question to the pasteboard
     func copySelectedQuestion() {
         guard let question = selectedQuestion else { return }
@@ -207,6 +210,46 @@ final class EditorState {
             selectedQuestionID = newQuestion.id
         } catch {
             showError("Failed to paste question: \(error.localizedDescription)")
+        }
+    }
+
+    /// Copy an answer to the pasteboard
+    /// - Parameter answer: The answer to copy
+    func copyAnswer(_ answer: QTIAnswer) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+
+        do {
+            let encoder = JSONEncoder()
+            let data = try encoder.encode(answer)
+            pasteboard.setData(data, forType: Self.answerPasteboardType)
+        } catch {
+            showError("Failed to copy answer: \(error.localizedDescription)")
+        }
+    }
+
+    /// Paste an answer from the pasteboard into a question
+    /// - Parameter question: The question to paste into
+    func pasteAnswer(into question: QTIQuestion) {
+        let pasteboard = NSPasteboard.general
+        guard let data = pasteboard.data(forType: Self.answerPasteboardType) else { return }
+
+        do {
+            let decoder = JSONDecoder()
+            let pastedAnswer = try decoder.decode(QTIAnswer.self, from: data)
+
+            // Generate new UUID for the pasted answer
+            let newAnswer = pastedAnswer.duplicate(preserveCanvasIdentifier: false)
+
+            // For multiple choice, ensure the new answer is not correct
+            if question.type == .multipleChoice || question.type == .trueFalse {
+                newAnswer.isCorrect = false
+            }
+
+            // Add at the end of the answer list
+            question.answers.append(newAnswer)
+        } catch {
+            showError("Failed to paste answer: \(error.localizedDescription)")
         }
     }
 
