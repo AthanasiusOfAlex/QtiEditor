@@ -11,7 +11,7 @@ import SwiftUI
 /// Provides the three-pane layout: Question List (sidebar), Editor (main), Inspector (trailing)
 struct ContentView: View {
     @Environment(EditorState.self) private var editorState
-    @State private var questionEditorHeight: CGFloat = 250
+    @AppStorage("questionEditorHeight") private var questionEditorHeight: CGFloat = 100
 
     var body: some View {
         @Bindable var editorState = editorState

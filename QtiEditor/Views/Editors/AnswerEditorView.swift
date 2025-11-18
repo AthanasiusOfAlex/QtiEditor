@@ -14,7 +14,7 @@ struct AnswerEditorView: View {
     let index: Int
     let onDelete: () -> Void
     let onCorrectChanged: (Bool) -> Void
-    @State private var editorHeight: CGFloat = 120
+    @AppStorage("answerEditorHeight") private var editorHeight: CGFloat = 50
 
     var body: some View {
         @Bindable var answer = answer
