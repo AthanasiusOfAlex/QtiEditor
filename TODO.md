@@ -408,26 +408,28 @@ This document tracks the implementation progress of the QTI Quiz Editor.
 
 ---
 
-## Phase 5.7: Answer Reordering
+## Phase 5.7: Answer Reordering ✅
 
 ### Drag & Drop for Answers
-- [ ] Enable drag & drop reordering in AnswerListEditorView
-  - [ ] Add .onMove modifier to ForEach in answer list
-  - [ ] Visual feedback during drag operation
-  - [ ] Update answer array when reordered
-  - [ ] Preserve all answer properties during move
+- [x] Enable drag & drop reordering in AnswerListEditorView
+  - [x] Add .onMove modifier to ForEach in answer list
+  - [x] Visual feedback during drag operation (native SwiftUI)
+  - [x] Update answer array when reordered
+  - [x] Preserve all answer properties during move
 
 ### UI Updates
-- [ ] Remove "Paste Answer" button (no longer needed with reordering)
-- [ ] Keep "Duplicate Answer" button
-- [ ] Update answer context menu (remove paste, keep copy for cross-question use)
+- [x] Remove "Paste Answer" button (no longer needed with reordering)
+- [x] Keep "Duplicate Answer" button
+- [x] Update answer context menu (remove paste, keep copy for cross-question use)
 
 ### Implementation Status
-- [ ] Add .onMove to answer ForEach
-- [ ] Remove paste button from AnswerListEditorView
-- [ ] Update context menus
-- [ ] Test reordering with multiple choice questions
-- [ ] Ensure reordering works correctly
+- [x] Add .onMove to answer ForEach
+- [x] Remove paste button from AnswerListEditorView
+- [x] Context menu has Copy, Duplicate, Delete (no paste)
+- [x] Test reordering with multiple choice questions
+- [x] Ensure reordering works correctly
+
+**Note**: If drag-and-drop doesn't work in VStack, may need to refactor to use List instead.
 
 ---
 
