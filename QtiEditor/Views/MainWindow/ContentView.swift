@@ -34,7 +34,8 @@ struct ContentView: View {
 
                 // Question editor
                 if let question = editorState.selectedQuestion {
-                    ScrollView {
+                    VStack(spacing: 0) {
+                        ScrollView {
                         VStack(alignment: .leading, spacing: 16) {
                             HStack {
                                 Text("Question \(editorState.document?.questions.firstIndex(where: { $0.id == question.id }).map { $0 + 1 } ?? 0)")
@@ -167,16 +168,17 @@ struct ContentView: View {
                                 // Resize handle
                                 ResizeHandle(height: $questionEditorHeight)
                             }
-
-                            Divider()
-
-                            // Answer editor
-                            AnswerListEditorView(question: question)
-                                .frame(maxHeight: .infinity)
                         }
                         .padding()
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+
+                    Divider()
+
+                    // Answer editor
+                    AnswerListEditorView(question: question)
+                        .frame(maxHeight: .infinity)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if editorState.document != nil {
                     // No question selected - show message
                     ContentUnavailableView(
