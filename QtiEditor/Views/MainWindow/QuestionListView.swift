@@ -18,6 +18,22 @@ struct QuestionListView: View {
 
         List(selection: $editorState.selectedQuestionID) {
             if let document = editorState.document {
+                // Quiz settings button
+                Section {
+                    Button(action: {
+                        editorState.selectedQuestionID = nil
+                    }) {
+                        HStack {
+                            Image(systemName: "gearshape")
+                                .foregroundStyle(.blue)
+                            Text("Quiz Settings")
+                                .foregroundStyle(.primary)
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+
                 Section("Questions (\(document.questions.count))") {
                     ForEach(Array(document.questions.enumerated()), id: \.element.id) { index, question in
                         QuestionRowView(question: question, index: index + 1)

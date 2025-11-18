@@ -11,6 +11,7 @@ import SwiftUI
 /// Provides the three-pane layout: Question List (sidebar), Editor (main), Inspector (trailing)
 struct ContentView: View {
     @Environment(EditorState.self) private var editorState
+    @State private var questionEditorHeight: CGFloat = 400
 
     var body: some View {
         @Bindable var editorState = editorState
@@ -34,12 +35,15 @@ struct ContentView: View {
                 if let question = editorState.selectedQuestion {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 16) {
-                            Text("Question \(editorState.document?.questions.firstIndex(where: { $0.id == question.id }).map { $0 + 1 } ?? 0)")
-                                .font(.title)
-
-                            Text(question.type.displayName)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            HStack {
+                                Text("Question \(editorState.document?.questions.firstIndex(where: { $0.id == question.id }).map { $0 + 1 } ?? 0)")
+                                    .font(.title)
+                                Text("·")
+                                    .foregroundStyle(.secondary)
+                                Text(question.type.displayName)
+                                    .font(.title3)
+                                    .foregroundStyle(.secondary)
+                            }
 
                             Divider()
 
@@ -95,54 +99,59 @@ struct ContentView: View {
                             }
 
                             // Editor view based on mode
-                            if editorState.editorMode == .html {
-                                VStack(spacing: 0) {
-                                    // HTML editor toolbar
-                                    HStack {
-                                        Button(action: {
-                                            Task {
-                                                await beautifyHTML(for: question)
+                            VStack(spacing: 0) {
+                                if editorState.editorMode == .html {
+                                    VStack(spacing: 0) {
+                                        // HTML editor toolbar
+                                        HStack {
+                                            Button(action: {
+                                                Task {
+                                                    await beautifyHTML(for: question)
+                                                }
+                                            }) {
+                                                Label("Beautify", systemImage: "wand.and.stars")
                                             }
-                                        }) {
-                                            Label("Beautify", systemImage: "wand.and.stars")
-                                        }
-                                        .buttonStyle(.bordered)
+                                            .buttonStyle(.bordered)
 
-                                        Button(action: {
-                                            Task {
-                                                await validateHTML(for: question)
+                                            Button(action: {
+                                                Task {
+                                                    await validateHTML(for: question)
+                                                }
+                                            }) {
+                                                Label("Validate", systemImage: "checkmark.circle")
                                             }
-                                        }) {
-                                            Label("Validate", systemImage: "checkmark.circle")
-                                        }
-                                        .buttonStyle(.bordered)
+                                            .buttonStyle(.bordered)
 
-                                        Spacer()
+                                            Spacer()
+                                        }
+                                        .padding(8)
+                                        .background(Color.secondary.opacity(0.1))
+
+                                        // HTML editor
+                                        HTMLEditorView(text: Binding(
+                                            get: { question.questionText },
+                                            set: { newValue in
+                                                question.questionText = newValue
+                                            }
+                                        ))
                                     }
-                                    .padding(8)
-                                    .background(Color.secondary.opacity(0.1))
-
-                                    // HTML editor
-                                    HTMLEditorView(text: Binding(
+                                    .frame(height: questionEditorHeight)
+                                    .border(Color.secondary.opacity(0.3), width: 1)
+                                    .cornerRadius(4)
+                                } else {
+                                    RichTextEditorView(htmlText: Binding(
                                         get: { question.questionText },
                                         set: { newValue in
                                             question.questionText = newValue
                                         }
                                     ))
+                                    .frame(height: questionEditorHeight)
+                                    .border(Color.secondary.opacity(0.3), width: 1)
+                                    .cornerRadius(4)
                                 }
-                                .frame(minHeight: 300, maxHeight: 600)
-                                .border(Color.secondary.opacity(0.3), width: 1)
-                                .cornerRadius(4)
-                            } else {
-                                RichTextEditorView(htmlText: Binding(
-                                    get: { question.questionText },
-                                    set: { newValue in
-                                        question.questionText = newValue
-                                    }
-                                ))
-                                .frame(minHeight: 300, maxHeight: 600)
-                                .border(Color.secondary.opacity(0.3), width: 1)
-                                .cornerRadius(4)
+
+                                // Resize handle
+                                ResizeHandle(height: $questionEditorHeight)
                             }
 
                             Divider()
@@ -153,17 +162,89 @@ struct ContentView: View {
                         .padding()
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                } else if let document = editorState.document {
+                    // Quiz settings view
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 20) {
+                            Text("Quiz Settings")
+                                .font(.title)
+
+                            Divider()
+
+                            // Quiz title
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Title")
+                                    .font(.headline)
+
+                                TextField("Quiz Title", text: Binding(
+                                    get: { document.title },
+                                    set: { document.title = $0 }
+                                ))
+                                .textFieldStyle(.roundedBorder)
+                                .font(.title3)
+                            }
+
+                            // Quiz description
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Description")
+                                    .font(.headline)
+
+                                TextEditor(text: Binding(
+                                    get: { document.description },
+                                    set: { document.description = $0 }
+                                ))
+                                .frame(minHeight: 150, maxHeight: 300)
+                                .border(Color.secondary.opacity(0.3), width: 1)
+                                .cornerRadius(4)
+                            }
+
+                            Divider()
+
+                            // Quiz statistics
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Statistics")
+                                    .font(.headline)
+
+                                HStack {
+                                    Text("Questions:")
+                                    Spacer()
+                                    Text("\(document.questions.count)")
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                HStack {
+                                    Text("Total Points:")
+                                    Spacer()
+                                    let totalPoints = document.questions.reduce(0) { $0 + $1.points }
+                                    Text(String(format: "%.1f", totalPoints))
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                HStack {
+                                    Text("Questions with Correct Answer:")
+                                    Spacer()
+                                    let correctCount = document.questions.filter { $0.hasCorrectAnswer }.count
+                                    Text("\(correctCount) of \(document.questions.count)")
+                                        .foregroundStyle(correctCount == document.questions.count ? .green : .orange)
+                                }
+                            }
+
+                            Spacer()
+                        }
+                        .padding()
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 } else {
                     ContentUnavailableView(
-                        "No Question Selected",
+                        "No Quiz Open",
                         systemImage: "doc.text",
-                        description: Text("Select a question from the sidebar to begin editing")
+                        description: Text("Open or create a quiz to begin editing")
                     )
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .toolbar {
-                ToolbarItem {
+                ToolbarItem(placement: .primaryAction) {
                     Button(action: {
                         withAnimation {
                             editorState.isSearchVisible.toggle()
@@ -172,13 +253,7 @@ struct ContentView: View {
                         Label("Search", systemImage: editorState.isSearchVisible ? "magnifyingglass.circle.fill" : "magnifyingglass")
                     }
                     .keyboardShortcut("f", modifiers: .command)
-                }
-                ToolbarItem {
-                    Button(action: {
-                        editorState.addQuestion()
-                    }) {
-                        Label("Add Question", systemImage: "plus")
-                    }
+                    .help("Toggle search panel (Cmd+F)")
                 }
             }
         } detail: {
@@ -303,6 +378,34 @@ struct ContentView: View {
         } else {
             Text("\(index + 1). \(text)")
         }
+    }
+}
+
+/// Resize handle for draggable dividers
+struct ResizeHandle: View {
+    @Binding var height: CGFloat
+    @State private var isDragging = false
+
+    var body: some View {
+        Divider()
+            .overlay(
+                Rectangle()
+                    .fill(isDragging ? Color.blue.opacity(0.3) : Color.clear)
+                    .frame(height: 8)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                isDragging = true
+                                let newHeight = height + value.translation.height
+                                height = min(max(newHeight, 200), 800)
+                            }
+                            .onEnded { _ in
+                                isDragging = false
+                            }
+                    )
+                    .cursor(.resizeUpDown)
+            )
     }
 }
 
