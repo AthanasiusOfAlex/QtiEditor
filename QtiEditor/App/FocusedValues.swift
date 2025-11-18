@@ -10,7 +10,7 @@ import SwiftUI
 /// Extension to define custom focused values for context-aware commands
 extension FocusedValues {
     /// Tracks whether the question list has focus (for context-aware copy/paste)
-    var questionListFocused: FocusedValues.QuestionListFocusedKey.Value {
+    var questionListFocused: Bool? {
         get { self[QuestionListFocusedKey.self] }
         set { self[QuestionListFocusedKey.self] = newValue }
     }
