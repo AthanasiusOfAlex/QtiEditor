@@ -63,6 +63,7 @@ struct AnswerListEditorView: View {
                     }
                 }
                 .listStyle(.plain)
+                .frame(maxHeight: .infinity)
             }
         }
         .padding()
