@@ -19,7 +19,7 @@ struct ContentView: View {
             // Sidebar - Question List
             QuestionListView()
                 .navigationSplitViewColumnWidth(min: 200, ideal: 250)
-        } detail: {
+        } content: {
             // Main editor area
             VStack(spacing: 0) {
                 // Search panel (collapsible)
@@ -181,6 +181,10 @@ struct ContentView: View {
                     }
                 }
             }
+        } detail: {
+            // Inspector panel
+            QuestionInspectorView()
+                .navigationSplitViewColumnWidth(min: 200, ideal: 250, max: 300)
         }
         .navigationTitle(editorState.document?.title ?? "QTI Quiz Editor")
         .overlay {

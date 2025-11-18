@@ -10,6 +10,8 @@ import SwiftUI
 /// Sidebar view displaying the list of questions in the current quiz
 struct QuestionListView: View {
     @Environment(EditorState.self) private var editorState
+    @State private var showDeleteConfirmation = false
+    @State private var questionToDelete: QTIQuestion?
 
     var body: some View {
         @Bindable var editorState = editorState
@@ -22,11 +24,14 @@ struct QuestionListView: View {
                             .tag(question.id)
                             .contextMenu {
                                 Button(action: {
-                                    editorState.deleteQuestion(question)
+                                    confirmDelete(question)
                                 }) {
                                     Label("Delete", systemImage: "trash")
                                 }
                             }
+                    }
+                    .onMove { fromOffsets, toOffset in
+                        document.questions.move(fromOffsets: fromOffsets, toOffset: toOffset)
                     }
                 }
 
@@ -41,14 +46,48 @@ struct QuestionListView: View {
         }
         .navigationTitle("Questions")
         .toolbar {
-            ToolbarItem {
+            ToolbarItemGroup {
                 Button(action: {
                     editorState.addQuestion()
                 }) {
                     Label("Add Question", systemImage: "plus")
                 }
+                .keyboardShortcut("n", modifiers: [.command, .shift])
+                .help("Add a new question (Cmd+Shift+N)")
+
+                Button(action: {
+                    if let selected = editorState.selectedQuestion {
+                        confirmDelete(selected)
+                    }
+                }) {
+                    Label("Delete Question", systemImage: "trash")
+                }
+                .disabled(editorState.selectedQuestion == nil)
+                .help("Delete selected question (Delete key)")
             }
         }
+        .onDeleteCommand {
+            if let selected = editorState.selectedQuestion {
+                confirmDelete(selected)
+            }
+        }
+        .confirmationDialog(
+            "Delete Question?",
+            isPresented: $showDeleteConfirmation,
+            presenting: questionToDelete
+        ) { question in
+            Button("Delete", role: .destructive) {
+                editorState.deleteQuestion(question)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { question in
+            Text("Are you sure you want to delete this question? This action cannot be undone.")
+        }
+    }
+
+    private func confirmDelete(_ question: QTIQuestion) {
+        questionToDelete = question
+        showDeleteConfirmation = true
     }
 }
 

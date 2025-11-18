@@ -148,7 +148,7 @@ This document tracks the implementation progress of the QTI Quiz Editor.
 
 ---
 
-## Phase 4: User Interface (In Progress)
+## Phase 4: User Interface ✅
 
 ### Main Window Structure
 - [x] `QtiEditorApp.swift` - App entry point
@@ -167,21 +167,25 @@ This document tracks the implementation progress of the QTI Quiz Editor.
   - [x] Question display with HTML stripping
   - [x] Answer list display
   - [x] Search match highlighting in question/answers
-  - [ ] Toolbar with common actions
-  - [ ] Inspector pane integration
+  - [x] Search results preview (only during active search)
 
 - [x] `QuestionListView.swift` - Question navigator (Sidebar)
   - [x] List all questions
   - [x] Question preview/summary
   - [x] Selection binding
-  - [ ] Add/delete question buttons
-  - [ ] Reorder questions (drag & drop)
-  - [ ] Question type indicators
 
-- [ ] `InspectorView.swift` - Metadata panel
-  - [ ] Question settings (points, type, etc.)
-  - [ ] Quiz metadata when no question selected
-  - [ ] Conditional display based on selection
+- [x] `AnswerEditorView.swift` - Single answer editor
+  - [x] HTML/Rich Text editing based on mode
+  - [x] Correct/incorrect checkbox
+  - [x] Delete button
+  - [x] Visual distinction for correct answers
+  - [x] Multiple choice validation (only one correct)
+
+- [x] `AnswerListEditorView.swift` - Answer management
+  - [x] List all answers for a question
+  - [x] Add answer button
+  - [x] Delete answer functionality
+  - [x] Empty state display
 
 ### Editor Views ✅
 - [x] `EditorModeToggle.swift` - Mode switcher
@@ -218,18 +222,100 @@ This document tracks the implementation progress of the QTI Quiz Editor.
 
 ---
 
-## Phase 5: Polish & Testing
+## Phase 4.5: Question Management (In Progress)
+
+### Question Operations
+- [ ] `QuestionListView.swift` - Add question operations
+  - [ ] Add question button with toolbar placement
+  - [ ] Keyboard shortcut: Cmd+N for new question
+  - [ ] Delete question button in toolbar
+  - [ ] Delete key support with confirmation dialog
+  - [ ] Drag & drop reordering (.onMove modifier)
+  - [ ] Question type indicator icons
+
+- [ ] `QuestionInspectorView.swift` - Question metadata editor
+  - [ ] Points field (number input)
+  - [ ] Question type picker (if allowing type changes)
+  - [ ] Question title/label field
+  - [ ] Display when question selected
+  - [ ] Show quiz metadata when no selection
+
+### Implementation Status
+- [ ] Add question functionality
+- [ ] Delete question functionality
+- [ ] Inspector panel creation
+- [ ] Drag & drop reordering
+- [ ] Testing and polish
+
+---
+
+## Phase 5: Duplicate & Templates (Next Priority)
+
+### Question Duplication
+- [ ] Deep copy utility for questions
+  - [ ] Copy all question properties
+  - [ ] Copy all answers with their properties
+  - [ ] Generate new UUIDs for question and answers
+  - [ ] Preserve metadata structure (but reset canvas_identifier)
+  - [ ] Apple naming convention ("Question copy", "Question copy 2")
+
+- [ ] Duplicate UI
+  - [ ] Edit > Duplicate menu item (Cmd+D)
+  - [ ] Duplicate button in question list toolbar
+  - [ ] Multi-duplicate dialog (create N copies at once)
+  - [ ] Insert duplicates after original question
+
+### Question Copy/Paste
+- [ ] NSPasteboard integration
+  - [ ] Serialize questions to JSON for pasteboard
+  - [ ] Deserialize from pasteboard
+  - [ ] Custom UTType for QTI questions
+  - [ ] Handle paste when no document open (graceful error)
+
+- [ ] Copy/Paste UI
+  - [ ] Edit > Copy (Cmd+C)
+  - [ ] Edit > Paste (Cmd+V)
+  - [ ] Support multi-selection copy (multiple questions at once)
+  - [ ] Paste at current selection or end of list
+  - [ ] Visual feedback during copy/paste
+
+### Answer Duplication
+- [ ] Duplicate answer functionality
+  - [ ] Duplicate button in answer editor
+  - [ ] Generate new UUID for duplicated answer
+  - [ ] Reset "isCorrect" for multiple choice (avoid multiple correct)
+
+- [ ] Answer Copy/Paste
+  - [ ] Copy answer to pasteboard (JSON)
+  - [ ] Paste answer into same or different question
+  - [ ] Edit > Copy Answer
+  - [ ] Edit > Paste Answer
+  - [ ] Cross-question paste support
+
+### Implementation Status
+- [ ] Question deep copy utility
+- [ ] Duplicate command implementation
+- [ ] Multi-duplicate dialog
+- [ ] Copy/Paste for questions
+- [ ] Answer duplicate button
+- [ ] Answer copy/paste
+- [ ] Testing and polish
+
+---
+
+## Phase 6: Polish & Testing
 
 ### User Experience
-- [ ] Error handling and user feedback
-  - [ ] Alert dialogs for errors
-  - [ ] Progress indicators for async operations
-  - [ ] Validation messages
-- [ ] Keyboard shortcuts
-  - [ ] Cmd+F for search
-  - [ ] Cmd+S for save
-  - [ ] Cmd+N for new question
-  - [ ] Cmd+Delete for delete question
+- [x] Error handling and user feedback
+  - [x] Alert dialogs for errors
+  - [x] Progress indicators for async operations
+  - [x] Validation messages (HTML validation)
+- [x] Keyboard shortcuts (partial)
+  - [x] Cmd+F for search
+  - [x] Cmd+S for save
+  - [ ] Cmd+N for new question (Phase 4.5)
+  - [ ] Cmd+Delete for delete question (Phase 4.5)
+  - [ ] Cmd+D for duplicate (Phase 5)
 - [ ] Preferences/Settings (if needed)
 - [ ] Help menu with basic documentation
 
