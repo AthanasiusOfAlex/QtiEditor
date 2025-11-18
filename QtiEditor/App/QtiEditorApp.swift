@@ -28,6 +28,7 @@ struct QtiEditorApp: App {
 /// File menu commands for the app
 struct FileCommands: Commands {
     let editorState: EditorState
+    @FocusedValue(\.questionListFocused) private var questionListFocused: Bool?
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
@@ -73,27 +74,28 @@ struct FileCommands: Commands {
                 }
             }
             .keyboardShortcut("d", modifiers: .command)
-            .disabled(editorState.selectedQuestion == nil)
+            .disabled(editorState.selectedQuestion == nil || questionListFocused != true)
 
             Divider()
         }
 
         CommandGroup(replacing: .pasteboard) {
-            Button("Copy") {
+            // Question copy/paste - only active when question list is focused
+            Button("Copy Question") {
                 Task { @MainActor in
                     editorState.copySelectedQuestion()
                 }
             }
             .keyboardShortcut("c", modifiers: .command)
-            .disabled(editorState.selectedQuestion == nil)
+            .disabled(questionListFocused != true || editorState.selectedQuestion == nil)
 
-            Button("Paste") {
+            Button("Paste Question") {
                 Task { @MainActor in
                     editorState.pasteQuestion()
                 }
             }
             .keyboardShortcut("v", modifiers: .command)
-            .disabled(editorState.document == nil)
+            .disabled(questionListFocused != true || editorState.document == nil)
         }
     }
 

@@ -12,6 +12,7 @@ struct QuestionListView: View {
     @Environment(EditorState.self) private var editorState
     @State private var showDeleteConfirmation = false
     @State private var questionToDelete: QTIQuestion?
+    @FocusState private var isListFocused: Bool
 
     var body: some View {
         @Bindable var editorState = editorState
@@ -69,6 +70,12 @@ struct QuestionListView: View {
             }
         }
         .navigationTitle("Questions")
+        .focused($isListFocused)
+        .focusedSceneValue(\.questionListFocused, isListFocused)
+        .onAppear {
+            // Give focus to the list when it appears
+            isListFocused = true
+        }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button(action: {
