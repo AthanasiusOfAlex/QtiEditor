@@ -77,6 +77,24 @@ struct FileCommands: Commands {
 
             Divider()
         }
+
+        CommandGroup(replacing: .pasteboard) {
+            Button("Copy") {
+                Task { @MainActor in
+                    editorState.copySelectedQuestion()
+                }
+            }
+            .keyboardShortcut("c", modifiers: .command)
+            .disabled(editorState.selectedQuestion == nil)
+
+            Button("Paste") {
+                Task { @MainActor in
+                    editorState.pasteQuestion()
+                }
+            }
+            .keyboardShortcut("v", modifiers: .command)
+            .disabled(editorState.document == nil)
+        }
     }
 
     @MainActor

@@ -79,6 +79,45 @@ final class QTIQuestion: Sendable {
 // MARK: - Identifiable Conformance
 extension QTIQuestion: Identifiable {}
 
+// MARK: - Codable Conformance
+extension QTIQuestion: Codable {
+    enum CodingKeys: String, CodingKey {
+        case id, type, questionText, points, answers, generalFeedback, metadata
+    }
+
+    convenience init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let id = try container.decode(UUID.self, forKey: .id)
+        let type = try container.decode(QTIQuestionType.self, forKey: .type)
+        let questionText = try container.decode(String.self, forKey: .questionText)
+        let points = try container.decode(Double.self, forKey: .points)
+        let answers = try container.decode([QTIAnswer].self, forKey: .answers)
+        let generalFeedback = try container.decode(String.self, forKey: .generalFeedback)
+        let metadata = try container.decode([String: String].self, forKey: .metadata)
+
+        self.init(
+            id: id,
+            type: type,
+            questionText: questionText,
+            points: points,
+            answers: answers,
+            generalFeedback: generalFeedback,
+            metadata: metadata
+        )
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(type, forKey: .type)
+        try container.encode(questionText, forKey: .questionText)
+        try container.encode(points, forKey: .points)
+        try container.encode(answers, forKey: .answers)
+        try container.encode(generalFeedback, forKey: .generalFeedback)
+        try container.encode(metadata, forKey: .metadata)
+    }
+}
+
 // MARK: - Helper Methods
 extension QTIQuestion {
     /// Returns the correct answer(s) for this question

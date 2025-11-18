@@ -49,6 +49,42 @@ final class QTIAnswer: Sendable {
 // MARK: - Identifiable Conformance
 extension QTIAnswer: Identifiable {}
 
+// MARK: - Codable Conformance
+extension QTIAnswer: Codable {
+    enum CodingKeys: String, CodingKey {
+        case id, text, isCorrect, feedback, weight, metadata
+    }
+
+    convenience init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let id = try container.decode(UUID.self, forKey: .id)
+        let text = try container.decode(String.self, forKey: .text)
+        let isCorrect = try container.decode(Bool.self, forKey: .isCorrect)
+        let feedback = try container.decode(String.self, forKey: .feedback)
+        let weight = try container.decode(Double.self, forKey: .weight)
+        let metadata = try container.decode([String: String].self, forKey: .metadata)
+
+        self.init(
+            id: id,
+            text: text,
+            isCorrect: isCorrect,
+            feedback: feedback,
+            weight: weight,
+            metadata: metadata
+        )
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(text, forKey: .text)
+        try container.encode(isCorrect, forKey: .isCorrect)
+        try container.encode(feedback, forKey: .feedback)
+        try container.encode(weight, forKey: .weight)
+        try container.encode(metadata, forKey: .metadata)
+    }
+}
+
 // MARK: - Helper Methods
 extension QTIAnswer {
     /// Creates a deep copy of this answer with a new UUID

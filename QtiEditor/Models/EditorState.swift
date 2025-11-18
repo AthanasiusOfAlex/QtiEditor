@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import AppKit
 
 /// Editor mode for question content
 enum EditorMode: String, CaseIterable, Sendable {
@@ -157,6 +158,56 @@ final class EditorState {
 
         // Insert after the original
         question.answers.insert(duplicatedAnswer, at: index + 1)
+    }
+
+    // MARK: - Copy/Paste Operations
+
+    /// Custom pasteboard type for QTI questions
+    private static let questionPasteboardType = NSPasteboard.PasteboardType("com.qti-editor.question")
+
+    /// Copy the selected question to the pasteboard
+    func copySelectedQuestion() {
+        guard let question = selectedQuestion else { return }
+
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+
+        do {
+            let encoder = JSONEncoder()
+            let data = try encoder.encode(question)
+            pasteboard.setData(data, forType: Self.questionPasteboardType)
+        } catch {
+            showError("Failed to copy question: \(error.localizedDescription)")
+        }
+    }
+
+    /// Paste a question from the pasteboard
+    func pasteQuestion() {
+        guard document != nil else { return }
+
+        let pasteboard = NSPasteboard.general
+        guard let data = pasteboard.data(forType: Self.questionPasteboardType) else { return }
+
+        do {
+            let decoder = JSONDecoder()
+            let pastedQuestion = try decoder.decode(QTIQuestion.self, from: data)
+
+            // Generate new UUIDs for the pasted question
+            let newQuestion = pastedQuestion.duplicate(preserveCanvasIdentifier: false)
+
+            // Insert after currently selected question, or at the end
+            if let selectedID = selectedQuestionID,
+               let index = document?.questions.firstIndex(where: { $0.id == selectedID }) {
+                document?.questions.insert(newQuestion, at: index + 1)
+            } else {
+                document?.questions.append(newQuestion)
+            }
+
+            // Select the pasted question
+            selectedQuestionID = newQuestion.id
+        } catch {
+            showError("Failed to paste question: \(error.localizedDescription)")
+        }
     }
 
     // MARK: - File Operations
