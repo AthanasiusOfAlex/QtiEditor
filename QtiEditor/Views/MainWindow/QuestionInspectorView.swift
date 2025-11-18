@@ -119,10 +119,18 @@ struct QuestionInspectorView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                TextEditor(text: $document.description)
-                    .frame(height: 80)
-                    .border(Color.secondary.opacity(0.3), width: 1)
-                    .cornerRadius(4)
+                ZStack(alignment: .topLeading) {
+                    TextEditor(text: $document.description)
+                        .font(.body)
+                        .scrollContentBackground(.hidden)
+                        .padding(8)
+                }
+                .frame(height: 100)
+                .background(Color(nsColor: .textBackgroundColor))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                )
             }
 
             // Question count

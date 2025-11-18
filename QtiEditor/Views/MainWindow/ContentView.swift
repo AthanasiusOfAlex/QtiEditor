@@ -11,7 +11,7 @@ import SwiftUI
 /// Provides the three-pane layout: Question List (sidebar), Editor (main), Inspector (trailing)
 struct ContentView: View {
     @Environment(EditorState.self) private var editorState
-    @State private var questionEditorHeight: CGFloat = 400
+    @State private var questionEditorHeight: CGFloat = 250
 
     var body: some View {
         @Bindable var editorState = editorState
@@ -43,6 +43,19 @@ struct ContentView: View {
                                 Text(question.type.displayName)
                                     .font(.title3)
                                     .foregroundStyle(.secondary)
+                            }
+
+                            // Question title/label
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Title / Label (optional)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+
+                                TextField("Question title or label", text: Binding(
+                                    get: { question.metadata["canvas_title"] ?? "" },
+                                    set: { question.metadata["canvas_title"] = $0 }
+                                ))
+                                .textFieldStyle(.roundedBorder)
                             }
 
                             Divider()
@@ -162,78 +175,13 @@ struct ContentView: View {
                         .padding()
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                } else if let document = editorState.document {
-                    // Quiz settings view
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 20) {
-                            Text("Quiz Settings")
-                                .font(.title)
-
-                            Divider()
-
-                            // Quiz title
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Title")
-                                    .font(.headline)
-
-                                TextField("Quiz Title", text: Binding(
-                                    get: { document.title },
-                                    set: { document.title = $0 }
-                                ))
-                                .textFieldStyle(.roundedBorder)
-                                .font(.title3)
-                            }
-
-                            // Quiz description
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Description")
-                                    .font(.headline)
-
-                                TextEditor(text: Binding(
-                                    get: { document.description },
-                                    set: { document.description = $0 }
-                                ))
-                                .frame(minHeight: 150, maxHeight: 300)
-                                .border(Color.secondary.opacity(0.3), width: 1)
-                                .cornerRadius(4)
-                            }
-
-                            Divider()
-
-                            // Quiz statistics
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text("Statistics")
-                                    .font(.headline)
-
-                                HStack {
-                                    Text("Questions:")
-                                    Spacer()
-                                    Text("\(document.questions.count)")
-                                        .foregroundStyle(.secondary)
-                                }
-
-                                HStack {
-                                    Text("Total Points:")
-                                    Spacer()
-                                    let totalPoints = document.questions.reduce(0) { $0 + $1.points }
-                                    Text(String(format: "%.1f", totalPoints))
-                                        .foregroundStyle(.secondary)
-                                }
-
-                                HStack {
-                                    Text("Questions with Correct Answer:")
-                                    Spacer()
-                                    let correctCount = document.questions.filter { $0.hasCorrectAnswer }.count
-                                    Text("\(correctCount) of \(document.questions.count)")
-                                        .foregroundStyle(correctCount == document.questions.count ? .green : .orange)
-                                }
-                            }
-
-                            Spacer()
-                        }
-                        .padding()
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                } else if editorState.document != nil {
+                    // No question selected - show message
+                    ContentUnavailableView(
+                        "No Question Selected",
+                        systemImage: "doc.text",
+                        description: Text("Select a question from the sidebar to edit, or click \"Quiz Settings\" to configure the quiz")
+                    )
                 } else {
                     ContentUnavailableView(
                         "No Quiz Open",
@@ -385,20 +333,24 @@ struct ContentView: View {
 struct ResizeHandle: View {
     @Binding var height: CGFloat
     @State private var isDragging = false
+    @State private var isHovering = false
 
     var body: some View {
         Divider()
             .overlay(
                 Rectangle()
-                    .fill(isDragging ? Color.blue.opacity(0.3) : Color.clear)
-                    .frame(height: 8)
+                    .fill(isDragging ? Color.blue.opacity(0.3) : (isHovering ? Color.gray.opacity(0.2) : Color.clear))
+                    .frame(height: 20)
                     .contentShape(Rectangle())
+                    .onHover { hovering in
+                        isHovering = hovering
+                    }
                     .gesture(
                         DragGesture()
                             .onChanged { value in
                                 isDragging = true
                                 let newHeight = height + value.translation.height
-                                height = min(max(newHeight, 200), 800)
+                                height = min(max(newHeight, 100), 800)
                             }
                             .onEnded { _ in
                                 isDragging = false

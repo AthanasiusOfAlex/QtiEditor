@@ -14,6 +14,7 @@ struct AnswerEditorView: View {
     let index: Int
     let onDelete: () -> Void
     let onCorrectChanged: (Bool) -> Void
+    @State private var editorHeight: CGFloat = 120
 
     var body: some View {
         @Bindable var answer = answer
@@ -43,15 +44,18 @@ struct AnswerEditorView: View {
                 .help("Delete this answer")
             }
 
-            // Answer text editor (HTML or Rich Text based on mode)
-            Group {
+            // Answer text editor (HTML or Rich Text based on mode) with resize handle
+            VStack(spacing: 0) {
                 if editorState.editorMode == .html {
                     HTMLEditorView(text: $answer.text)
-                        .frame(minHeight: 100, maxHeight: 250)
+                        .frame(height: editorHeight)
                 } else {
                     RichTextEditorView(htmlText: $answer.text)
-                        .frame(minHeight: 100, maxHeight: 250)
+                        .frame(height: editorHeight)
                 }
+
+                // Resize handle
+                AnswerResizeHandle(height: $editorHeight)
             }
             .border(Color.secondary.opacity(0.3), width: 1)
             .cornerRadius(4)
@@ -63,6 +67,38 @@ struct AnswerEditorView: View {
             RoundedRectangle(cornerRadius: 8)
                 .stroke(answer.isCorrect ? Color.green.opacity(0.3) : Color.secondary.opacity(0.2), lineWidth: 1)
         )
+    }
+}
+
+/// Resize handle for answer editors (smaller version)
+struct AnswerResizeHandle: View {
+    @Binding var height: CGFloat
+    @State private var isDragging = false
+    @State private var isHovering = false
+
+    var body: some View {
+        Divider()
+            .overlay(
+                Rectangle()
+                    .fill(isDragging ? Color.blue.opacity(0.3) : (isHovering ? Color.gray.opacity(0.2) : Color.clear))
+                    .frame(height: 20)
+                    .contentShape(Rectangle())
+                    .onHover { hovering in
+                        isHovering = hovering
+                    }
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                isDragging = true
+                                let newHeight = height + value.translation.height
+                                height = min(max(newHeight, 50), 500)
+                            }
+                            .onEnded { _ in
+                                isDragging = false
+                            }
+                    )
+                    .cursor(.resizeUpDown)
+            )
     }
 }
 
