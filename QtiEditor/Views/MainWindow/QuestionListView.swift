@@ -13,15 +13,10 @@ struct QuestionListView: View {
     @State private var showDeleteConfirmation = false
     @FocusState private var isListFocused: Bool
 
-    /// Number of currently selected questions
-    private var selectionCount: Int {
-        editorState.selectedQuestionIDs.isEmpty
-            ? (editorState.selectedQuestion != nil ? 1 : 0)
-            : editorState.selectedQuestionIDs.count
-    }
-
     var body: some View {
         @Bindable var editorState = editorState
+
+        let selectionCount = computeSelectionCount()
 
         List(selection: $editorState.selectedQuestionIDs) {
             if let document = editorState.document {
@@ -123,7 +118,7 @@ struct QuestionListView: View {
                     Label("Duplicate Question", systemImage: "plus.square.on.square")
                 }
                 .disabled(editorState.selectedQuestionIDs.isEmpty && editorState.selectedQuestion == nil)
-                .help(selectionCount > 1 ? "Duplicate \(selectionCount) questions (Cmd+D)" : "Duplicate selected question (Cmd+D)")
+                .help(duplicateHelpText(count: selectionCount))
             }
 
             ToolbarItem(placement: .primaryAction) {
@@ -133,14 +128,14 @@ struct QuestionListView: View {
                     Label("Delete Question", systemImage: "trash")
                 }
                 .disabled(editorState.selectedQuestionIDs.isEmpty && editorState.selectedQuestion == nil)
-                .help(selectionCount > 1 ? "Delete \(selectionCount) questions (Delete key)" : "Delete selected question (Delete key)")
+                .help(deleteHelpText(count: selectionCount))
             }
         }
         .onDeleteCommand {
             confirmDelete()
         }
         .confirmationDialog(
-            selectionCount > 1 ? "Delete \(selectionCount) Questions?" : "Delete Question?",
+            deleteDialogTitle(count: selectionCount),
             isPresented: $showDeleteConfirmation
         ) {
             Button("Delete", role: .destructive) {
@@ -148,17 +143,47 @@ struct QuestionListView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            if selectionCount > 1 {
-                Text("Are you sure you want to delete \(selectionCount) questions? This action cannot be undone.")
-            } else {
-                Text("Are you sure you want to delete this question? This action cannot be undone.")
-            }
+            Text(deleteDialogMessage(count: selectionCount))
         }
     }
 
     private func confirmDelete() {
-        guard selectionCount > 0 else { return }
         showDeleteConfirmation = true
+    }
+
+    private func computeSelectionCount() -> Int {
+        if !editorState.selectedQuestionIDs.isEmpty {
+            return editorState.selectedQuestionIDs.count
+        }
+        return editorState.selectedQuestion != nil ? 1 : 0
+    }
+
+    private func duplicateHelpText(count: Int) -> String {
+        if count > 1 {
+            return "Duplicate \(count) questions (Cmd+D)"
+        }
+        return "Duplicate selected question (Cmd+D)"
+    }
+
+    private func deleteHelpText(count: Int) -> String {
+        if count > 1 {
+            return "Delete \(count) questions (Delete key)"
+        }
+        return "Delete selected question (Delete key)"
+    }
+
+    private func deleteDialogTitle(count: Int) -> String {
+        if count > 1 {
+            return "Delete \(count) Questions?"
+        }
+        return "Delete Question?"
+    }
+
+    private func deleteDialogMessage(count: Int) -> String {
+        if count > 1 {
+            return "Are you sure you want to delete \(count) questions? This action cannot be undone."
+        }
+        return "Are you sure you want to delete this question? This action cannot be undone."
     }
 }
 
