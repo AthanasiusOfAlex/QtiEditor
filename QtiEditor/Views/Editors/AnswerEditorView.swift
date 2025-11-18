@@ -31,9 +31,7 @@ struct AnswerEditorView: View {
     }
 
     private var answerContent: some View {
-        @Bindable var answer = answer
-
-        return VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 8) {
             headerRow
             editorView
         }
@@ -45,20 +43,18 @@ struct AnswerEditorView: View {
                 .stroke(answer.isCorrect ? Color.green.opacity(0.3) : Color.secondary.opacity(0.2), lineWidth: 1)
         )
         .contextMenu {
-            Button(action: {
+            Button("Copy Answer") {
                 editorState.copyAnswer(answer)
-            }) {
-                Label("Copy Answer", systemImage: "doc.on.doc")
             }
 
-            Button(action: onDuplicate) {
-                Label("Duplicate Answer", systemImage: "plus.square.on.square")
+            Button("Duplicate Answer") {
+                onDuplicate()
             }
 
             Divider()
 
-            Button(action: onDelete, role: .destructive) {
-                Label("Delete Answer", systemImage: "trash")
+            Button("Delete Answer", role: .destructive) {
+                onDelete()
             }
         }
     }
@@ -66,7 +62,7 @@ struct AnswerEditorView: View {
     private var headerRow: some View {
         @Bindable var answer = answer
 
-        return HStack {
+        HStack {
             Text("Answer \(index + 1)")
                 .font(.headline)
 
@@ -100,7 +96,7 @@ struct AnswerEditorView: View {
     private var editorView: some View {
         @Bindable var answer = answer
 
-        return VStack(spacing: 0) {
+        VStack(spacing: 0) {
             if editorState.editorMode == .html {
                 HTMLEditorView(text: $answer.text)
                     .frame(height: editorHeight)
