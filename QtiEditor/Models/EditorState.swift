@@ -302,14 +302,23 @@ final class EditorState {
     func copyQuestion(_ question: QTIQuestion) {
         print("✂️ [Copy] Copying 1 question to clipboard")
         let pasteboard = NSPasteboard.general
+        let oldChangeCount = pasteboard.changeCount
+        print("✂️ [Copy] Current changeCount: \(oldChangeCount)")
+
         pasteboard.clearContents()
         print("✂️ [Copy] Cleared clipboard contents")
+        let afterClearChangeCount = pasteboard.changeCount
+        print("✂️ [Copy] After clear changeCount: \(afterClearChangeCount)")
 
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode([question])
             let success = pasteboard.setData(data, forType: Self.questionPasteboardType)
-            print("✂️ [Copy] setData returned: \(success)")
+            let afterSetChangeCount = pasteboard.changeCount
+            print("✂️ [Copy] setData returned: \(success), changeCount now: \(afterSetChangeCount)")
+
+            // Force a small delay to ensure pasteboard sync
+            Thread.sleep(forTimeInterval: 0.01) // 10ms
 
             // Verify data was written
             if let verify = pasteboard.data(forType: Self.questionPasteboardType) {
@@ -420,8 +429,9 @@ final class EditorState {
     /// Get the count of questions in the clipboard
     func clipboardQuestionCount() -> Int {
         let pasteboard = NSPasteboard.general
+        let changeCount = pasteboard.changeCount
         let hasQuestionData = pasteboard.data(forType: Self.questionPasteboardType) != nil
-        print("🔍 [Clipboard] Checking for questions - has data: \(hasQuestionData)")
+        print("🔍 [Clipboard] Checking for questions - changeCount: \(changeCount), has data: \(hasQuestionData)")
 
         guard let data = pasteboard.data(forType: Self.questionPasteboardType) else {
             print("🔍 [Clipboard] Question count: 0 (no data)")
@@ -442,8 +452,9 @@ final class EditorState {
     /// Get the count of answers in the clipboard
     func clipboardAnswerCount() -> Int {
         let pasteboard = NSPasteboard.general
+        let changeCount = pasteboard.changeCount
         let hasAnswerData = pasteboard.data(forType: Self.answersArrayPasteboardType) != nil
-        print("🔍 [Clipboard] Checking for answers - has data: \(hasAnswerData)")
+        print("🔍 [Clipboard] Checking for answers - changeCount: \(changeCount), has data: \(hasAnswerData)")
 
         guard let data = pasteboard.data(forType: Self.answersArrayPasteboardType) else {
             print("🔍 [Clipboard] Answer count: 0 (no data)")
@@ -518,14 +529,23 @@ final class EditorState {
 
         print("✂️ [Copy] Copying \(answers.count) answer(s) to clipboard")
         let pasteboard = NSPasteboard.general
+        let oldChangeCount = pasteboard.changeCount
+        print("✂️ [Copy] Current changeCount: \(oldChangeCount)")
+
         pasteboard.clearContents()
         print("✂️ [Copy] Cleared clipboard contents")
+        let afterClearChangeCount = pasteboard.changeCount
+        print("✂️ [Copy] After clear changeCount: \(afterClearChangeCount)")
 
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode(answers)
             let success = pasteboard.setData(data, forType: Self.answersArrayPasteboardType)
-            print("✂️ [Copy] setData returned: \(success)")
+            let afterSetChangeCount = pasteboard.changeCount
+            print("✂️ [Copy] setData returned: \(success), changeCount now: \(afterSetChangeCount)")
+
+            // Force a small delay to ensure pasteboard sync
+            Thread.sleep(forTimeInterval: 0.01) // 10ms
 
             // Verify data was written
             if let verify = pasteboard.data(forType: Self.answersArrayPasteboardType) {
