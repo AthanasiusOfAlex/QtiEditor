@@ -132,6 +132,11 @@ struct ContentView: View {
                 Task { @MainActor in
                     await editorState.openDocument(from: url)
                 }
+            } else if editorState.document == nil {
+                // No pending file and no document - create a new one
+                Task { @MainActor in
+                    await editorState.createNewDocument()
+                }
             }
         }
         .onChange(of: questionEditorHeight) { _, newValue in
