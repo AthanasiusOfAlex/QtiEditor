@@ -106,7 +106,7 @@ struct CollapsiblePanel<Content: View>: View {
     CollapsiblePanel(position: .trailing, title: "Utilities", isVisible: $isVisible) {
         VStack {
             Text("Utilities Content")
-            List(["Search", "Settings", "Export"]) { item in
+            List(["Search", "Settings", "Export"], id: \.self) { item in
                 Text(item)
             }
         }
