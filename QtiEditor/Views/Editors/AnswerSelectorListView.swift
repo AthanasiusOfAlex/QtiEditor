@@ -156,7 +156,6 @@ struct AnswerSelectorListView: View {
         clipboardCheckTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [self] _ in
             let currentCount = NSPasteboard.general.changeCount
             if currentCount != clipboardChangeCount {
-                print("📋 [AnswerList] Clipboard changed: \(clipboardChangeCount) → \(currentCount)")
                 clipboardChangeCount = currentCount
             }
         }

@@ -140,24 +140,19 @@ struct QuestionListView: View {
     /// Generate label for paste button based on clipboard contents
     /// Reads clipboard directly to ensure fresh data
     private func pasteButtonLabel() -> String {
-        print("📋 [QuestionList] Generating paste button label...")
         let questionCount = editorState.clipboardQuestionCount()
         let answerCount = editorState.clipboardAnswerCount()
-        print("📋 [QuestionList] Got counts - questions: \(questionCount), answers: \(answerCount)")
 
-        let label: String
         // If both types are available, just show "Paste"
         if questionCount > 0 && answerCount > 0 {
-            label = "Paste"
+            return "Paste"
         } else if questionCount > 0 {
-            label = questionCount == 1 ? "Paste Question" : "Paste Questions"
+            return questionCount == 1 ? "Paste Question" : "Paste Questions"
         } else if answerCount > 0 {
-            label = answerCount == 1 ? "Paste Answer" : "Paste Answers"
+            return answerCount == 1 ? "Paste Answer" : "Paste Answers"
         } else {
-            label = "Paste"
+            return "Paste"
         }
-        print("📋 [QuestionList] Label: \"\(label)\"")
-        return label
     }
 
     /// Check if anything can be pasted
@@ -169,20 +164,14 @@ struct QuestionListView: View {
     /// Perform paste based on clipboard contents
     /// Reads clipboard directly to ensure fresh data
     private func performPaste(into question: QTIQuestion) {
-        print("📋 [QuestionList] Performing paste...")
         let questionCount = editorState.clipboardQuestionCount()
         let answerCount = editorState.clipboardAnswerCount()
-        print("📋 [QuestionList] Got counts - questions: \(questionCount), answers: \(answerCount)")
 
         // Prefer questions if both are available
         if questionCount > 0 {
-            print("📋 [QuestionList] → Pasting questions")
             editorState.pasteQuestionAfter(question)
         } else if answerCount > 0 {
-            print("📋 [QuestionList] → Pasting answers")
             editorState.pasteAnswersIntoQuestion(question)
-        } else {
-            print("📋 [QuestionList] → Nothing to paste!")
         }
     }
 
@@ -226,7 +215,6 @@ struct QuestionListView: View {
         clipboardCheckTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [self] _ in
             let currentCount = NSPasteboard.general.changeCount
             if currentCount != clipboardChangeCount {
-                print("📋 [QuestionList] Clipboard changed: \(clipboardChangeCount) → \(currentCount)")
                 clipboardChangeCount = currentCount
             }
         }

@@ -305,7 +305,6 @@ final class EditorState {
 
     /// Copy a specific question to the pasteboard
     func copyQuestion(_ question: QTIQuestion) {
-        print("✂️ [Copy] Copying 1 question to clipboard")
         let pasteboard = NSPasteboard.general
 
         do {
@@ -318,18 +317,8 @@ final class EditorState {
 
             // clearContents() + writeObjects() is the atomic modern pattern
             pasteboard.clearContents()
-            let afterClearChangeCount = pasteboard.changeCount
-
-            let success = pasteboard.writeObjects([item])
-            let afterWriteChangeCount = pasteboard.changeCount
-
-            if success {
-                print("✂️ [Copy] ✅ Copied question, changeCount: \(afterClearChangeCount) → \(afterWriteChangeCount)")
-            } else {
-                print("✂️ [Copy] ❌ writeObjects failed, changeCount: \(afterWriteChangeCount)")
-            }
+            pasteboard.writeObjects([item])
         } catch {
-            print("✂️ [Copy] ❌ Failed to encode question: \(error)")
             showError("Failed to copy question: \(error.localizedDescription)")
         }
     }
@@ -436,7 +425,6 @@ final class EditorState {
         let beforeChangeCount = pasteboard.changeCount
 
         guard let data = pasteboard.data(forType: Self.questionPasteboardType) else {
-            print("🔍 [Clipboard] Question count: 0 (no data), changeCount: \(beforeChangeCount)")
             return 0
         }
 
@@ -444,7 +432,6 @@ final class EditorState {
 
         // Race condition detection: If changeCount changed during read, discard and retry
         if beforeChangeCount != afterChangeCount {
-            print("🔍 [Clipboard] ⚠️ Race detected! changeCount: \(beforeChangeCount) → \(afterChangeCount). Retrying...")
             return clipboardQuestionCount() // Recursive retry
         }
 
@@ -452,10 +439,8 @@ final class EditorState {
         do {
             let decoder = JSONDecoder()
             let questions = try decoder.decode([QTIQuestion].self, from: data)
-            print("🔍 [Clipboard] Question count: \(questions.count), changeCount: \(beforeChangeCount)")
             return questions.count
         } catch {
-            print("🔍 [Clipboard] Question count: 0 (decode error: \(error)), changeCount: \(beforeChangeCount)")
             return 0
         }
     }
@@ -468,7 +453,6 @@ final class EditorState {
         let beforeChangeCount = pasteboard.changeCount
 
         guard let data = pasteboard.data(forType: Self.answersArrayPasteboardType) else {
-            print("🔍 [Clipboard] Answer count: 0 (no data), changeCount: \(beforeChangeCount)")
             return 0
         }
 
@@ -476,7 +460,6 @@ final class EditorState {
 
         // Race condition detection: If changeCount changed during read, discard and retry
         if beforeChangeCount != afterChangeCount {
-            print("🔍 [Clipboard] ⚠️ Race detected! changeCount: \(beforeChangeCount) → \(afterChangeCount). Retrying...")
             return clipboardAnswerCount() // Recursive retry
         }
 
@@ -484,10 +467,8 @@ final class EditorState {
         do {
             let decoder = JSONDecoder()
             let answers = try decoder.decode([QTIAnswer].self, from: data)
-            print("🔍 [Clipboard] Answer count: \(answers.count), changeCount: \(beforeChangeCount)")
             return answers.count
         } catch {
-            print("🔍 [Clipboard] Answer count: 0 (decode error: \(error)), changeCount: \(beforeChangeCount)")
             return 0
         }
     }
@@ -547,12 +528,8 @@ final class EditorState {
     /// Copy multiple answers to the pasteboard
     /// - Parameter answers: The answers to copy
     func copyAnswers(_ answers: [QTIAnswer]) {
-        guard !answers.isEmpty else {
-            print("✂️ [Copy] No answers to copy (empty array)")
-            return
-        }
+        guard !answers.isEmpty else { return }
 
-        print("✂️ [Copy] Copying \(answers.count) answer(s) to clipboard")
         let pasteboard = NSPasteboard.general
 
         do {
@@ -565,18 +542,8 @@ final class EditorState {
 
             // clearContents() + writeObjects() is the atomic modern pattern
             pasteboard.clearContents()
-            let afterClearChangeCount = pasteboard.changeCount
-
-            let success = pasteboard.writeObjects([item])
-            let afterWriteChangeCount = pasteboard.changeCount
-
-            if success {
-                print("✂️ [Copy] ✅ Copied \(answers.count) answer(s), changeCount: \(afterClearChangeCount) → \(afterWriteChangeCount)")
-            } else {
-                print("✂️ [Copy] ❌ writeObjects failed, changeCount: \(afterWriteChangeCount)")
-            }
+            pasteboard.writeObjects([item])
         } catch {
-            print("✂️ [Copy] ❌ Failed to encode answers: \(error)")
             showError("Failed to copy answers: \(error.localizedDescription)")
         }
     }
