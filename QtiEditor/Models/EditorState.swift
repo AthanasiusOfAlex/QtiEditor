@@ -300,14 +300,18 @@ final class EditorState {
 
     /// Copy a specific question to the pasteboard
     func copyQuestion(_ question: QTIQuestion) {
+        print("✂️ [Copy] Copying 1 question to clipboard")
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
+        print("✂️ [Copy] Cleared clipboard contents")
 
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode([question])
             pasteboard.setData(data, forType: Self.questionPasteboardType)
+            print("✂️ [Copy] ✅ Successfully copied question")
         } catch {
+            print("✂️ [Copy] ❌ Failed to copy question: \(error)")
             showError("Failed to copy question: \(error.localizedDescription)")
         }
     }
@@ -409,13 +413,21 @@ final class EditorState {
     /// Get the count of questions in the clipboard
     func clipboardQuestionCount() -> Int {
         let pasteboard = NSPasteboard.general
-        guard let data = pasteboard.data(forType: Self.questionPasteboardType) else { return 0 }
+        let hasQuestionData = pasteboard.data(forType: Self.questionPasteboardType) != nil
+        print("🔍 [Clipboard] Checking for questions - has data: \(hasQuestionData)")
+
+        guard let data = pasteboard.data(forType: Self.questionPasteboardType) else {
+            print("🔍 [Clipboard] Question count: 0 (no data)")
+            return 0
+        }
 
         do {
             let decoder = JSONDecoder()
             let questions = try decoder.decode([QTIQuestion].self, from: data)
+            print("🔍 [Clipboard] Question count: \(questions.count)")
             return questions.count
         } catch {
+            print("🔍 [Clipboard] Question count: 0 (decode error: \(error))")
             return 0
         }
     }
@@ -423,13 +435,21 @@ final class EditorState {
     /// Get the count of answers in the clipboard
     func clipboardAnswerCount() -> Int {
         let pasteboard = NSPasteboard.general
-        guard let data = pasteboard.data(forType: Self.answersArrayPasteboardType) else { return 0 }
+        let hasAnswerData = pasteboard.data(forType: Self.answersArrayPasteboardType) != nil
+        print("🔍 [Clipboard] Checking for answers - has data: \(hasAnswerData)")
+
+        guard let data = pasteboard.data(forType: Self.answersArrayPasteboardType) else {
+            print("🔍 [Clipboard] Answer count: 0 (no data)")
+            return 0
+        }
 
         do {
             let decoder = JSONDecoder()
             let answers = try decoder.decode([QTIAnswer].self, from: data)
+            print("🔍 [Clipboard] Answer count: \(answers.count)")
             return answers.count
         } catch {
+            print("🔍 [Clipboard] Answer count: 0 (decode error: \(error))")
             return 0
         }
     }
@@ -484,16 +504,23 @@ final class EditorState {
     /// Copy multiple answers to the pasteboard
     /// - Parameter answers: The answers to copy
     func copyAnswers(_ answers: [QTIAnswer]) {
-        guard !answers.isEmpty else { return }
+        guard !answers.isEmpty else {
+            print("✂️ [Copy] No answers to copy (empty array)")
+            return
+        }
 
+        print("✂️ [Copy] Copying \(answers.count) answer(s) to clipboard")
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
+        print("✂️ [Copy] Cleared clipboard contents")
 
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode(answers)
             pasteboard.setData(data, forType: Self.answersArrayPasteboardType)
+            print("✂️ [Copy] ✅ Successfully copied \(answers.count) answer(s)")
         } catch {
+            print("✂️ [Copy] ❌ Failed to copy answers: \(error)")
             showError("Failed to copy answers: \(error.localizedDescription)")
         }
     }
