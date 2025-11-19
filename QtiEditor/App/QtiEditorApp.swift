@@ -8,6 +8,26 @@
 import SwiftUI
 internal import UniformTypeIdentifiers
 
+/// Manages pending file operations for new windows
+@MainActor
+@Observable
+class PendingFileManager {
+    static let shared = PendingFileManager()
+    var pendingFileURL: URL?
+
+    private init() {}
+
+    func setPendingFile(_ url: URL) {
+        pendingFileURL = url
+    }
+
+    func consumePendingFile() -> URL? {
+        let url = pendingFileURL
+        pendingFileURL = nil
+        return url
+    }
+}
+
 @main
 struct QtiEditorApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -15,6 +35,7 @@ struct QtiEditorApp: App {
     var body: some Scene {
         WindowGroup(id: "main") {
             ContentView()
+                .environment(PendingFileManager.shared)
         }
         .commands {
             FileCommands()
@@ -132,15 +153,6 @@ struct FileCommands: Commands {
 
     @MainActor
     private func openDocument() {
-        // If no window is open, create one first
-        if editorState == nil {
-            openWindow(id: "main")
-            // The user can then use Cmd-O again from the new window
-            return
-        }
-
-        guard let editorState = editorState else { return }
-
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
@@ -151,11 +163,18 @@ struct FileCommands: Commands {
         ]
         panel.message = "Select a Canvas quiz export file (.imscc or .zip)"
 
-        panel.begin { response in
+        panel.begin { [openWindow] response in
             guard response == .OK, let url = panel.url else { return }
 
             Task { @MainActor in
-                await editorState.openDocument(from: url)
+                // If we have an editor state, open in current window
+                if let editorState = editorState {
+                    await editorState.openDocument(from: url)
+                } else {
+                    // No window open - store URL and create window
+                    PendingFileManager.shared.setPendingFile(url)
+                    openWindow(id: "main")
+                }
             }
         }
     }

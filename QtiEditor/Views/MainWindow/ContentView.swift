@@ -15,6 +15,7 @@ struct ContentView: View {
     @State private var editorState = EditorState()
     @AppStorage("questionEditorHeight") private var storedQuestionEditorHeight: Double = 300
     @State private var questionEditorHeight: CGFloat = 300
+    @Environment(PendingFileManager.self) private var pendingFileManager
 
     var body: some View {
         @Bindable var editorState = editorState
@@ -125,6 +126,13 @@ struct ContentView: View {
         }
         .onAppear {
             questionEditorHeight = CGFloat(storedQuestionEditorHeight)
+
+            // Check for pending file to open
+            if let url = pendingFileManager.consumePendingFile() {
+                Task { @MainActor in
+                    await editorState.openDocument(from: url)
+                }
+            }
         }
         .onChange(of: questionEditorHeight) { _, newValue in
             storedQuestionEditorHeight = Double(newValue)
@@ -201,6 +209,7 @@ struct QuestionEditorResizeHandle: View {
 #Preview {
     ContentView()
         .environment(EditorState(document: QTIDocument.empty()))
+        .environment(PendingFileManager.shared)
 }
 
 // MARK: - Window Document Edited Modifier
