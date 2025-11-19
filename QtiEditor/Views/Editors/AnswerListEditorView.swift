@@ -62,6 +62,9 @@ struct AnswerListEditorView: View {
     @State private var actionsHelper = AnswerListActionsHelper()
     @FocusState private var isFocused: Bool
 
+    // Confirmation dialog
+    @State private var showDeleteConfirmation = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // Header
@@ -92,7 +95,7 @@ struct AnswerListEditorView: View {
                     .buttonStyle(.bordered)
                     .help("Duplicate selected answer(s)")
 
-                    Button(action: deleteSelectedAnswers) {
+                    Button(action: confirmDelete) {
                         Label("Delete", systemImage: "trash")
                     }
                     .buttonStyle(.bordered)
@@ -132,6 +135,7 @@ struct AnswerListEditorView: View {
                             answer: answer,
                             index: index,
                             isSelected: selectedAnswerIDs.contains(answer.id),
+                            hasMultipleSelected: selectedAnswerIDs.count > 1,
                             onDelete: {
                                 deleteAnswer(answer)
                             },
@@ -172,6 +176,17 @@ struct AnswerListEditorView: View {
             if newValue.isEmpty {
                 lastSelectedID = nil
             }
+        }
+        .confirmationDialog(
+            deleteDialogTitle(),
+            isPresented: $showDeleteConfirmation
+        ) {
+            Button("Delete", role: .destructive) {
+                performDelete()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(deleteDialogMessage())
         }
     }
 
@@ -257,10 +272,30 @@ struct AnswerListEditorView: View {
         clearSelection()
     }
 
-    private func deleteSelectedAnswers() {
-        // Delete selected answers directly (could add confirmation dialog later if desired)
+    private func confirmDelete() {
+        // Show confirmation dialog for multiple deletes
+        if selectedAnswerIDs.count > 1 {
+            showDeleteConfirmation = true
+        } else {
+            performDelete()
+        }
+    }
+
+    private func performDelete() {
         question.answers.removeAll { selectedAnswerIDs.contains($0.id) }
         clearSelection()
+    }
+
+    private func deleteDialogTitle() -> String {
+        let count = selectedAnswerIDs.count
+        return count > 1 ? "Delete \(count) Answers?" : "Delete Answer?"
+    }
+
+    private func deleteDialogMessage() -> String {
+        let count = selectedAnswerIDs.count
+        return count > 1
+            ? "Are you sure you want to delete \(count) answers? This action cannot be undone."
+            : "Are you sure you want to delete this answer? This action cannot be undone."
     }
 
     func pasteAnswers() {

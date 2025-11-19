@@ -13,6 +13,7 @@ struct AnswerEditorView: View {
     let answer: QTIAnswer
     let index: Int
     let isSelected: Bool
+    let hasMultipleSelected: Bool
     let onDelete: () -> Void
     let onDuplicate: () -> Void
     let onCorrectChanged: (Bool) -> Void
@@ -44,18 +45,20 @@ struct AnswerEditorView: View {
                 .stroke(borderColor, lineWidth: isSelected ? 2 : 1)
         )
         .contextMenu {
-            Button("Copy Answer") {
-                editorState.copyAnswer(answer)
-            }
+            if !hasMultipleSelected {
+                Button("Copy Answer") {
+                    editorState.copyAnswer(answer)
+                }
 
-            Button("Duplicate Answer") {
-                onDuplicate()
-            }
+                Button("Duplicate Answer") {
+                    onDuplicate()
+                }
 
-            Divider()
+                Divider()
 
-            Button("Delete Answer", role: .destructive) {
-                onDelete()
+                Button("Delete Answer", role: .destructive) {
+                    onDelete()
+                }
             }
         }
     }
@@ -98,19 +101,21 @@ struct AnswerEditorView: View {
 
             Spacer()
 
-            Button(action: onDuplicate) {
-                Label("Duplicate", systemImage: "plus.square.on.square")
-                    .foregroundStyle(.blue)
-            }
-            .buttonStyle(.plain)
-            .help("Duplicate this answer")
+            if !hasMultipleSelected {
+                Button(action: onDuplicate) {
+                    Label("Duplicate", systemImage: "plus.square.on.square")
+                        .foregroundStyle(.blue)
+                }
+                .buttonStyle(.plain)
+                .help("Duplicate this answer")
 
-            Button(action: onDelete) {
-                Label("Delete", systemImage: "trash")
-                    .foregroundStyle(.red)
+                Button(action: onDelete) {
+                    Label("Delete", systemImage: "trash")
+                        .foregroundStyle(.red)
+                }
+                .buttonStyle(.plain)
+                .help("Delete this answer")
             }
-            .buttonStyle(.plain)
-            .help("Delete this answer")
         }
     }
 
@@ -175,6 +180,7 @@ struct AnswerResizeHandle: View {
         answer: sampleAnswer,
         index: 0,
         isSelected: false,
+        hasMultipleSelected: false,
         onDelete: { print("Delete tapped") },
         onDuplicate: { print("Duplicate tapped") },
         onCorrectChanged: { isCorrect in print("Correct changed to: \(isCorrect)") }
