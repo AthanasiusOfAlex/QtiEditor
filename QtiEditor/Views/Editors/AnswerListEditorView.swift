@@ -168,10 +168,8 @@ struct AnswerListEditorView: View {
             isFocused = true
         }
         .onChange(of: selectedAnswerIDs) { oldValue, newValue in
-            // Update last selected ID for potential future use
-            if let lastID = newValue.last {
-                lastSelectedID = lastID
-            } else if newValue.isEmpty {
+            // Clear lastSelectedID when selection is cleared
+            if newValue.isEmpty {
                 lastSelectedID = nil
             }
         }
