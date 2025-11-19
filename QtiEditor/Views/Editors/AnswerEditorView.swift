@@ -185,7 +185,7 @@ struct AnswerResizeHandle: View {
         isCorrect: true
     )
 
-    return AnswerEditorView(
+    AnswerEditorView(
         answer: sampleAnswer,
         index: 0,
         isSelected: false,
@@ -193,6 +193,7 @@ struct AnswerResizeHandle: View {
         canPaste: true,
         onDelete: { print("Delete tapped") },
         onDuplicate: { print("Duplicate tapped") },
+        onCopy: { print("Copy tapped") },
         onPasteAfter: { print("Paste after tapped") },
         onCorrectChanged: { isCorrect in print("Correct changed to: \(isCorrect)") }
     )
