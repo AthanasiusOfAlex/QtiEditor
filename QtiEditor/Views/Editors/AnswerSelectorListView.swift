@@ -112,11 +112,11 @@ struct AnswerSelectorListView: View {
             clipboardHasAnswers = true
         }
 
-        if clipboardHasAnswers {
-            Button("Paste Answer After") {
-                pasteAnswersAfter(answer)
-            }
+        // Unified paste button
+        Button("Paste Answers") {
+            pasteAnswersAfter(answer)
         }
+        .disabled(!clipboardHasAnswers)
 
         Button("Duplicate Answer") {
             duplicateAnswer(answer)

@@ -51,39 +51,60 @@ struct FileCommands: Commands {
     @Environment(\.openWindow) private var openWindow
 
     var body: some Commands {
-        // Focus-aware Edit commands (Copy/Cut/Paste/Select All)
+        // Pasteboard commands - native when text editors have focus,
+        // custom when lists have focus
         CommandGroup(replacing: .pasteboard) {
             Button("Copy") {
-                focusedActions?.copy?()
+                if let copy = focusedActions?.copy {
+                    copy()
+                } else {
+                    // No focused actions - pass through to system
+                    NSApp.sendAction(#selector(NSText.copy(_:)), to: nil, from: nil)
+                }
             }
             .keyboardShortcut("c", modifiers: .command)
-            .disabled(focusedActions?.copy == nil)
 
             Button("Cut") {
-                focusedActions?.cut?()
+                if let cut = focusedActions?.cut {
+                    cut()
+                } else {
+                    // No focused actions - pass through to system
+                    NSApp.sendAction(#selector(NSText.cut(_:)), to: nil, from: nil)
+                }
             }
             .keyboardShortcut("x", modifiers: .command)
-            .disabled(focusedActions?.cut == nil)
 
             Button("Paste") {
-                focusedActions?.paste?()
+                if let paste = focusedActions?.paste {
+                    paste()
+                } else {
+                    // No focused actions - pass through to system
+                    NSApp.sendAction(#selector(NSText.paste(_:)), to: nil, from: nil)
+                }
             }
             .keyboardShortcut("v", modifiers: .command)
-            .disabled(focusedActions?.paste == nil)
 
             Divider()
 
             Button("Select All") {
-                focusedActions?.selectAll?()
+                if let selectAll = focusedActions?.selectAll {
+                    selectAll()
+                } else {
+                    // No focused actions - pass through to system
+                    NSApp.sendAction(#selector(NSText.selectAll(_:)), to: nil, from: nil)
+                }
             }
             .keyboardShortcut("a", modifiers: .command)
-            .disabled(focusedActions?.selectAll == nil)
 
             Button("Delete") {
-                focusedActions?.delete?()
+                if let delete = focusedActions?.delete {
+                    delete()
+                } else {
+                    // No focused actions - pass through to system
+                    NSApp.sendAction(#selector(NSText.delete(_:)), to: nil, from: nil)
+                }
             }
             .keyboardShortcut(.delete)
-            .disabled(focusedActions?.delete == nil)
         }
         CommandGroup(replacing: .newItem) {
             Button("New Quiz Window") {

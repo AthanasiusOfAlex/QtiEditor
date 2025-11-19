@@ -115,15 +115,11 @@ struct QuestionListView: View {
                 editorState.copyQuestion(question)
             }
 
-            Button("Paste Question After") {
-                editorState.pasteQuestionAfter(question)
+            // Unified paste button - works based on clipboard contents
+            Button(pasteButtonLabel()) {
+                performPaste(into: question)
             }
-            .disabled(editorState.document == nil || !editorState.canPasteQuestion())
-
-            Button("Paste Answer") {
-                editorState.pasteAnswersIntoQuestion(question)
-            }
-            .disabled(!clipboardHasAnswers)
+            .disabled(!canPaste())
 
             Divider()
 
@@ -143,6 +139,37 @@ struct QuestionListView: View {
         }
         .onAppear {
             checkClipboard()
+        }
+    }
+
+    /// Generate label for paste button based on clipboard contents
+    private func pasteButtonLabel() -> String {
+        let hasQuestions = editorState.canPasteQuestion()
+        let hasAnswers = clipboardHasAnswers
+
+        if hasQuestions && hasAnswers {
+            return "Paste"
+        } else if hasQuestions {
+            return "Paste Questions"
+        } else if hasAnswers {
+            return "Paste Answers"
+        } else {
+            return "Paste"
+        }
+    }
+
+    /// Check if anything can be pasted
+    private func canPaste() -> Bool {
+        return editorState.canPasteQuestion() || clipboardHasAnswers
+    }
+
+    /// Perform paste based on clipboard contents
+    private func performPaste(into question: QTIQuestion) {
+        // Prefer questions if both are available
+        if editorState.canPasteQuestion() {
+            editorState.pasteQuestionAfter(question)
+        } else if clipboardHasAnswers {
+            editorState.pasteAnswersIntoQuestion(question)
         }
     }
 
