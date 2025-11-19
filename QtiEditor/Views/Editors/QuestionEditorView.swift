@@ -48,6 +48,7 @@ struct QuestionEditorView: View {
                         get: { question.questionText },
                         set: { newValue in
                             question.questionText = newValue
+                            editorState.markDocumentEdited()
                         }
                     ))
                 }
@@ -58,6 +59,7 @@ struct QuestionEditorView: View {
                     get: { question.questionText },
                     set: { newValue in
                         question.questionText = newValue
+                        editorState.markDocumentEdited()
                     }
                 ))
                 .border(Color.secondary.opacity(0.3), width: 1)
@@ -75,6 +77,7 @@ struct QuestionEditorView: View {
         let beautified = await beautifier.beautify(question.questionText)
         await MainActor.run {
             question.questionText = beautified
+            editorState.markDocumentEdited()
         }
     }
 

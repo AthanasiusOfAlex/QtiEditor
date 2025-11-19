@@ -62,6 +62,9 @@ struct QuestionInspectorView: View {
                 TextField("Points", value: $question.points, format: .number)
                     .textFieldStyle(.roundedBorder)
                     .help("Point value for this question")
+                    .onChange(of: question.points) { _, _ in
+                        editorState.markDocumentEdited()
+                    }
             }
 
             // Answer count
@@ -111,6 +114,9 @@ struct QuestionInspectorView: View {
 
                 TextField("Quiz Title", text: $document.title)
                     .textFieldStyle(.roundedBorder)
+                    .onChange(of: document.title) { _, _ in
+                        editorState.markDocumentEdited()
+                    }
             }
 
             // Quiz description
@@ -124,6 +130,9 @@ struct QuestionInspectorView: View {
                         .font(.body)
                         .scrollContentBackground(.hidden)
                         .padding(8)
+                        .onChange(of: document.description) { _, _ in
+                            editorState.markDocumentEdited()
+                        }
                 }
                 .frame(height: 100)
                 .background(Color(nsColor: .textBackgroundColor))

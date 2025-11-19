@@ -323,6 +323,9 @@ struct SearchReplaceView: View {
                     in: document
                 )
 
+                // Mark document as edited
+                editorState.markDocumentEdited()
+
                 // Clear results after replacement
                 searchResults = []
                 errorMessage = nil
@@ -352,6 +355,9 @@ struct SearchReplaceView: View {
                     isRegex: editorState.isRegexEnabled,
                     in: document
                 )
+
+                // Mark document as edited
+                editorState.markDocumentEdited()
 
                 // Remove this match from results
                 searchResults.remove(at: currentMatchIndex)

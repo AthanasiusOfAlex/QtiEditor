@@ -103,6 +103,7 @@ struct AnswerEditorView: View {
                 get: { answer.isCorrect },
                 set: { newValue in
                     answer.isCorrect = newValue
+                    editorState.markDocumentEdited()
                     onCorrectChanged(newValue)
                 }
             ))
@@ -133,10 +134,22 @@ struct AnswerEditorView: View {
 
         return VStack(spacing: 0) {
             if editorState.editorMode == .html {
-                HTMLEditorView(text: $answer.text)
+                HTMLEditorView(text: Binding(
+                    get: { answer.text },
+                    set: { newValue in
+                        answer.text = newValue
+                        editorState.markDocumentEdited()
+                    }
+                ))
                     .frame(height: editorHeight)
             } else {
-                RichTextEditorView(htmlText: $answer.text)
+                RichTextEditorView(htmlText: Binding(
+                    get: { answer.text },
+                    set: { newValue in
+                        answer.text = newValue
+                        editorState.markDocumentEdited()
+                    }
+                ))
                     .frame(height: editorHeight)
             }
 

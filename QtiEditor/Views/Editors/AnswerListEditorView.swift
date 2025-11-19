@@ -121,6 +121,7 @@ struct AnswerListEditorView: View {
                     }
                     .onMove { fromOffsets, toOffset in
                         question.answers.move(fromOffsets: fromOffsets, toOffset: toOffset)
+                        editorState.markDocumentEdited()
                         // Clear selection after reordering
                         selectedAnswerIDs.removeAll()
                         lastSelectedID = nil
@@ -155,10 +156,12 @@ struct AnswerListEditorView: View {
             isCorrect: false
         )
         question.answers.append(newAnswer)
+        editorState.markDocumentEdited()
     }
 
     private func deleteAnswer(_ answer: QTIAnswer) {
         question.answers.removeAll { $0.id == answer.id }
+        editorState.markDocumentEdited()
     }
 
     private func duplicateAnswer(_ answer: QTIAnswer) {
@@ -177,6 +180,7 @@ struct AnswerListEditorView: View {
 
         // Insert after the original
         question.answers.insert(duplicatedAnswer, at: index + 1)
+        editorState.markDocumentEdited()
     }
 
     private func handleCorrectChanged(for answer: QTIAnswer, isCorrect: Bool) {
@@ -220,6 +224,8 @@ struct AnswerListEditorView: View {
             insertIndex += 1
         }
 
+        editorState.markDocumentEdited()
+
         // Clear selection after duplication
         selectedAnswerIDs.removeAll()
         lastSelectedID = nil
@@ -236,6 +242,7 @@ struct AnswerListEditorView: View {
 
     private func performDelete() {
         question.answers.removeAll { selectedAnswerIDs.contains($0.id) }
+        editorState.markDocumentEdited()
         selectedAnswerIDs.removeAll()
         lastSelectedID = nil
     }
