@@ -21,30 +21,30 @@ struct ContentView: View {
 
         HSplitView {
             // LEFT PANEL: Questions list (collapsible, resizable)
-            if editorState.isLeftPanelVisible {
-                QuestionListView()
-                    .environment(editorState)
-                    .frame(
-                        minWidth: 150,
-                        idealWidth: editorState.leftPanelWidth,
-                        maxWidth: 350
-                    )
-                    .background(Color(nsColor: .controlBackgroundColor))
-                    .background(
-                        GeometryReader { geometry in
-                            Color.clear.preference(
-                                key: LeftPanelWidthPreferenceKey.self,
-                                value: geometry.size.width
-                            )
-                        }
-                    )
-                    .onPreferenceChange(LeftPanelWidthPreferenceKey.self) { width in
-                        if width > 0 {
-                            editorState.leftPanelWidth = width
-                        }
+            QuestionListView()
+                .environment(editorState)
+                .frame(
+                    minWidth: editorState.isLeftPanelVisible ? 150 : 0,
+                    idealWidth: editorState.isLeftPanelVisible ? editorState.leftPanelWidth : 0,
+                    maxWidth: editorState.isLeftPanelVisible ? 350 : 0
+                )
+                .animation(nil, value: editorState.isLeftPanelVisible)  // Disable frame animation
+                .background(Color(nsColor: .controlBackgroundColor))
+                .background(
+                    GeometryReader { geometry in
+                        Color.clear.preference(
+                            key: LeftPanelWidthPreferenceKey.self,
+                            value: geometry.size.width
+                        )
                     }
-                    .transition(.opacity.animation(.easeInOut(duration: 0.15)))
-            }
+                )
+                .onPreferenceChange(LeftPanelWidthPreferenceKey.self) { width in
+                    if editorState.isLeftPanelVisible && width > 0 {
+                        editorState.leftPanelWidth = width
+                    }
+                }
+                .opacity(editorState.isLeftPanelVisible ? 1 : 0)
+                .animation(.easeInOut(duration: 0.15), value: editorState.isLeftPanelVisible)  // Animate opacity only
 
             // MAIN PANEL: Question + Answers
             VStack(spacing: 0) {
@@ -89,43 +89,39 @@ struct ContentView: View {
             .environment(editorState)
 
             // RIGHT PANEL: Utilities (Search, Quiz Settings) - collapsible, resizable
-            if editorState.isRightPanelVisible {
-                RightPanelView(selectedTab: Binding(
-                    get: { editorState.rightPanelTab },
-                    set: { editorState.rightPanelTab = $0 }
-                ))
-                .environment(editorState)
-                .frame(
-                    minWidth: 200,
-                    idealWidth: editorState.rightPanelWidth,
-                    maxWidth: 500
-                )
-                .background(Color(nsColor: .controlBackgroundColor))
-                .background(
-                    GeometryReader { geometry in
-                        Color.clear.preference(
-                            key: RightPanelWidthPreferenceKey.self,
-                            value: geometry.size.width
-                        )
-                    }
-                )
-                .onPreferenceChange(RightPanelWidthPreferenceKey.self) { width in
-                    if width > 0 {
-                        editorState.rightPanelWidth = width
-                    }
+            RightPanelView(selectedTab: Binding(
+                get: { editorState.rightPanelTab },
+                set: { editorState.rightPanelTab = $0 }
+            ))
+            .environment(editorState)
+            .frame(
+                minWidth: editorState.isRightPanelVisible ? 200 : 0,
+                idealWidth: editorState.isRightPanelVisible ? editorState.rightPanelWidth : 0,
+                maxWidth: editorState.isRightPanelVisible ? 500 : 0
+            )
+            .animation(nil, value: editorState.isRightPanelVisible)  // Disable frame animation
+            .background(Color(nsColor: .controlBackgroundColor))
+            .background(
+                GeometryReader { geometry in
+                    Color.clear.preference(
+                        key: RightPanelWidthPreferenceKey.self,
+                        value: geometry.size.width
+                    )
                 }
-                .transition(.opacity.animation(.easeInOut(duration: 0.15)))
+            )
+            .onPreferenceChange(RightPanelWidthPreferenceKey.self) { width in
+                if editorState.isRightPanelVisible && width > 0 {
+                    editorState.rightPanelWidth = width
+                }
             }
+            .opacity(editorState.isRightPanelVisible ? 1 : 0)
+            .animation(.easeInOut(duration: 0.15), value: editorState.isRightPanelVisible)  // Animate opacity only
         }
-        .animation(.default, value: editorState.isLeftPanelVisible)
-        .animation(.default, value: editorState.isRightPanelVisible)
         .navigationTitle(editorState.documentManager.displayName)
         .toolbar {
             ToolbarItem(placement: .navigation) {
                 Button(action: {
-                    withAnimation {
-                        editorState.isLeftPanelVisible.toggle()
-                    }
+                    editorState.isLeftPanelVisible.toggle()
                 }) {
                     Label("Toggle Questions", systemImage: "sidebar.left")
                 }
@@ -134,9 +130,7 @@ struct ContentView: View {
 
             ToolbarItem(placement: .primaryAction) {
                 Button(action: {
-                    withAnimation {
-                        editorState.isRightPanelVisible.toggle()
-                    }
+                    editorState.isRightPanelVisible.toggle()
                 }) {
                     Label("Toggle Utilities", systemImage: "sidebar.right")
                 }
@@ -145,10 +139,8 @@ struct ContentView: View {
 
             ToolbarItem(placement: .primaryAction) {
                 Button(action: {
-                    withAnimation {
-                        editorState.isRightPanelVisible = true
-                        editorState.rightPanelTab = .search
-                    }
+                    editorState.isRightPanelVisible = true
+                    editorState.rightPanelTab = .search
                 }) {
                     Label("Search", systemImage: editorState.rightPanelTab == .search && editorState.isRightPanelVisible ? "magnifyingglass.circle.fill" : "magnifyingglass")
                 }
