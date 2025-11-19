@@ -72,7 +72,15 @@ final class EditorState {
     var isLoading: Bool = false
 
     init(document: QTIDocument? = nil) {
-        self.document = document
+        // If no document provided, create a blank quiz
+        if let document = document {
+            self.document = document
+        } else {
+            self.document = QTIDocument(
+                title: "Untitled Quiz",
+                description: ""
+            )
+        }
     }
 
     /// Returns the currently selected question, if any
