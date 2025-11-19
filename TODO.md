@@ -109,6 +109,7 @@ This document tracks the implementation progress of the QTI Quiz Editor.
   - [x] Search scopes:
     - [x] Current question only
     - [x] All questions
+    - [x] Question title only
     - [x] Question text only
     - [x] Answer text only
     - [x] Feedback text only
@@ -118,6 +119,12 @@ This document tracks the implementation progress of the QTI Quiz Editor.
   - [x] Full capture group support ($0, $1, $2, etc.)
   - [x] Case-sensitive/insensitive toggle
   - [x] Preserve HTML structure during replace
+
+### Known Issues / Future Enhancements
+- [x] **Question titles now searchable** ✅ - Question title added as searchable field
+  - [x] Updated SearchField enum with .questionTitle case
+  - [x] Updated SearchEngine to search question titles (canvas_title metadata)
+  - [x] Added "Question Titles" option to field selector UI with icon
 
 ### Search Data Models
 - [x] `SearchResult.swift` - Search data structures
@@ -148,7 +155,7 @@ This document tracks the implementation progress of the QTI Quiz Editor.
 
 ---
 
-## Phase 4: User Interface (In Progress)
+## Phase 4: User Interface ✅
 
 ### Main Window Structure
 - [x] `QtiEditorApp.swift` - App entry point
@@ -167,69 +174,278 @@ This document tracks the implementation progress of the QTI Quiz Editor.
   - [x] Question display with HTML stripping
   - [x] Answer list display
   - [x] Search match highlighting in question/answers
-  - [ ] Toolbar with common actions
-  - [ ] Inspector pane integration
+  - [x] Search results preview (only during active search)
 
 - [x] `QuestionListView.swift` - Question navigator (Sidebar)
   - [x] List all questions
   - [x] Question preview/summary
   - [x] Selection binding
-  - [ ] Add/delete question buttons
-  - [ ] Reorder questions (drag & drop)
-  - [ ] Question type indicators
 
-- [ ] `InspectorView.swift` - Metadata panel
-  - [ ] Question settings (points, type, etc.)
-  - [ ] Quiz metadata when no question selected
-  - [ ] Conditional display based on selection
+- [x] `AnswerEditorView.swift` - Single answer editor
+  - [x] HTML/Rich Text editing based on mode
+  - [x] Correct/incorrect checkbox
+  - [x] Delete button
+  - [x] Visual distinction for correct answers
+  - [x] Multiple choice validation (only one correct)
 
-### Editor Views (Not Yet Implemented)
-- [ ] `EditorModeToggle.swift` - Mode switcher
-  - [ ] Segmented control (HTML / Rich Text)
-  - [ ] Update state on change
-  - [ ] Warning when switching modes
+- [x] `AnswerListEditorView.swift` - Answer management
+  - [x] List all answers for a question
+  - [x] Add answer button
+  - [x] Delete answer functionality
+  - [x] Empty state display
 
-- [ ] `HTMLEditorView.swift` - HTML code editor
-  - [ ] NSTextView integration with SwiftUI
-  - [ ] Basic syntax highlighting
-    - [ ] HTML tags
-    - [ ] Attributes
-    - [ ] Text content
-  - [ ] Line numbers (optional)
-  - [ ] Monospace font
-  - [ ] Bind to question HTML
-  - [ ] Validate HTML button
-  - [ ] Beautify HTML button
+### Editor Views ✅
+- [x] `EditorModeToggle.swift` - Mode switcher
+  - [x] Segmented control (HTML / Rich Text)
+  - [x] Update state on change
+  - [ ] Warning when switching modes (future enhancement)
 
-- [ ] `RichTextEditorView.swift` - WYSIWYG editor
-  - [ ] NSTextView with rich text editing
-  - [ ] HTML to NSAttributedString conversion
-  - [ ] NSAttributedString to HTML conversion
-  - [ ] Bidirectional sync with model
-  - [ ] Formatting toolbar (bold, italic, lists, etc.)
-  - [ ] Handle common HTML elements
+- [x] `HTMLEditorView.swift` - HTML code editor
+  - [x] NSTextView integration with SwiftUI
+  - [x] Basic syntax highlighting
+    - [x] HTML tags
+    - [x] Attributes
+    - [x] Text content
+  - [ ] Line numbers (optional - future enhancement)
+  - [x] Monospace font
+  - [x] Bind to question HTML
+  - [ ] Validate HTML button (future enhancement)
+  - [ ] Beautify HTML button (future enhancement)
 
-### Supporting Services
-- [ ] `HTMLBeautifier.swift` - HTML formatting
-  - [ ] Pretty-print HTML
-  - [ ] Validate HTML structure
-  - [ ] Fix common issues
-  - [ ] Consider HTMLTidy integration
+- [x] `RichTextEditorView.swift` - WYSIWYG editor
+  - [x] NSTextView with rich text editing
+  - [x] HTML to NSAttributedString conversion
+  - [x] NSAttributedString to HTML conversion
+  - [x] Bidirectional sync with model
+  - [ ] Formatting toolbar (bold, italic, lists, etc.) (future enhancement)
+  - [x] Handle common HTML elements
+
+### Supporting Services ✅
+- [x] `HTMLBeautifier.swift` - HTML formatting
+  - [x] Pretty-print HTML
+  - [x] Validate HTML structure
+  - [x] Fix common issues
+  - [ ] Consider HTMLTidy integration (not needed - built custom solution)
 
 ---
 
-## Phase 5: Polish & Testing
+## Phase 4.5: Question Management ✅
+
+### Question Operations
+- [x] `QuestionListView.swift` - Add question operations
+  - [x] Add question button with toolbar placement
+  - [x] Keyboard shortcut: Cmd+Shift+N for new question
+  - [x] Delete question button in toolbar
+  - [x] Delete key support with confirmation dialog
+  - [x] Drag & drop reordering (.onMove modifier)
+  - [x] Question type indicator icons
+  - [x] Quiz settings button to access quiz metadata
+
+- [x] `QuestionInspectorView.swift` - Question metadata editor
+  - [x] Points field (number input)
+  - [x] Question type display (read-only)
+  - [x] Question title/label field (in ContentView)
+  - [x] Display when question selected
+  - [x] Show quiz metadata when no selection
+  - [x] Answer count and status indicators
+
+- [x] `ContentView.swift` - Main editor improvements
+  - [x] Resizable editor panes with visual feedback
+  - [x] Height persistence with @AppStorage
+  - [x] Question title editing in main pane
+  - [x] Minimum height defaults for better UX
+
+- [x] `AnswerEditorView.swift` - Answer editor polish
+  - [x] Individual resizable answer boxes
+  - [x] Height persistence per answer
+  - [x] Multiple choice validation (only one correct answer)
+  - [x] Visual feedback on resize handles
+
+### Dark Mode Support ✅
+- [x] HTML editor dark mode support (native NSTextView)
+- [x] Rich text editor dark mode support
+  - [x] Strip explicit black colors from HTML
+  - [x] Replace default black text with adaptive NSColor.labelColor
+  - [x] Preserve intentional colors (red, blue, etc.)
+- [x] All UI elements properly support dark mode
+
+### Implementation Status
+- [x] Add question functionality
+- [x] Delete question functionality
+- [x] Inspector panel creation
+- [x] Drag & drop reordering
+- [x] UI polish and dark mode (complete)
+- [x] Settings persistence
+
+---
+
+## Phase 5: Duplicate & Templates ✅
+
+### Question Duplication ✅
+- [x] Deep copy utility for questions
+  - [x] Copy all question properties
+  - [x] Copy all answers with their properties
+  - [x] Generate new UUIDs for question and answers
+  - [x] Preserve metadata structure (reset canvas_identifier)
+  - [ ] Apple naming convention ("Question copy", "Question copy 2") - Future enhancement
+
+- [x] Duplicate UI
+  - [x] Edit > Duplicate menu item (Cmd+D)
+  - [x] Duplicate button in question list toolbar
+  - [x] Duplicate in context menu
+  - [x] Insert duplicates after original question
+  - [ ] Multi-duplicate dialog (create N copies at once) - Future enhancement
+
+### Question Copy/Paste ✅
+- [x] NSPasteboard integration
+  - [x] Serialize questions to JSON for pasteboard
+  - [x] Deserialize from pasteboard
+  - [x] Custom UTType for QTI questions (com.qti-editor.question)
+  - [x] Handle paste when no document open (graceful error)
+
+- [x] Copy/Paste UI
+  - [x] Edit > Copy (Cmd+C)
+  - [x] Edit > Paste (Cmd+V)
+  - [x] Paste at current selection or end of list
+  - [ ] Support multi-selection copy (multiple questions at once) - Future enhancement
+  - [ ] Visual feedback during copy/paste - Future enhancement
+
+### Answer Duplication ✅
+- [x] Duplicate answer functionality
+  - [x] Duplicate button in answer editor
+  - [x] Generate new UUID for duplicated answer
+  - [x] Reset "isCorrect" for multiple choice (avoid multiple correct)
+  - [x] Insert after original answer
+
+### Answer Copy/Paste ✅
+- [x] Answer Copy/Paste
+  - [x] Copy answer to pasteboard (JSON)
+  - [x] Paste answer into same or different question
+  - [x] Copy Answer (context menu)
+  - [x] Paste Answer (button in header)
+  - [x] Cross-question paste support
+
+### Implementation Status
+- [x] Question deep copy utility
+- [x] Duplicate command implementation
+- [x] Answer duplicate button
+- [x] Copy/Paste for questions
+- [x] Answer copy/paste
+- [x] Codable conformance for QTIQuestion and QTIAnswer
+- [ ] Multi-duplicate dialog (optional enhancement)
+- [ ] Testing and polish
+
+---
+
+## Phase 5.5: Multi-Selection Support
+
+### Question Multi-Selection
+- [ ] Update QuestionListView to support multi-selection
+  - [ ] Enable List selection with Set<UUID> binding
+  - [ ] Cmd+Click for multi-selection (add/remove individual items)
+  - [ ] Shift+Click for range selection
+  - [ ] Visual feedback for selected items
+  - [ ] Update toolbar buttons to work with selection set
+
+- [ ] Multi-Question Operations
+  - [ ] Copy multiple questions (Cmd+C with multiple selected)
+  - [ ] Paste multiple questions (Cmd+V)
+  - [ ] Duplicate multiple questions (Cmd+D)
+  - [ ] Delete multiple questions with confirmation
+  - [ ] Drag & drop multiple questions to reorder
+
+### Answer Multi-Selection
+- [ ] Update AnswerListEditorView for multi-selection
+  - [ ] Selection state management
+  - [ ] Cmd+Click and Shift+Click support
+  - [ ] Visual feedback for selected answers
+
+- [ ] Multi-Answer Operations
+  - [ ] Copy multiple answers
+  - [ ] Paste multiple answers
+  - [ ] Duplicate multiple answers
+  - [ ] Delete multiple answers with confirmation
+
+### Implementation Status
+- [ ] Question multi-selection UI
+- [ ] Question multi-selection operations
+- [ ] Answer multi-selection UI
+- [ ] Answer multi-selection operations
+- [ ] Testing and edge cases
+
+---
+
+## Phase 5.6: Question Preview Enhancement ✅
+
+### Improved Question Display
+- [x] Extract question preview text from HTML
+  - [x] Strip HTML tags for plain text
+  - [x] Handle mattext and other QTI elements
+  - [x] Truncate long questions intelligently (word boundaries)
+  - [x] Show first N characters with ellipsis
+
+- [x] Enhanced Question List View
+  - [x] Two-line display: title + preview
+  - [x] Question type icon
+  - [x] Point value badge/indicator
+  - [x] Answer count indicator
+  - [x] Visual distinction for questions with issues (no correct answer, etc.)
+
+- [ ] Preview Customization (Future enhancement)
+  - [ ] User preference for preview length
+  - [ ] Option to show/hide point values
+  - [ ] Option to show/hide answer counts
+  - [ ] Font size adjustment for preview text
+
+### Implementation Status
+- [x] HTML text extraction utility
+- [x] Two-line question list item view
+- [x] Visual indicators and badges
+- [x] Context-aware copy/paste commands (Cmd+C/V for text, Cmd+Shift+C/V for questions)
+- [x] Question context menu with Copy/Paste/Duplicate/Delete
+- [ ] Preference storage (future)
+- [x] Testing with various question types
+
+---
+
+## Phase 5.7: Answer Reordering ✅
+
+### Drag & Drop for Answers
+- [x] Enable drag & drop reordering in AnswerListEditorView
+  - [x] Add .onMove modifier to ForEach in answer list
+  - [x] Visual feedback during drag operation (native SwiftUI)
+  - [x] Update answer array when reordered
+  - [x] Preserve all answer properties during move
+
+### UI Updates
+- [x] Remove "Paste Answer" button (no longer needed with reordering)
+- [x] Keep "Duplicate Answer" button
+- [x] Update answer context menu (remove paste, keep copy for cross-question use)
+
+### Implementation Status
+- [x] Add .onMove to answer ForEach
+- [x] Remove paste button from AnswerListEditorView
+- [x] Context menu has Copy, Duplicate, Delete (no paste)
+- [x] Test reordering with multiple choice questions
+- [x] Ensure reordering works correctly
+
+**Note**: If drag-and-drop doesn't work in VStack, may need to refactor to use List instead.
+
+---
+
+## Phase 6: Polish & Testing
 
 ### User Experience
-- [ ] Error handling and user feedback
-  - [ ] Alert dialogs for errors
-  - [ ] Progress indicators for async operations
-  - [ ] Validation messages
-- [ ] Keyboard shortcuts
-  - [ ] Cmd+F for search
-  - [ ] Cmd+S for save
-  - [ ] Cmd+N for new question
-  - [ ] Cmd+Delete for delete question
+- [x] Error handling and user feedback
+  - [x] Alert dialogs for errors
+  - [x] Progress indicators for async operations
+  - [x] Validation messages (HTML validation)
+- [x] Keyboard shortcuts (partial)
+  - [x] Cmd+F for search
+  - [x] Cmd+S for save
+  - [ ] Cmd+N for new question (Phase 4.5)
+  - [ ] Cmd+Delete for delete question (Phase 4.5)
+  - [ ] Cmd+D for duplicate (Phase 5)
 - [ ] Preferences/Settings (if needed)
 - [ ] Help menu with basic documentation
 
@@ -286,9 +502,10 @@ These are potential features for future development:
 - [ ] Multiple document windows
 - [ ] Split editor view
 - [ ] Customizable keyboard shortcuts
-- [ ] Dark mode support
+- [x] Dark mode support (complete)
 - [ ] Export to other formats (PDF, Markdown, etc.)
 - [ ] Statistics (question count, average difficulty, etc.)
+- [ ] **Cmd+A to select all questions** when question list has focus
 
 ---
 
@@ -380,6 +597,79 @@ open QtiEditor.xcodeproj
 
 ---
 
-*Last updated: 2025-11-16*
-*Current phase: Phase 4 - User Interface (Editor Views)*
-*Status: Foundation complete, search/replace fully functional, ready for editor views*
+## Recent Accomplishments (2025-11-18)
+
+### Editor Views Implementation
+- Created complete editor view system with mode switching
+- Implemented `EditorModeToggle.swift` - seamless switching between HTML and Rich Text modes
+- Implemented `HTMLEditorView.swift`:
+  - NSTextView wrapper with SwiftUI integration
+  - Real-time syntax highlighting for HTML tags, attributes, and strings
+  - Monospace font for code editing
+  - Proper cursor position maintenance during updates
+- Implemented `RichTextEditorView.swift`:
+  - WYSIWYG editor with bidirectional HTML conversion
+  - HTML to NSAttributedString conversion for display
+  - NSAttributedString to HTML conversion for saving
+  - Standard rich text editing capabilities
+- Implemented `HTMLBeautifier.swift`:
+  - Actor-based service for thread-safe HTML processing
+  - HTML beautification with proper indentation
+  - HTML validation with tag matching
+  - Detection of unclosed and mismatched tags
+- Updated `ContentView.swift`:
+  - Integrated editor views with conditional rendering based on mode
+  - Added editor mode toggle in question editor area
+  - Proper bindings to question model
+
+### Technical Achievements
+- All editors use NSViewRepresentable to bridge AppKit and SwiftUI
+- Maintained Swift 6 strict concurrency with @MainActor isolation
+- Implemented real-time syntax highlighting without external dependencies
+- Created custom HTML beautification without HTMLTidy dependency
+- Proper state management and bindings throughout
+
+---
+
+## Recent Accomplishments (2025-11-19)
+
+### File Naming and Document Management
+- **Separated file name from quiz title** ✅
+  - Added `displayName` property to `DocumentManager` for tracking file names independently
+  - File names follow Apple's standard convention: "Untitled", "Untitled 2", "Untitled 3", etc.
+  - Quiz title in QTI data remains "Untitled Quiz" by default
+  - Window title shows file name instead of quiz title
+  - Files remember their name after saving
+
+- **Implemented DocumentRegistry** ✅
+  - Created `DocumentRegistry.swift` - thread-safe actor for tracking open document names
+  - Registry finds next available "Untitled N" name across all windows
+  - Proper registration/unregistration when documents open/close
+  - Names are reused when windows close (e.g., closing "Untitled" frees up that name)
+
+- **Fixed Multi-Window Support** ✅
+  - Each window now creates its own independent `EditorState` and document
+  - Fixed bug where all windows shared the same document instance
+  - Removed auto-document creation from `EditorState.init()` to enable proper lazy loading
+  - Windows now call `createNewDocument()` on appear, which consults the registry
+  - Each new window gets a properly numbered unique name
+
+- **Swift 6 Concurrency Compliance** ✅
+  - Made `DocumentRegistry` an actor for thread-safe name tracking
+  - All registry operations are async
+  - Proper `@MainActor` isolation throughout
+  - Used `Task.detached` in `deinit` for best-effort cleanup
+  - No concurrency warnings or errors
+
+### Technical Details
+- File operations (Open/Save) now properly update display names in the registry
+- Save dialogs default to the file's display name, not the quiz title
+- Multi-window testing confirmed: "Untitled", "Untitled 2", "Untitled 3" all work correctly
+- Names are freed when windows close and can be reused
+
+---
+
+*Last updated: 2025-11-19*
+*Current phase: Phase 5 Complete - Ready for Phase 6 (Polish & Testing)*
+*Status: Full duplicate and copy/paste support for questions and answers with NSPasteboard*
+*Recent: File naming improvements - proper Apple convention support*

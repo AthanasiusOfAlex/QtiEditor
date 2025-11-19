@@ -35,6 +35,7 @@ struct SearchMatch: Identifiable, Sendable {
 
 /// Fields that can be searched
 enum SearchField: String, CaseIterable, Sendable {
+    case questionTitle = "Question Title"
     case questionText = "Question Text"
     case answerText = "Answer Text"
     case feedback = "Feedback"

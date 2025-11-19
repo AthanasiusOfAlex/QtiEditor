@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import AppKit
 
 /// Editor mode for question content
 enum EditorMode: String, CaseIterable, Sendable {
@@ -25,8 +26,14 @@ final class EditorState {
     /// Currently open document
     var document: QTIDocument?
 
-    /// Currently selected question ID
+    /// Currently selected question ID (focused for editing)
     var selectedQuestionID: UUID?
+
+    /// Set of selected question IDs for multi-selection operations
+    var selectedQuestionIDs: Set<UUID> = []
+
+    /// Set of selected answer IDs for multi-selection operations (scoped to current question)
+    var selectedAnswerIDs: Set<UUID> = []
 
     /// Current editor mode (HTML or Rich Text)
     var editorMode: EditorMode = .richText
@@ -64,7 +71,11 @@ final class EditorState {
     /// Whether a file operation is in progress
     var isLoading: Bool = false
 
+    /// Whether the document has unsaved changes
+    var isDocumentEdited: Bool = false
+
     init(document: QTIDocument? = nil) {
+        // Set the document (may be nil - that's okay, will be created later)
         self.document = document
     }
 
@@ -100,6 +111,8 @@ final class EditorState {
 
         document.questions.append(question)
         selectedQuestionID = question.id
+        selectedQuestionIDs = [question.id]
+        isDocumentEdited = true
     }
 
     /// Delete the specified question
@@ -108,6 +121,240 @@ final class EditorState {
         document.questions.removeAll { $0.id == question.id }
         if selectedQuestionID == question.id {
             selectedQuestionID = nil
+        }
+        selectedQuestionIDs.remove(question.id)
+        isDocumentEdited = true
+    }
+
+    /// Delete all currently selected questions
+    func deleteSelectedQuestions() {
+        guard let document = document else { return }
+
+        // If no multi-selection, delete the focused question
+        let idsToDelete = selectedQuestionIDs.isEmpty
+            ? (selectedQuestionID.map { Set([$0]) } ?? [])
+            : selectedQuestionIDs
+
+        document.questions.removeAll { idsToDelete.contains($0.id) }
+
+        // Clear selections
+        if let selectedID = selectedQuestionID, idsToDelete.contains(selectedID) {
+            selectedQuestionID = nil
+        }
+        selectedQuestionIDs.removeAll()
+        isDocumentEdited = true
+    }
+
+    /// Duplicate the specified question and insert it after the original
+    /// - Parameter question: The question to duplicate
+    func duplicateQuestion(_ question: QTIQuestion) {
+        guard let document = document else { return }
+
+        // Find the index of the original question
+        guard let index = document.questions.firstIndex(where: { $0.id == question.id }) else {
+            return
+        }
+
+        // Create a deep copy
+        let duplicatedQuestion = question.duplicate(preserveCanvasIdentifier: false)
+
+        // Insert after the original
+        document.questions.insert(duplicatedQuestion, at: index + 1)
+
+        // Select the new question
+        selectedQuestionID = duplicatedQuestion.id
+        selectedQuestionIDs = [duplicatedQuestion.id]
+        isDocumentEdited = true
+    }
+
+    /// Duplicate the currently selected question
+    func duplicateSelectedQuestion() {
+        guard let question = selectedQuestion else { return }
+        duplicateQuestion(question)
+    }
+
+    /// Duplicate all currently selected questions
+    func duplicateSelectedQuestions() {
+        guard let document = document else { return }
+
+        // If no multi-selection, duplicate the focused question
+        let idsToDuplicate = selectedQuestionIDs.isEmpty
+            ? (selectedQuestionID.map { Set([$0]) } ?? [])
+            : selectedQuestionIDs
+
+        // Find questions to duplicate (in order)
+        let questionsToDuplicate = document.questions.filter { idsToDuplicate.contains($0.id) }
+
+        // Duplicate each question and insert after the original
+        var newQuestionIDs: Set<UUID> = []
+        for question in questionsToDuplicate.reversed() {
+            guard let index = document.questions.firstIndex(where: { $0.id == question.id }) else {
+                continue
+            }
+
+            let duplicatedQuestion = question.duplicate(preserveCanvasIdentifier: false)
+            document.questions.insert(duplicatedQuestion, at: index + 1)
+            newQuestionIDs.insert(duplicatedQuestion.id)
+        }
+
+        // Select the duplicated questions
+        selectedQuestionIDs = newQuestionIDs
+        selectedQuestionID = newQuestionIDs.first
+        isDocumentEdited = true
+    }
+
+    /// Duplicate an answer and add it after the original
+    /// - Parameters:
+    ///   - answer: The answer to duplicate
+    ///   - question: The question containing the answer
+    func duplicateAnswer(_ answer: QTIAnswer, in question: QTIQuestion) {
+        // Find the index of the original answer
+        guard let index = question.answers.firstIndex(where: { $0.id == answer.id }) else {
+            return
+        }
+
+        // Create a deep copy
+        let duplicatedAnswer = answer.duplicate(preserveCanvasIdentifier: false)
+
+        // For multiple choice, reset isCorrect to avoid multiple correct answers
+        if question.type == .multipleChoice {
+            duplicatedAnswer.isCorrect = false
+        }
+
+        // Insert after the original
+        question.answers.insert(duplicatedAnswer, at: index + 1)
+        isDocumentEdited = true
+    }
+
+    // MARK: - Copy/Paste Operations
+
+    /// Custom pasteboard type for QTI questions
+    private static let questionPasteboardType = NSPasteboard.PasteboardType("com.qti-editor.question")
+
+    /// Custom pasteboard type for QTI answers
+    private static let answerPasteboardType = NSPasteboard.PasteboardType("com.qti-editor.answer")
+
+    /// Copy the selected question(s) to the pasteboard
+    func copySelectedQuestion() {
+        guard let document = document else { return }
+
+        // If no multi-selection, copy the focused question
+        let idsToCopy = selectedQuestionIDs.isEmpty
+            ? (selectedQuestionID.map { Set([$0]) } ?? [])
+            : selectedQuestionIDs
+
+        // Find questions to copy (in order)
+        let questionsToCopy = document.questions.filter { idsToCopy.contains($0.id) }
+
+        guard !questionsToCopy.isEmpty else { return }
+
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+
+        do {
+            let encoder = JSONEncoder()
+            let data = try encoder.encode(questionsToCopy)
+            pasteboard.setData(data, forType: Self.questionPasteboardType)
+        } catch {
+            showError("Failed to copy question(s): \(error.localizedDescription)")
+        }
+    }
+
+    /// Copy a specific question to the pasteboard
+    func copyQuestion(_ question: QTIQuestion) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+
+        do {
+            let encoder = JSONEncoder()
+            let data = try encoder.encode([question])
+            pasteboard.setData(data, forType: Self.questionPasteboardType)
+        } catch {
+            showError("Failed to copy question: \(error.localizedDescription)")
+        }
+    }
+
+    /// Paste question(s) from the pasteboard
+    func pasteQuestion() {
+        guard let document = document else { return }
+
+        let pasteboard = NSPasteboard.general
+        guard let data = pasteboard.data(forType: Self.questionPasteboardType) else { return }
+
+        do {
+            let decoder = JSONDecoder()
+            let pastedQuestions = try decoder.decode([QTIQuestion].self, from: data)
+
+            guard !pastedQuestions.isEmpty else { return }
+
+            // Generate new UUIDs for all pasted questions
+            var newQuestions: [QTIQuestion] = []
+            var newQuestionIDs: Set<UUID> = []
+
+            for pastedQuestion in pastedQuestions {
+                let newQuestion = pastedQuestion.duplicate(preserveCanvasIdentifier: false)
+                newQuestions.append(newQuestion)
+                newQuestionIDs.insert(newQuestion.id)
+            }
+
+            // Insert after currently selected question, or at the end
+            if let selectedID = selectedQuestionID,
+               let index = document.questions.firstIndex(where: { $0.id == selectedID }) {
+                // Insert all questions starting from index + 1
+                for (offset, question) in newQuestions.enumerated() {
+                    document.questions.insert(question, at: index + 1 + offset)
+                }
+            } else {
+                document.questions.append(contentsOf: newQuestions)
+            }
+
+            // Select the pasted questions
+            selectedQuestionIDs = newQuestionIDs
+            selectedQuestionID = newQuestions.first?.id
+            isDocumentEdited = true
+        } catch {
+            showError("Failed to paste question(s): \(error.localizedDescription)")
+        }
+    }
+
+    /// Copy an answer to the pasteboard
+    /// - Parameter answer: The answer to copy
+    func copyAnswer(_ answer: QTIAnswer) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+
+        do {
+            let encoder = JSONEncoder()
+            let data = try encoder.encode(answer)
+            pasteboard.setData(data, forType: Self.answerPasteboardType)
+        } catch {
+            showError("Failed to copy answer: \(error.localizedDescription)")
+        }
+    }
+
+    /// Paste an answer from the pasteboard into a question
+    /// - Parameter question: The question to paste into
+    func pasteAnswer(into question: QTIQuestion) {
+        let pasteboard = NSPasteboard.general
+        guard let data = pasteboard.data(forType: Self.answerPasteboardType) else { return }
+
+        do {
+            let decoder = JSONDecoder()
+            let pastedAnswer = try decoder.decode(QTIAnswer.self, from: data)
+
+            // Generate new UUID for the pasted answer
+            let newAnswer = pastedAnswer.duplicate(preserveCanvasIdentifier: false)
+
+            // For multiple choice, ensure the new answer is not correct
+            if question.type == .multipleChoice || question.type == .trueFalse {
+                newAnswer.isCorrect = false
+            }
+
+            // Add at the end of the answer list
+            question.answers.append(newAnswer)
+            isDocumentEdited = true
+        } catch {
+            showError("Failed to paste answer: \(error.localizedDescription)")
         }
     }
 
@@ -123,6 +370,7 @@ final class EditorState {
             let loadedDocument = try await documentManager.openDocument(from: url)
             self.document = loadedDocument
             self.selectedQuestionID = loadedDocument.questions.first?.id
+            self.isDocumentEdited = false
         } catch let error as QTIError {
             showError(error.localizedDescription)
         } catch {
@@ -139,6 +387,7 @@ final class EditorState {
 
         do {
             try await documentManager.saveDocument(document)
+            self.isDocumentEdited = false
         } catch let error as QTIError {
             showError(error.localizedDescription)
         } catch {
@@ -156,6 +405,7 @@ final class EditorState {
 
         do {
             try await documentManager.saveDocument(document, to: url)
+            self.isDocumentEdited = false
         } catch let error as QTIError {
             showError(error.localizedDescription)
         } catch {
@@ -164,9 +414,18 @@ final class EditorState {
     }
 
     /// Creates a new empty document
-    func createNewDocument() {
-        document = documentManager.createNewDocument()
+    func createNewDocument() async {
+        document = await documentManager.createNewDocument()
         selectedQuestionID = nil
+        isDocumentEdited = false
+    }
+
+    // MARK: - Document State
+
+    /// Mark the document as having unsaved changes
+    /// Call this method when modifying question/answer properties directly
+    func markDocumentEdited() {
+        isDocumentEdited = true
     }
 
     // MARK: - Error Handling

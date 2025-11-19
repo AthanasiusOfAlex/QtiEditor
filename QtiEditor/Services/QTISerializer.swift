@@ -3,11 +3,12 @@
 //  QtiEditor
 //
 //  Created by Claude on 2025-11-16.
+//  Updated 2025-11-18 for Canvas compatibility
 //
 
 import Foundation
 
-/// Serializes QTIDocument models into QTI 1.2 XML
+/// Serializes QTIDocument models into Canvas-compatible QTI 1.2 XML
 @MainActor
 final class QTISerializer {
     /// Serializes a QTIDocument to QTI XML data
@@ -37,8 +38,19 @@ final class QTISerializer {
     // MARK: - XML Generation
 
     private func generateXML(for document: QTIDocument) throws -> XMLDocument {
-        // Create root element
+        // Create root element with proper Canvas namespaces
         let root = XMLElement(name: "questestinterop")
+        let ns = XMLNode.namespace(withName: "", stringValue: "http://www.imsglobal.org/xsd/ims_qtiasiv1p2") as! XMLNode
+        let xsiNS = XMLNode.namespace(withName: "xsi", stringValue: "http://www.w3.org/2001/XMLSchema-instance") as! XMLNode
+        root.addNamespace(ns)
+        root.addNamespace(xsiNS)
+
+        // Add schema location
+        let schemaLocation = XMLNode.attribute(
+            withName: "xsi:schemaLocation",
+            stringValue: "http://www.imsglobal.org/xsd/ims_qtiasiv1p2 http://www.imsglobal.org/xsd/ims_qtiasiv1p2p1.xsd"
+        ) as! XMLNode
+        root.addAttribute(schemaLocation)
 
         // Create assessment element
         let assessment = createAssessmentElement(for: document)
@@ -47,7 +59,6 @@ final class QTISerializer {
         // Create XML document
         let xmlDoc = XMLDocument(rootElement: root)
         xmlDoc.version = "1.0"
-        xmlDoc.characterEncoding = "UTF-8"
 
         return xmlDoc
     }
@@ -56,15 +67,36 @@ final class QTISerializer {
         let assessment = XMLElement(name: "assessment")
 
         // Set attributes
-        let identifier = document.metadata["canvas_identifier"] ?? UUID().uuidString
+        let identifier = document.metadata["canvas_identifier"] ?? UUID().uuidString.replacingOccurrences(of: "-", with: "")
         assessment.addAttribute(XMLNode.attribute(withName: "ident", stringValue: identifier) as! XMLNode)
         assessment.addAttribute(XMLNode.attribute(withName: "title", stringValue: document.title) as! XMLNode)
+
+        // Add external_assignment_id if available
+        if let assignmentID = document.metadata["external_assignment_id"] {
+            assessment.addAttribute(XMLNode.attribute(withName: "external_assignment_id", stringValue: assignmentID) as! XMLNode)
+        }
+
+        // Add assessment-level qtimetadata
+        let qtimetadata = createAssessmentMetadata(for: document)
+        assessment.addChild(qtimetadata)
 
         // Create section containing all questions
         let section = createSectionElement(for: document.questions)
         assessment.addChild(section)
 
         return assessment
+    }
+
+    private func createAssessmentMetadata(for document: QTIDocument) -> XMLElement {
+        let qtimetadata = XMLElement(name: "qtimetadata")
+
+        // Add cc_maxattempts
+        let maxAttemptsField = XMLElement(name: "qtimetadatafield")
+        maxAttemptsField.addChild(XMLElement(name: "fieldlabel", stringValue: "cc_maxattempts"))
+        maxAttemptsField.addChild(XMLElement(name: "fieldentry", stringValue: document.metadata["cc_maxattempts"] ?? "1"))
+        qtimetadata.addChild(maxAttemptsField)
+
+        return qtimetadata
     }
 
     private func createSectionElement(for questions: [QTIQuestion]) -> XMLElement {
@@ -85,13 +117,13 @@ final class QTISerializer {
     private func createItemElement(for question: QTIQuestion) -> XMLElement {
         let item = XMLElement(name: "item")
 
-        let identifier = question.metadata["canvas_identifier"] ?? UUID().uuidString
+        let identifier = question.metadata["canvas_identifier"] ?? UUID().uuidString.replacingOccurrences(of: "-", with: "")
         let title = question.metadata["canvas_title"] ?? "Question"
 
         item.addAttribute(XMLNode.attribute(withName: "ident", stringValue: identifier) as! XMLNode)
         item.addAttribute(XMLNode.attribute(withName: "title", stringValue: title) as! XMLNode)
 
-        // Add itemmetadata with question type
+        // Add itemmetadata with comprehensive Canvas fields
         let itemmetadata = createItemMetadata(for: question)
         item.addChild(itemmetadata)
 
@@ -106,22 +138,52 @@ final class QTISerializer {
         return item
     }
 
+    // MARK: - Helper Methods
+
+    /// Ensures an answer has a canvas_identifier, generating one if needed
+    private func ensureCanvasIdentifier(for answer: QTIAnswer) -> String {
+        if let existing = answer.metadata["canvas_identifier"] {
+            return existing
+        }
+        // Generate new UUID and store it
+        let identifier = UUID().uuidString.lowercased()
+        answer.metadata["canvas_identifier"] = identifier
+        return identifier
+    }
+
     private func createItemMetadata(for question: QTIQuestion) -> XMLElement {
         let itemmetadata = XMLElement(name: "itemmetadata")
         let qtimetadata = XMLElement(name: "qtimetadata")
 
-        // Add question_type field
-        let metadatafield = XMLElement(name: "qtimetadatafield")
+        // Question type
+        addMetadataField(to: qtimetadata, label: "question_type", entry: question.type.rawValue)
 
-        let fieldlabel = XMLElement(name: "fieldlabel", stringValue: "question_type")
-        let fieldentry = XMLElement(name: "fieldentry", stringValue: question.type.rawValue)
+        // Points possible
+        addMetadataField(to: qtimetadata, label: "points_possible", entry: String(format: "%.1f", question.points))
 
-        metadatafield.addChild(fieldlabel)
-        metadatafield.addChild(fieldentry)
-        qtimetadata.addChild(metadatafield)
+        // Original answer IDs (comma-separated UUIDs) - ensure each has an identifier
+        let answerIDs = question.answers.map { answer in
+            ensureCanvasIdentifier(for: answer)
+        }.joined(separator: ",")
+        addMetadataField(to: qtimetadata, label: "original_answer_ids", entry: answerIDs)
+
+        // Assessment question identifier ref (if available)
+        if let assessmentQuestionRef = question.metadata["assessment_question_identifierref"] {
+            addMetadataField(to: qtimetadata, label: "assessment_question_identifierref", entry: assessmentQuestionRef)
+        }
+
+        // Calculator type
+        addMetadataField(to: qtimetadata, label: "calculator_type", entry: question.metadata["calculator_type"] ?? "none")
+
         itemmetadata.addChild(qtimetadata)
-
         return itemmetadata
+    }
+
+    private func addMetadataField(to qtimetadata: XMLElement, label: String, entry: String) {
+        let field = XMLElement(name: "qtimetadatafield")
+        field.addChild(XMLElement(name: "fieldlabel", stringValue: label))
+        field.addChild(XMLElement(name: "fieldentry", stringValue: entry))
+        qtimetadata.addChild(field)
     }
 
     // MARK: - Presentation Generation
@@ -129,7 +191,7 @@ final class QTISerializer {
     private func createPresentationElement(for question: QTIQuestion) -> XMLElement {
         let presentation = XMLElement(name: "presentation")
 
-        // Add question text material
+        // Add question text material (with HTML encoding)
         let material = createMaterialElement(with: question.questionText)
         presentation.addChild(material)
 
@@ -154,6 +216,8 @@ final class QTISerializer {
 
     private func createMaterialElement(with htmlContent: String) -> XMLElement {
         let material = XMLElement(name: "material")
+        // XMLElement automatically XML-escapes the stringValue, so pass raw HTML
+        // Canvas expects: <mattext texttype="text/html">&lt;p&gt;text&lt;/p&gt;</mattext>
         let mattext = XMLElement(name: "mattext", stringValue: htmlContent)
         mattext.addAttribute(XMLNode.attribute(withName: "texttype", stringValue: "text/html") as! XMLNode)
 
@@ -168,10 +232,11 @@ final class QTISerializer {
 
         let renderChoice = XMLElement(name: "render_choice")
 
-        // Add response labels for each answer
-        for (index, answer) in question.answers.enumerated() {
+        // Add response labels for each answer with UUIDs
+        for answer in question.answers {
             let responseLabel = XMLElement(name: "response_label")
-            let identifier = "answer_\(index)"
+            // Ensure answer has a consistent identifier
+            let identifier = ensureCanvasIdentifier(for: answer)
             responseLabel.addAttribute(XMLNode.attribute(withName: "ident", stringValue: identifier) as! XMLNode)
 
             let material = createMaterialElement(with: answer.text)
@@ -210,12 +275,12 @@ final class QTISerializer {
         outcomes.addChild(decvar)
         resprocessing.addChild(outcomes)
 
-        // Add correct answer conditions
-        for (index, answer) in question.answers.enumerated() where answer.isCorrect {
+        // Add correct answer conditions (Canvas uses score of 100 for correct answers)
+        for answer in question.answers where answer.isCorrect {
+            let identifier = ensureCanvasIdentifier(for: answer)
             let respcondition = createResponseCondition(
-                for: answer,
-                identifier: "answer_\(index)",
-                points: question.points
+                identifier: identifier,
+                score: 100 // Canvas expects 100 for correct answers
             )
             resprocessing.addChild(respcondition)
         }
@@ -223,11 +288,7 @@ final class QTISerializer {
         return resprocessing
     }
 
-    private func createResponseCondition(
-        for answer: QTIAnswer,
-        identifier: String,
-        points: Double
-    ) -> XMLElement {
+    private func createResponseCondition(identifier: String, score: Int) -> XMLElement {
         let respcondition = XMLElement(name: "respcondition")
         respcondition.addAttribute(XMLNode.attribute(withName: "continue", stringValue: "No") as! XMLNode)
 
@@ -238,8 +299,8 @@ final class QTISerializer {
         conditionvar.addChild(varequal)
         respcondition.addChild(conditionvar)
 
-        // Set score
-        let setvar = XMLElement(name: "setvar", stringValue: String(format: "%.2f", points))
+        // Set score to 100 (Canvas expects percentage)
+        let setvar = XMLElement(name: "setvar", stringValue: String(score))
         setvar.addAttribute(XMLNode.attribute(withName: "action", stringValue: "Set") as! XMLNode)
         setvar.addAttribute(XMLNode.attribute(withName: "varname", stringValue: "SCORE") as! XMLNode)
         respcondition.addChild(setvar)

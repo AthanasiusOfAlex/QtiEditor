@@ -6,11 +6,16 @@
 //
 
 import SwiftUI
+import AppKit
+internal import UniformTypeIdentifiers
 
 /// Main window container for the QTI Editor
 /// Provides the three-pane layout: Question List (sidebar), Editor (main), Inspector (trailing)
 struct ContentView: View {
-    @Environment(EditorState.self) private var editorState
+    @State private var editorState = EditorState()
+    @AppStorage("questionEditorHeight") private var storedQuestionEditorHeight: Double = 300
+    @State private var questionEditorHeight: CGFloat = 300
+    @Environment(PendingFileManager.self) private var pendingFileManager
 
     var body: some View {
         @Bindable var editorState = editorState
@@ -19,7 +24,8 @@ struct ContentView: View {
             // Sidebar - Question List
             QuestionListView()
                 .navigationSplitViewColumnWidth(min: 200, ideal: 250)
-        } detail: {
+                .environment(editorState)
+        } content: {
             // Main editor area
             VStack(spacing: 0) {
                 // Search panel (collapsible)
@@ -32,69 +38,44 @@ struct ContentView: View {
 
                 // Question editor
                 if let question = editorState.selectedQuestion {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Question \(editorState.document?.questions.firstIndex(where: { $0.id == question.id }).map { $0 + 1 } ?? 0)")
-                            .font(.title)
+                    VStack(spacing: 0) {
+                        // Fixed metadata section
+                        QuestionMetadataView(
+                            question: question,
+                            questionNumber: editorState.document?.questions.firstIndex(where: { $0.id == question.id }).map { $0 + 1 } ?? 0
+                        )
+                        .padding()
 
-                        Text(question.type.displayName)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        // Resizable question editor box
+                        QuestionEditorView(question: question, height: questionEditorHeight)
+                            .padding(.horizontal)
 
-                        Divider()
+                        // Resize handle between editor and answer list
+                        QuestionEditorResizeHandle(height: $questionEditorHeight)
 
-                        // Question text preview (stripped HTML with search highlighting)
-                        VStack(alignment: .leading, spacing: 8) {
-                            highlightedQuestionText(question: question, match: editorState.currentSearchMatch)
-                                .font(.body)
-                                .padding()
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(Color.secondary.opacity(0.1))
-                                .cornerRadius(8)
-
-                            // Show answers with highlighting if matched
-                            if editorState.currentSearchMatch?.field == .answerText {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Answers:")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-
-                                    ForEach(Array(question.answers.enumerated()), id: \.element.id) { index, answer in
-                                        highlightedAnswerText(
-                                            answer: answer,
-                                            index: index,
-                                            match: editorState.currentSearchMatch
-                                        )
-                                        .font(.caption)
-                                        .padding(4)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .background(Color.secondary.opacity(0.05))
-                                        .cornerRadius(4)
-                                    }
-                                }
-                            }
-                        }
-
-                        Text("Answers: \(question.answers.count)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        // TODO: Add HTMLEditorView / RichTextEditorView
-                        Text("Editor view will go here")
-                            .foregroundStyle(.secondary)
+                        // Answer list - fills remaining space
+                        AnswerListEditorView(question: question)
+                            .frame(maxHeight: .infinity)
                     }
-                    .padding()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                } else {
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if editorState.document != nil {
+                    // No question selected - show message
                     ContentUnavailableView(
                         "No Question Selected",
                         systemImage: "doc.text",
-                        description: Text("Select a question from the sidebar to begin editing")
+                        description: Text("Select a question from the sidebar to edit, or click \"Quiz Settings\" to configure the quiz")
+                    )
+                } else {
+                    ContentUnavailableView(
+                        "No Quiz Open",
+                        systemImage: "doc.text",
+                        description: Text("Open or create a quiz to begin editing")
                     )
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .toolbar {
-                ToolbarItem {
+                ToolbarItem(placement: .primaryAction) {
                     Button(action: {
                         withAnimation {
                             editorState.isSearchVisible.toggle()
@@ -103,17 +84,19 @@ struct ContentView: View {
                         Label("Search", systemImage: editorState.isSearchVisible ? "magnifyingglass.circle.fill" : "magnifyingglass")
                     }
                     .keyboardShortcut("f", modifiers: .command)
-                }
-                ToolbarItem {
-                    Button(action: {
-                        editorState.addQuestion()
-                    }) {
-                        Label("Add Question", systemImage: "plus")
-                    }
+                    .help("Toggle search panel (Cmd+F)")
                 }
             }
+            .environment(editorState)
+        } detail: {
+            // Inspector panel
+            QuestionInspectorView()
+                .navigationSplitViewColumnWidth(min: 200, ideal: 250, max: 300)
+                .environment(editorState)
         }
-        .navigationTitle(editorState.document?.title ?? "QTI Quiz Editor")
+        .navigationTitle(editorState.documentManager.displayName)
+        .focusedSceneValue(\.editorState, editorState)
+        .windowDocumentEdited(editorState.isDocumentEdited, editorState: editorState)
         .overlay {
             if editorState.isLoading {
                 ZStack {
@@ -141,74 +124,211 @@ struct ContentView: View {
                 Text(message)
             }
         }
-    }
+        .onAppear {
+            questionEditorHeight = CGFloat(storedQuestionEditorHeight)
 
-    /// Strip HTML tags for preview display
-    private func stripHTML(_ html: String) -> String {
-        html.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    /// Create highlighted text for question with search matches
-    @ViewBuilder
-    private func highlightedQuestionText(question: QTIQuestion, match: SearchMatch?) -> some View {
-        let text = stripHTML(question.questionText)
-
-        if let match = match,
-           match.questionID == question.id,
-           match.field == .questionText,
-           let range = text.range(of: match.matchedText, options: [.caseInsensitive]) {
-
-            let before = text[..<range.lowerBound]
-            let matched = text[range]
-            let after = text[range.upperBound...]
-
-            HStack(spacing: 0) {
-                Text(before)
-                Text(matched)
-                    .foregroundStyle(.orange)
-                    .bold()
-                    .padding(.horizontal, 2)
-                    .background(Color.orange.opacity(0.3))
-                    .cornerRadius(3)
-                Text(after)
+            // Check for pending file to open
+            if let url = pendingFileManager.consumePendingFile() {
+                Task { @MainActor in
+                    await editorState.openDocument(from: url)
+                }
+            } else if editorState.document == nil {
+                // No pending file and no document - create a new one
+                Task { @MainActor in
+                    await editorState.createNewDocument()
+                }
             }
-        } else {
-            Text(text)
+        }
+        .onChange(of: questionEditorHeight) { _, newValue in
+            storedQuestionEditorHeight = Double(newValue)
         }
     }
+}
 
-    /// Create highlighted text for answer with search matches
-    @ViewBuilder
-    private func highlightedAnswerText(answer: QTIAnswer, index: Int, match: SearchMatch?) -> some View {
-        let text = stripHTML(answer.text)
+/// Resize handle for draggable dividers (question editor)
+struct ResizeHandle: View {
+    @Binding var height: CGFloat
+    @State private var isDragging = false
+    @State private var isHovering = false
 
-        if let match = match,
-           match.answerID == answer.id,
-           let range = text.range(of: match.matchedText, options: [.caseInsensitive]) {
+    var body: some View {
+        Divider()
+            .overlay(
+                Rectangle()
+                    .fill(isDragging ? Color.blue.opacity(0.3) : (isHovering ? Color.gray.opacity(0.2) : Color.clear))
+                    .frame(height: 20)
+                    .contentShape(Rectangle())
+                    .onHover { hovering in
+                        isHovering = hovering
+                    }
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                isDragging = true
+                                let newHeight = height + value.translation.height
+                                height = min(max(newHeight, 100), 800)
+                            }
+                            .onEnded { _ in
+                                isDragging = false
+                            }
+                    )
+                    .cursor(.resizeUpDown)
+            )
+    }
+}
 
-            let before = text[..<range.lowerBound]
-            let matched = text[range]
-            let after = text[range.upperBound...]
+/// Resize handle for question editor divider
+/// Drag down = grow question editor, drag up = shrink question editor
+/// Answer list automatically fills remaining space
+struct QuestionEditorResizeHandle: View {
+    @Binding var height: CGFloat
+    @State private var isDragging = false
+    @State private var isHovering = false
 
-            HStack(spacing: 0) {
-                Text("\(index + 1). ")
-                Text(before)
-                Text(matched)
-                    .foregroundStyle(.orange)
-                    .bold()
-                    .padding(.horizontal, 2)
-                    .background(Color.orange.opacity(0.3))
-                    .cornerRadius(3)
-                Text(after)
-            }
-        } else {
-            Text("\(index + 1). \(text)")
-        }
+    var body: some View {
+        Divider()
+            .overlay(
+                Rectangle()
+                    .fill(isDragging ? Color.blue.opacity(0.3) : (isHovering ? Color.gray.opacity(0.2) : Color.clear))
+                    .frame(height: 20)
+                    .contentShape(Rectangle())
+                    .onHover { hovering in
+                        isHovering = hovering
+                    }
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                isDragging = true
+                                let newHeight = height + value.translation.height  // Drag down = grow question editor
+                                height = min(max(newHeight, 150), 1000)
+                            }
+                            .onEnded { _ in
+                                isDragging = false
+                            }
+                    )
+                    .cursor(.resizeUpDown)
+            )
     }
 }
 
 #Preview {
     ContentView()
         .environment(EditorState(document: QTIDocument.empty()))
+        .environment(PendingFileManager.shared)
+}
+
+// MARK: - Window Document Edited Modifier
+
+/// View modifier to sync document edited state with NSWindow
+struct WindowDocumentEditedModifier: ViewModifier {
+    let isEdited: Bool
+    let editorState: EditorState
+
+    func body(content: Content) -> some View {
+        content
+            .background(WindowAccessor(isDocumentEdited: isEdited, editorState: editorState))
+    }
+}
+
+/// Helper view to access and modify NSWindow properties
+struct WindowAccessor: NSViewRepresentable {
+    let isDocumentEdited: Bool
+    let editorState: EditorState
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        view.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        view.setContentHuggingPriority(.defaultLow, for: .vertical)
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        // Update the coordinator's editor state
+        context.coordinator.editorState = editorState
+
+        // Find the window and update its document edited state
+        guard let window = nsView.window else { return }
+        window.isDocumentEdited = isDocumentEdited
+
+        // Always set our delegate to ensure we handle close events
+        // This may override SwiftUI's delegate, but that's needed for unsaved changes warnings
+        if window.delegate !== context.coordinator {
+            window.delegate = context.coordinator
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(editorState: editorState)
+    }
+
+    class Coordinator: NSObject, NSWindowDelegate {
+        var editorState: EditorState
+
+        init(editorState: EditorState) {
+            self.editorState = editorState
+            super.init()
+        }
+
+        func windowShouldClose(_ sender: NSWindow) -> Bool {
+            // If document is not edited, allow close
+            if !sender.isDocumentEdited {
+                return true
+            }
+
+            // Show save dialog
+            let alert = NSAlert()
+            alert.messageText = "Do you want to save the changes?"
+            alert.informativeText = "Your changes will be lost if you don't save them."
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "Save")
+            alert.addButton(withTitle: "Don't Save")
+            alert.addButton(withTitle: "Cancel")
+
+            let response = alert.runModal()
+
+            switch response {
+            case .alertFirstButtonReturn:  // Save
+                // Trigger save operation
+                Task { @MainActor [editorState = self.editorState] in
+                    if editorState.documentManager.fileURL != nil {
+                        // Has a file URL, save directly
+                        await editorState.saveDocument()
+                        // Close the window after save completes
+                        sender.close()
+                    } else {
+                        // No file URL, show Save As dialog
+                        let panel = NSSavePanel()
+                        panel.allowedContentTypes = [
+                            .init(filenameExtension: "zip")!,
+                            .init(filenameExtension: "imscc")!
+                        ]
+                        panel.nameFieldStringValue = editorState.documentManager.displayName
+                        panel.message = "Export quiz as Canvas package (.zip recommended)"
+
+                        panel.begin { saveResponse in
+                            guard saveResponse == .OK, let url = panel.url else { return }
+
+                            Task { @MainActor in
+                                await editorState.saveDocument(to: url)
+                                // Close the window after save completes
+                                sender.close()
+                            }
+                        }
+                    }
+                }
+                return false  // Don't close yet, will close after save
+            case .alertSecondButtonReturn:  // Don't Save
+                return true
+            default:  // Cancel
+                return false
+            }
+        }
+    }
+}
+
+extension View {
+    /// Mark the window as having unsaved changes (shows dot in close button)
+    func windowDocumentEdited(_ isEdited: Bool, editorState: EditorState) -> some View {
+        modifier(WindowDocumentEditedModifier(isEdited: isEdited, editorState: editorState))
+    }
 }

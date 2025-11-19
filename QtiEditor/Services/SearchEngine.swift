@@ -131,6 +131,23 @@ final class SearchEngine {
     ) throws -> [SearchMatch] {
         var matches: [SearchMatch] = []
 
+        // Search in question title
+        if field == .questionTitle || field == .all {
+            let titleText = question.metadata["canvas_title"] ?? ""
+            if !titleText.isEmpty {
+                let titleMatches = try searchInText(
+                    text: titleText,
+                    pattern: pattern,
+                    isRegex: isRegex,
+                    isCaseSensitive: isCaseSensitive,
+                    questionID: question.id,
+                    field: .questionTitle,
+                    answerID: nil
+                )
+                matches.append(contentsOf: titleMatches)
+            }
+        }
+
         // Search in question text
         if field == .questionText || field == .all {
             let questionMatches = try searchInText(
@@ -287,6 +304,15 @@ final class SearchEngine {
         isRegex: Bool
     ) throws {
         switch field {
+        case .questionTitle:
+            let titleText = question.metadata["canvas_title"] ?? ""
+            question.metadata["canvas_title"] = try performReplace(
+                in: titleText,
+                pattern: pattern,
+                replacement: replacement,
+                isRegex: isRegex
+            )
+
         case .questionText:
             question.questionText = try performReplace(
                 in: question.questionText,

@@ -21,8 +21,23 @@ final class DocumentManager: @unchecked Sendable {
     /// Original file URL (for tracking save location)
     var fileURL: URL?
 
+    /// Display name for the file (separate from quiz title)
+    /// Follows Apple convention: "Untitled", "Untitled 2", etc.
+    private(set) var displayName: String = "Untitled"
+
     /// Whether the document has unsaved changes
     var isDirty: Bool = false
+
+    // MARK: - Lifecycle
+
+    deinit {
+        // Best-effort cleanup: unregister display name when document manager is destroyed
+        // Use detached task since deinit can't be async
+        let name = displayName
+        Task.detached {
+            await DocumentRegistry.shared.unregister(displayName: name)
+        }
+    }
 
     // MARK: - Opening Documents
 
@@ -41,8 +56,10 @@ final class DocumentManager: @unchecked Sendable {
         // Parse the assessment
         let document = try await parser.parse(fileURL: assessmentURL)
 
-        // Store original URL
+        // Store original URL and extract display name
         fileURL = url
+        let newName = url.deletingPathExtension().lastPathComponent
+        await updateDisplayName(to: newName)
         isDirty = false
 
         return document
@@ -81,28 +98,34 @@ final class DocumentManager: @unchecked Sendable {
             try? FileManager.default.removeItem(at: tempDir)
         }
 
-        // Create package structure
-        let quizID = document.metadata["canvas_identifier"] ?? UUID().uuidString
+        // Create package structure matching Canvas format
+        let quizID = document.metadata["canvas_identifier"] ?? UUID().uuidString.replacingOccurrences(of: "-", with: "")
         let quizDir = tempDir.appendingPathComponent(quizID)
         try FileManager.default.createDirectory(at: quizDir, withIntermediateDirectories: true)
 
-        // Generate assessment XML
-        let assessmentURL = quizDir.appendingPathComponent("assessment.xml")
+        // Generate assessment XML with Canvas naming: {quiz-id}/{quiz-id}.xml
+        let assessmentURL = quizDir.appendingPathComponent("\(quizID).xml")
         try serializer.serialize(document: document, to: assessmentURL)
 
-        // Generate manifest
+        // Generate assessment_meta.xml in quiz directory
+        let metaURL = quizDir.appendingPathComponent("assessment_meta.xml")
+        try generateAssessmentMeta(for: document, quizID: quizID, to: metaURL)
+
+        // Generate manifest at root
         let manifestURL = tempDir.appendingPathComponent("imsmanifest.xml")
         try generateManifest(for: document, quizID: quizID, to: manifestURL)
 
-        // Generate assessment_meta.xml (optional, but Canvas expects it)
-        let metaURL = tempDir.appendingPathComponent("assessment_meta.xml")
-        try generateAssessmentMeta(for: document, quizID: quizID, to: metaURL)
-
-        // Create IMSCC package (ZIP)
-        try await extractor.createPackage(from: tempDir, to: url)
+        // Create package as .zip (Canvas uses .zip extension, not .imscc)
+        var finalURL = url
+        if url.pathExtension == "imscc" {
+            finalURL = url.deletingPathExtension().appendingPathExtension("zip")
+        }
+        try await extractor.createPackage(from: tempDir, to: finalURL)
 
         // Update state
         fileURL = url
+        let newName = url.deletingPathExtension().lastPathComponent
+        await updateDisplayName(to: newName)
         isDirty = false
     }
 
@@ -110,9 +133,15 @@ final class DocumentManager: @unchecked Sendable {
 
     /// Creates a new empty QTI document
     /// - Returns: New QTIDocument
-    func createNewDocument() -> QTIDocument {
+    func createNewDocument() async -> QTIDocument {
         fileURL = nil
         isDirty = false
+
+        // Generate display name following Apple convention
+        // Uses registry to find next available "Untitled" number
+        let newName = await DocumentRegistry.shared.nextUntitledName()
+        await setDisplayName(to: newName)
+
         return QTIDocument.empty()
     }
 
@@ -126,20 +155,66 @@ final class DocumentManager: @unchecked Sendable {
         }
     }
 
+    // MARK: - Display Name Management
+
+    /// Sets the display name for a new document and registers it
+    private func setDisplayName(to newName: String) async {
+        displayName = newName
+        await DocumentRegistry.shared.register(displayName: newName)
+    }
+
+    /// Updates the display name (e.g., when saving) and updates the registry
+    private func updateDisplayName(to newName: String) async {
+        let oldName = displayName
+        displayName = newName
+        await DocumentRegistry.shared.update(from: oldName, to: newName)
+    }
+
     // MARK: - Manifest Generation
 
     private func generateManifest(for document: QTIDocument, quizID: String, to url: URL) throws {
+        // Generate a unique manifest ID
+        let manifestID = UUID().uuidString.replacingOccurrences(of: "-", with: "")
+        let metaResourceID = UUID().uuidString.replacingOccurrences(of: "-", with: "")
+        let today = ISO8601DateFormatter().string(from: Date()).prefix(10) // YYYY-MM-DD
+
         let xml = """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <manifest identifier="manifest_\(quizID)" xmlns="http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1" xmlns:lom="http://ltsc.ieee.org/xsd/imsccv1p1/LOM/resource" xmlns:lomimscc="http://ltsc.ieee.org/xsd/imsccv1p1/LOM/manifest" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1 http://www.imsglobal.org/profile/cc/ccv1p1/ccv1p1_imscp_v1p2_v1p0.xsd http://ltsc.ieee.org/xsd/imsccv1p1/LOM/resource http://www.imsglobal.org/profile/cc/ccv1p1/LOM/ccv1p1_lomresource_v1p0.xsd http://ltsc.ieee.org/xsd/imsccv1p1/LOM/manifest http://www.imsglobal.org/profile/cc/ccv1p1/LOM/ccv1p1_lommanifest_v1p0.xsd">
+        <?xml version="1.0"?>
+        <manifest xmlns="http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1" xmlns:lom="http://ltsc.ieee.org/xsd/imsccv1p1/LOM/resource" xmlns:imsmd="http://www.imsglobal.org/xsd/imsmd_v1p2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" identifier="\(manifestID)" xsi:schemaLocation="http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1 http://www.imsglobal.org/xsd/imscp_v1p1.xsd http://ltsc.ieee.org/xsd/imsccv1p1/LOM/resource http://www.imsglobal.org/profile/cc/ccv1p1/LOM/ccv1p1_lomresource_v1p0.xsd http://www.imsglobal.org/xsd/imsmd_v1p2 http://www.imsglobal.org/xsd/imsmd_v1p2p2.xsd">
           <metadata>
-            <schema>IMS Common Cartridge</schema>
-            <schemaversion>1.1.0</schemaversion>
+            <schema>IMS Content</schema>
+            <schemaversion>1.1.3</schemaversion>
+            <imsmd:lom>
+              <imsmd:general>
+                <imsmd:title>
+                  <imsmd:string>QTI Quiz Export for \(xmlEscape(document.title))</imsmd:string>
+                </imsmd:title>
+              </imsmd:general>
+              <imsmd:lifeCycle>
+                <imsmd:contribute>
+                  <imsmd:date>
+                    <imsmd:dateTime>\(today)</imsmd:dateTime>
+                  </imsmd:date>
+                </imsmd:contribute>
+              </imsmd:lifeCycle>
+              <imsmd:rights>
+                <imsmd:copyrightAndOtherRestrictions>
+                  <imsmd:value>yes</imsmd:value>
+                </imsmd:copyrightAndOtherRestrictions>
+                <imsmd:description>
+                  <imsmd:string>Private (Copyrighted) - http://en.wikipedia.org/wiki/Copyright</imsmd:string>
+                </imsmd:description>
+              </imsmd:rights>
+            </imsmd:lom>
           </metadata>
           <organizations/>
           <resources>
-            <resource identifier="resource_\(quizID)" type="imsqti_xmlv1p2">
-              <file href="\(quizID)/assessment.xml"/>
+            <resource identifier="\(quizID)" type="imsqti_xmlv1p2">
+              <file href="\(quizID)/\(quizID).xml"/>
+              <dependency identifierref="\(metaResourceID)"/>
+            </resource>
+            <resource identifier="\(metaResourceID)" type="associatedcontent/imscc_xmlv1p1/learning-application-resource" href="\(quizID)/assessment_meta.xml">
+              <file href="\(quizID)/assessment_meta.xml"/>
             </resource>
           </resources>
         </manifest>
@@ -149,14 +224,87 @@ final class DocumentManager: @unchecked Sendable {
     }
 
     private func generateAssessmentMeta(for document: QTIDocument, quizID: String, to url: URL) throws {
+        let assignmentID = UUID().uuidString.replacingOccurrences(of: "-", with: "")
+        let assignmentGroupID = UUID().uuidString.replacingOccurrences(of: "-", with: "")
+        let pointsPossible = document.questions.reduce(0.0) { $0 + $1.points }
+
         let xml = """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <quiz identifier="quiz_\(quizID)">
+        <?xml version="1.0"?>
+        <quiz xmlns="http://canvas.instructure.com/xsd/cccv1p0" xmlns:xsi="http://canvas.instructure.com/xsd/cccv1p0 https://canvas.instructure.com/xsd/cccv1p0.xsd" identifier="\(quizID)">
           <title>\(xmlEscape(document.title))</title>
           <description>\(xmlEscape(document.description))</description>
+          <due_at/>
+          <lock_at/>
+          <unlock_at/>
+          <shuffle_questions>false</shuffle_questions>
+          <shuffle_answers>false</shuffle_answers>
+          <calculator_type>none</calculator_type>
+          <scoring_policy>keep_highest</scoring_policy>
+          <hide_results/>
           <quiz_type>assignment</quiz_type>
-          <points_possible>\(document.questions.reduce(0.0) { $0 + $1.points })</points_possible>
-          <assignment_group_identifierref>assignment_group_1</assignment_group_identifierref>
+          <points_possible>\(pointsPossible)</points_possible>
+          <require_lockdown_browser>false</require_lockdown_browser>
+          <require_lockdown_browser_for_results>false</require_lockdown_browser_for_results>
+          <require_lockdown_browser_monitor>false</require_lockdown_browser_monitor>
+          <lockdown_browser_monitor_data/>
+          <show_correct_answers>false</show_correct_answers>
+          <anonymous_submissions>false</anonymous_submissions>
+          <could_be_locked>false</could_be_locked>
+          <disable_timer_autosubmission>false</disable_timer_autosubmission>
+          <allowed_attempts>1</allowed_attempts>
+          <build_on_last_attempt>false</build_on_last_attempt>
+          <one_question_at_a_time>false</one_question_at_a_time>
+          <cant_go_back>false</cant_go_back>
+          <available>false</available>
+          <one_time_results>false</one_time_results>
+          <show_correct_answers_last_attempt>false</show_correct_answers_last_attempt>
+          <only_visible_to_overrides>false</only_visible_to_overrides>
+          <module_locked>false</module_locked>
+          <allow_clear_mc_selection/>
+          <disable_document_access>false</disable_document_access>
+          <result_view_restricted>false</result_view_restricted>
+          <assignment identifier="\(assignmentID)">
+            <title>\(xmlEscape(document.title))</title>
+            <due_at/>
+            <lock_at/>
+            <unlock_at/>
+            <module_locked>false</module_locked>
+            <workflow_state>unpublished</workflow_state>
+            <assignment_overrides/>
+            <assignment_overrides/>
+            <quiz_identifierref>\(quizID)</quiz_identifierref>
+            <allowed_extensions/>
+            <has_group_category>false</has_group_category>
+            <points_possible>\(pointsPossible)</points_possible>
+            <grading_type>points</grading_type>
+            <all_day>false</all_day>
+            <submission_types>online_quiz</submission_types>
+            <position>1</position>
+            <turnitin_enabled>false</turnitin_enabled>
+            <vericite_enabled>false</vericite_enabled>
+            <peer_review_count>0</peer_review_count>
+            <peer_reviews>false</peer_reviews>
+            <automatic_peer_reviews>false</automatic_peer_reviews>
+            <anonymous_peer_reviews>false</anonymous_peer_reviews>
+            <grade_group_students_individually>false</grade_group_students_individually>
+            <freeze_on_copy>false</freeze_on_copy>
+            <omit_from_final_grade>false</omit_from_final_grade>
+            <intra_group_peer_reviews>false</intra_group_peer_reviews>
+            <only_visible_to_overrides>false</only_visible_to_overrides>
+            <post_to_sis>false</post_to_sis>
+            <moderated_grading>false</moderated_grading>
+            <grader_count>0</grader_count>
+            <grader_comments_visible_to_graders>true</grader_comments_visible_to_graders>
+            <anonymous_grading>false</anonymous_grading>
+            <graders_anonymous_to_graders>false</graders_anonymous_to_graders>
+            <grader_names_visible_to_final_grader>true</grader_names_visible_to_final_grader>
+            <anonymous_instructor_annotations>false</anonymous_instructor_annotations>
+            <post_policy>
+              <post_manually>false</post_manually>
+            </post_policy>
+            <assignment_group_identifierref>\(assignmentGroupID)</assignment_group_identifierref>
+            <assignment_overrides/>
+          </assignment>
         </quiz>
         """
 

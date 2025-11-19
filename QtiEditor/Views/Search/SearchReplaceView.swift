@@ -450,6 +450,8 @@ struct SearchResultRow: View {
 
     private func fieldIcon(for field: SearchField) -> String {
         switch field {
+        case .questionTitle:
+            return "tag"
         case .questionText:
             return "questionmark.circle"
         case .answerText:

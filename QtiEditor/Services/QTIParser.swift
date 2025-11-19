@@ -51,6 +51,28 @@ final class QTIParser {
         // Parse assessment attributes
         let title = element.attribute(forName: "title")?.stringValue ?? "Untitled Quiz"
         let identifier = element.attribute(forName: "ident")?.stringValue ?? UUID().uuidString
+        let externalAssignmentID = element.attribute(forName: "external_assignment_id")?.stringValue
+
+        // Parse assessment-level metadata
+        var assessmentMetadata: [String: String] = [
+            "canvas_identifier": identifier
+        ]
+
+        if let externalAssignmentID = externalAssignmentID {
+            assessmentMetadata["external_assignment_id"] = externalAssignmentID
+        }
+
+        // Parse qtimetadata for cc_maxattempts, etc.
+        if let qtimetadata = element.elements(forName: "qtimetadata").first {
+            for metadatafield in qtimetadata.elements(forName: "qtimetadatafield") {
+                if let fieldlabel = metadatafield.elements(forName: "fieldlabel").first,
+                   let fieldentry = metadatafield.elements(forName: "fieldentry").first,
+                   let label = fieldlabel.stringValue,
+                   let entry = fieldentry.stringValue {
+                    assessmentMetadata[label] = entry
+                }
+            }
+        }
 
         // Parse sections (questions are typically in sections)
         let sections = element.elements(forName: "section")
@@ -67,9 +89,7 @@ final class QTIParser {
             title: title,
             description: "",
             questions: allQuestions,
-            metadata: [
-                "canvas_identifier": identifier
-            ]
+            metadata: assessmentMetadata
         )
 
         return document
@@ -110,8 +130,9 @@ final class QTIParser {
             questionType: questionType
         )
 
-        // Parse metadata for question type
+        // Parse metadata for question type and other Canvas fields
         let actualType = parseQuestionType(from: element) ?? questionType
+        let questionMetadata = parseQuestionMetadata(from: element, identifier: identifier, title: title)
 
         let question = QTIQuestion(
             id: UUID(),
@@ -120,13 +141,33 @@ final class QTIParser {
             points: points,
             answers: answers,
             generalFeedback: "",
-            metadata: [
-                "canvas_identifier": identifier,
-                "canvas_title": title
-            ]
+            metadata: questionMetadata
         )
 
         return question
+    }
+
+    private func parseQuestionMetadata(from itemElement: XMLElement, identifier: String, title: String) -> [String: String] {
+        var metadata: [String: String] = [
+            "canvas_identifier": identifier,
+            "canvas_title": title
+        ]
+
+        // Parse itemmetadata fields
+        if let itemmetadata = itemElement.elements(forName: "itemmetadata").first {
+            for qtimetadata in itemmetadata.elements(forName: "qtimetadata") {
+                for metadatafield in qtimetadata.elements(forName: "qtimetadatafield") {
+                    if let fieldlabel = metadatafield.elements(forName: "fieldlabel").first,
+                       let fieldentry = metadatafield.elements(forName: "fieldentry").first,
+                       let label = fieldlabel.stringValue,
+                       let entry = fieldentry.stringValue {
+                        metadata[label] = entry
+                    }
+                }
+            }
+        }
+
+        return metadata
     }
 
     // MARK: - Presentation Parsing
@@ -203,6 +244,7 @@ final class QTIParser {
                 answerText = parseMaterial(material)
             }
 
+            // Store Canvas identifier in metadata for round-trip preservation
             let answer = QTIAnswer(
                 id: UUID(),
                 text: answerText,
@@ -210,6 +252,7 @@ final class QTIParser {
                 feedback: "",
                 weight: isCorrect ? 100.0 : 0.0
             )
+            answer.metadata["canvas_identifier"] = identifier
 
             answers.append(answer)
         }
