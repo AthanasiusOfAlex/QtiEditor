@@ -234,6 +234,9 @@ final class EditorState {
     /// Custom pasteboard type for QTI answers
     private static let answerPasteboardType = NSPasteboard.PasteboardType("com.qti-editor.answer")
 
+    /// Custom pasteboard type for multiple QTI answers
+    private static let answersArrayPasteboardType = NSPasteboard.PasteboardType("com.qti-editor.answers-array")
+
     /// Copy the selected question(s) to the pasteboard
     func copySelectedQuestion() {
         guard let document = document else { return }
@@ -317,6 +320,63 @@ final class EditorState {
         }
     }
 
+    /// Paste question(s) from the pasteboard after a specific question
+    /// - Parameter afterQuestion: The question to paste after
+    func pasteQuestionAfter(_ afterQuestion: QTIQuestion) {
+        guard let document = document else { return }
+        guard let index = document.questions.firstIndex(where: { $0.id == afterQuestion.id }) else { return }
+
+        let pasteboard = NSPasteboard.general
+        guard let data = pasteboard.data(forType: Self.questionPasteboardType) else { return }
+
+        do {
+            let decoder = JSONDecoder()
+            let pastedQuestions = try decoder.decode([QTIQuestion].self, from: data)
+
+            guard !pastedQuestions.isEmpty else { return }
+
+            // Generate new UUIDs for all pasted questions
+            var newQuestions: [QTIQuestion] = []
+            var newQuestionIDs: Set<UUID> = []
+
+            for pastedQuestion in pastedQuestions {
+                let newQuestion = pastedQuestion.duplicate(preserveCanvasIdentifier: false)
+                newQuestions.append(newQuestion)
+                newQuestionIDs.insert(newQuestion.id)
+            }
+
+            // Insert all questions starting after the specified question
+            for (offset, question) in newQuestions.enumerated() {
+                document.questions.insert(question, at: index + 1 + offset)
+            }
+
+            // Select the pasted questions
+            selectedQuestionIDs = newQuestionIDs
+            selectedQuestionID = newQuestions.first?.id
+            isDocumentEdited = true
+        } catch {
+            showError("Failed to paste question(s): \(error.localizedDescription)")
+        }
+    }
+
+    /// Check if pasteboard contains questions
+    func canPasteQuestion() -> Bool {
+        let pasteboard = NSPasteboard.general
+        return pasteboard.types?.contains(Self.questionPasteboardType) ?? false
+    }
+
+    /// Check if pasteboard contains answers
+    func canPasteAnswers() -> Bool {
+        let pasteboard = NSPasteboard.general
+        return pasteboard.types?.contains(Self.answersArrayPasteboardType) ?? false
+    }
+
+    /// Paste answers from pasteboard into a specific question
+    /// - Parameter question: The question to paste answers into
+    func pasteAnswersIntoQuestion(_ question: QTIQuestion) {
+        pasteAnswers(into: question)
+    }
+
     /// Copy an answer to the pasteboard
     /// - Parameter answer: The answer to copy
     func copyAnswer(_ answer: QTIAnswer) {
@@ -355,6 +415,57 @@ final class EditorState {
             isDocumentEdited = true
         } catch {
             showError("Failed to paste answer: \(error.localizedDescription)")
+        }
+    }
+
+    /// Copy multiple answers to the pasteboard
+    /// - Parameter answers: The answers to copy
+    func copyAnswers(_ answers: [QTIAnswer]) {
+        guard !answers.isEmpty else { return }
+
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+
+        do {
+            let encoder = JSONEncoder()
+            let data = try encoder.encode(answers)
+            pasteboard.setData(data, forType: Self.answersArrayPasteboardType)
+        } catch {
+            showError("Failed to copy answers: \(error.localizedDescription)")
+        }
+    }
+
+    /// Paste multiple answers from the pasteboard into a question
+    /// - Parameters:
+    ///   - question: The question to paste into
+    ///   - afterIndex: Optional index to insert after (if nil, appends to end)
+    func pasteAnswers(into question: QTIQuestion, afterIndex: Int? = nil) {
+        let pasteboard = NSPasteboard.general
+        guard let data = pasteboard.data(forType: Self.answersArrayPasteboardType) else { return }
+
+        do {
+            let decoder = JSONDecoder()
+            let pastedAnswers = try decoder.decode([QTIAnswer].self, from: data)
+
+            var insertIndex = afterIndex.map { $0 + 1 } ?? question.answers.count
+
+            for pastedAnswer in pastedAnswers {
+                // Generate new UUID for each pasted answer
+                let newAnswer = pastedAnswer.duplicate(preserveCanvasIdentifier: false)
+
+                // For multiple choice, ensure pasted answers are not correct
+                if question.type == .multipleChoice || question.type == .trueFalse {
+                    newAnswer.isCorrect = false
+                }
+
+                // Insert at the specified position or append to end
+                question.answers.insert(newAnswer, at: insertIndex)
+                insertIndex += 1
+            }
+
+            isDocumentEdited = true
+        } catch {
+            showError("Failed to paste answers: \(error.localizedDescription)")
         }
     }
 

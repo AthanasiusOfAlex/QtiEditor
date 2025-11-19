@@ -58,6 +58,7 @@ struct ContentView: View {
                             .frame(maxHeight: .infinity)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .id(question.id)  // Force view recreation when question changes
                 } else if editorState.document != nil {
                     // No question selected - show message
                     ContentUnavailableView(

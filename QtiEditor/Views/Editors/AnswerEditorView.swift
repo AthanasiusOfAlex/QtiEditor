@@ -12,8 +12,13 @@ struct AnswerEditorView: View {
     @Environment(EditorState.self) private var editorState
     let answer: QTIAnswer
     let index: Int
+    let isSelected: Bool
+    let hasMultipleSelected: Bool
+    let canPaste: Bool
     let onDelete: () -> Void
     let onDuplicate: () -> Void
+    let onCopy: () -> Void
+    let onPasteAfter: () -> Void
     let onCorrectChanged: (Bool) -> Void
     @AppStorage("answerEditorHeight") private var storedAnswerHeight: Double = 50
     @State private var editorHeight: CGFloat = 50
@@ -36,26 +41,54 @@ struct AnswerEditorView: View {
             editorView
         }
         .padding()
-        .background(answer.isCorrect ? Color.green.opacity(0.05) : Color.secondary.opacity(0.05))
+        .background(backgroundColor)
         .cornerRadius(8)
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .stroke(answer.isCorrect ? Color.green.opacity(0.3) : Color.secondary.opacity(0.2), lineWidth: 1)
+                .stroke(borderColor, lineWidth: isSelected ? 2 : 1)
         )
         .contextMenu {
-            Button("Copy Answer") {
-                editorState.copyAnswer(answer)
-            }
+            if !hasMultipleSelected {
+                Button("Copy Answer") {
+                    onCopy()
+                }
 
-            Button("Duplicate Answer") {
-                onDuplicate()
-            }
+                if canPaste {
+                    Button("Paste Answer After") {
+                        onPasteAfter()
+                    }
+                }
 
-            Divider()
+                Button("Duplicate Answer") {
+                    onDuplicate()
+                }
 
-            Button("Delete Answer", role: .destructive) {
-                onDelete()
+                Divider()
+
+                Button("Delete Answer", role: .destructive) {
+                    onDelete()
+                }
             }
+        }
+    }
+
+    private var backgroundColor: Color {
+        if isSelected {
+            return Color.accentColor.opacity(0.15)
+        } else if answer.isCorrect {
+            return Color.green.opacity(0.05)
+        } else {
+            return Color.secondary.opacity(0.05)
+        }
+    }
+
+    private var borderColor: Color {
+        if isSelected {
+            return Color.accentColor.opacity(0.6)
+        } else if answer.isCorrect {
+            return Color.green.opacity(0.3)
+        } else {
+            return Color.secondary.opacity(0.2)
         }
     }
 
@@ -77,19 +110,21 @@ struct AnswerEditorView: View {
 
             Spacer()
 
-            Button(action: onDuplicate) {
-                Label("Duplicate", systemImage: "plus.square.on.square")
-                    .foregroundStyle(.blue)
-            }
-            .buttonStyle(.plain)
-            .help("Duplicate this answer")
+            if !hasMultipleSelected {
+                Button(action: onDuplicate) {
+                    Label("Duplicate", systemImage: "plus.square.on.square")
+                        .foregroundStyle(.blue)
+                }
+                .buttonStyle(.plain)
+                .help("Duplicate this answer")
 
-            Button(action: onDelete) {
-                Label("Delete", systemImage: "trash")
-                    .foregroundStyle(.red)
+                Button(action: onDelete) {
+                    Label("Delete", systemImage: "trash")
+                        .foregroundStyle(.red)
+                }
+                .buttonStyle(.plain)
+                .help("Delete this answer")
             }
-            .buttonStyle(.plain)
-            .help("Delete this answer")
         }
     }
 
@@ -150,11 +185,16 @@ struct AnswerResizeHandle: View {
         isCorrect: true
     )
 
-    return AnswerEditorView(
+    AnswerEditorView(
         answer: sampleAnswer,
         index: 0,
+        isSelected: false,
+        hasMultipleSelected: false,
+        canPaste: true,
         onDelete: { print("Delete tapped") },
         onDuplicate: { print("Duplicate tapped") },
+        onCopy: { print("Copy tapped") },
+        onPasteAfter: { print("Paste after tapped") },
         onCorrectChanged: { isCorrect in print("Correct changed to: \(isCorrect)") }
     )
     .environment(EditorState(document: QTIDocument.empty()))

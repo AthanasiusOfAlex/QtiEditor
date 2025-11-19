@@ -6,12 +6,20 @@
 //
 
 import SwiftUI
+import AppKit
 
 /// Sidebar view displaying the list of questions in the current quiz
 struct QuestionListView: View {
     @Environment(EditorState.self) private var editorState
     @State private var showDeleteConfirmation = false
     @FocusState private var isListFocused: Bool
+    @State private var clipboardHasAnswers = false
+
+    /// Check and update clipboard state
+    private func checkClipboard() {
+        let pasteboard = NSPasteboard.general
+        clipboardHasAnswers = pasteboard.types?.contains(NSPasteboard.PasteboardType("com.qti-editor.answers-array")) ?? false
+    }
 
     var body: some View {
         @Bindable var editorState = editorState
@@ -34,6 +42,12 @@ struct QuestionListView: View {
         .focusedSceneValue(\.questionListFocused, isListFocused)
         .onAppear {
             isListFocused = true
+            checkClipboard()
+        }
+        .onChange(of: isListFocused) { _, focused in
+            if focused {
+                checkClipboard()
+            }
         }
         .onChange(of: editorState.selectedQuestionIDs) { _, newSelection in
             handleSelectionChange(newSelection: newSelection)
@@ -101,21 +115,26 @@ struct QuestionListView: View {
 
     @ViewBuilder
     private func buildContextMenu(question: QTIQuestion) -> some View {
-        Button("Copy") {
+        Button("Copy Question") {
             editorState.copyQuestion(question)
         }
 
-        Button("Paste") {
-            editorState.pasteQuestion()
+        Button("Paste Question After") {
+            editorState.pasteQuestionAfter(question)
         }
-        .disabled(editorState.document == nil)
+        .disabled(editorState.document == nil || !editorState.canPasteQuestion())
+
+        Button("Paste Answer") {
+            editorState.pasteAnswersIntoQuestion(question)
+        }
+        .disabled(!clipboardHasAnswers)
 
         Divider()
 
         Button(action: {
             editorState.duplicateQuestion(question)
         }) {
-            Label("Duplicate", systemImage: "plus.square.on.square")
+            Label("Duplicate Question", systemImage: "plus.square.on.square")
         }
 
         Divider()
@@ -123,7 +142,7 @@ struct QuestionListView: View {
         Button(action: {
             confirmDelete()
         }) {
-            Label("Delete", systemImage: "trash")
+            Label("Delete Question", systemImage: "trash")
         }
     }
 

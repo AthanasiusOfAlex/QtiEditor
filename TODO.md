@@ -337,41 +337,53 @@ This document tracks the implementation progress of the QTI Quiz Editor.
 
 ---
 
-## Phase 5.5: Multi-Selection Support
+## Phase 5.5: Multi-Selection Support ✅
 
-### Question Multi-Selection
-- [ ] Update QuestionListView to support multi-selection
-  - [ ] Enable List selection with Set<UUID> binding
-  - [ ] Cmd+Click for multi-selection (add/remove individual items)
-  - [ ] Shift+Click for range selection
-  - [ ] Visual feedback for selected items
-  - [ ] Update toolbar buttons to work with selection set
+### Question Multi-Selection ✅
+- [x] Update QuestionListView to support multi-selection
+  - [x] Enable List selection with Set<UUID> binding
+  - [x] Cmd+Click for multi-selection (add/remove individual items)
+  - [x] Shift+Click for range selection (native SwiftUI support)
+  - [x] Visual feedback for selected items
+  - [x] Update toolbar buttons to work with selection set
 
-- [ ] Multi-Question Operations
-  - [ ] Copy multiple questions (Cmd+C with multiple selected)
-  - [ ] Paste multiple questions (Cmd+V)
-  - [ ] Duplicate multiple questions (Cmd+D)
-  - [ ] Delete multiple questions with confirmation
-  - [ ] Drag & drop multiple questions to reorder
+- [x] Multi-Question Operations
+  - [x] Copy multiple questions (Shift+Cmd+C with multiple selected)
+  - [x] Paste multiple questions (Shift+Cmd+V)
+  - [x] Duplicate multiple questions (Cmd+D)
+  - [x] Delete multiple questions with confirmation
+  - [x] Drag & drop multiple questions to reorder (clears selection)
 
-### Answer Multi-Selection
-- [ ] Update AnswerListEditorView for multi-selection
-  - [ ] Selection state management
-  - [ ] Cmd+Click and Shift+Click support
-  - [ ] Visual feedback for selected answers
+### Answer Multi-Selection ✅
+- [x] Update AnswerListEditorView for multi-selection
+  - [x] Selection state management with Set<UUID>
+  - [x] Cmd+Click and Shift+Click support (native List selection)
+  - [x] Visual feedback for selected answers (accent color border)
 
-- [ ] Multi-Answer Operations
-  - [ ] Copy multiple answers
-  - [ ] Paste multiple answers
-  - [ ] Duplicate multiple answers
-  - [ ] Delete multiple answers with confirmation
+- [x] Multi-Answer Operations
+  - [x] Copy multiple answers (button in toolbar)
+  - [x] Paste multiple answers (button in toolbar, context menu "Paste After")
+  - [x] Duplicate multiple answers (inserts after last selected)
+  - [x] Delete multiple answers with confirmation dialog
+
+### Copy/Paste Improvements ✅
+- [x] Explicit labeling throughout ("Copy Question" vs "Copy Answer")
+- [x] "Paste Question After" and "Paste Answer After" for precise placement
+- [x] Cross-domain paste (paste answers into questions via question context menu)
+- [x] Immediate clipboard state updates for responsive UI
+- [x] Fixed pasteboard type consistency (answersArrayPasteboardType)
+- [x] Reactive clipboard state for context menu reliability
 
 ### Implementation Status
-- [ ] Question multi-selection UI
-- [ ] Question multi-selection operations
-- [ ] Answer multi-selection UI
-- [ ] Answer multi-selection operations
-- [ ] Testing and edge cases
+- [x] Question multi-selection UI
+- [x] Question multi-selection operations
+- [x] Answer multi-selection UI
+- [x] Answer multi-selection operations
+- [x] Context menu copy/paste with explicit labels
+- [x] Keyboard shortcuts removed for answers (buttons only, no conflicts)
+- [x] Hide individual action buttons during multi-selection
+- [x] Testing and edge cases
+- [x] Confirmation dialogs for destructive operations
 
 ---
 
@@ -669,7 +681,54 @@ open QtiEditor.xcodeproj
 
 ---
 
+## Recent Accomplishments (2025-11-19 Evening)
+
+### Phase 5.5: Multi-Selection Support - Complete! ✅
+
+**Question Multi-Selection**
+- Implemented native SwiftUI List selection with `Set<UUID>` binding
+- Full Cmd+Click and Shift+Click support for multi-selection (native behavior)
+- Visual feedback for selected questions
+- Updated all toolbar buttons to work with selection sets
+- Confirmation dialogs for multi-delete operations
+
+**Answer Multi-Selection**
+- Implemented List selection in AnswerListEditorView with `Set<UUID>` state
+- Native Cmd+Click and Shift+Click support (via `.tag(answer.id)`)
+- Visual feedback with accent color borders for selected answers
+- Toolbar buttons show/hide based on selection state
+- Individual action buttons hide during multi-selection to prevent accidents
+
+**Multi-Operations Support**
+- Copy/paste multiple questions: Shift+Cmd+C/V
+- Copy/paste multiple answers: toolbar buttons only (no keyboard shortcuts to avoid conflicts)
+- Duplicate multiple items: inserts after last selected
+- Delete multiple items: confirmation dialog for 2+ items
+- Drag & drop clears selection to avoid confusion
+
+**Copy/Paste UX Polish**
+- Explicit labeling: "Copy Question" vs "Copy Answer", "Paste Question After" vs "Paste Answer After"
+- Cross-domain paste: "Paste Answer" in question context menu
+- Immediate clipboard state updates for responsive UI
+- Fixed pasteboard type consistency (singular vs plural)
+- Reactive clipboard state in QuestionListView (checks on appear and focus)
+
+**Bug Fixes**
+- Fixed critical bug: editor not updating when switching questions (added `.id(question.id)`)
+- Fixed HTML cleanup: removed Apple's default classes and spans from Rich Text editor output
+- Fixed clipboard type mismatch: context menu "Copy Answer" now uses array format
+- Fixed "Paste Answer" being grayed out inappropriately with reactive state management
+
+**Technical Implementation**
+- Used SwiftUI's native List selection instead of manual gesture handling
+- Removed ~70 lines of complex AppKit event handling code
+- Keyboard shortcuts removed for answers (buttons only) to avoid conflicts
+- All operations use consistent pasteboard types for cross-operation compatibility
+- Proper state management with `@State` variables for reactive UI updates
+
+---
+
 *Last updated: 2025-11-19*
-*Current phase: Phase 5 Complete - Ready for Phase 6 (Polish & Testing)*
-*Status: Full duplicate and copy/paste support for questions and answers with NSPasteboard*
-*Recent: File naming improvements - proper Apple convention support*
+*Current phase: Phase 5.5 Complete ✅ - Ready for Phase 6 (Polish & Testing)*
+*Status: Full multi-selection support for questions and answers with copy/paste/duplicate/delete*
+*Recent: Multi-selection implementation complete with native SwiftUI patterns*
