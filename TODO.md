@@ -728,7 +728,60 @@ open QtiEditor.xcodeproj
 
 ---
 
+## Recent Accomplishments (2025-11-19 Late Evening)
+
+### Phase 5.8: GUI Restructure - Complete! ✅
+
+**Major Layout Overhaul**
+- **New 3-panel architecture**: Left (questions), Center (question + answers in VSplitView), Right (utilities)
+- **Master-detail pattern** for both questions and answers with smooth navigation
+- **HSplitView** for resizable side panels with gray backgrounds (Xcode-style)
+- **VSplitView** in main panel separating question editor from answer list
+- Multi-select placeholder views (macOS standard behavior)
+
+**Answer Selection UX**
+- **Auto-select first answer**: Never shows "no answer selected" when answers exist
+- **Persistent selection per question**: Remembers which answer was selected when switching between questions
+- Answer selection stored in dictionary: `answerSelectionByQuestion[questionID]`
+- Selection validation: removes deleted answers from selection automatically
+
+**Panel Width Persistence**
+- Left and right panels remember their width across sessions
+- Width tracking using `GeometryReader` + `PreferenceKey` pattern
+- Saved to UserDefaults (defaults: left=250pt, right=300pt)
+- Panels restore to previous width when reopened
+
+**Smooth Panel Animations**
+- Simple fade in/out without "sprouting" effect
+- Frame size changes instantly (no animation)
+- Opacity animates with `.easeInOut(duration: 0.15)`
+- Layered animation control: `.animation(nil)` for frame, `.animation(.easeInOut)` for opacity
+- Symmetric open/close animations
+
+**Clipboard System Overhaul**
+- **Modern NSPasteboardItem API**: Replaced deprecated `setData(_:forType:)` + `declareTypes()`
+- **Safe read pattern**: Race condition protection using changeCount verification
+- **Context menu refresh**: Timer-based clipboard monitoring (0.5s interval)
+- Dynamic paste labels: "Paste Question" vs "Paste Answer" vs "Paste" based on clipboard contents
+- Swift 6 concurrency compliance: `Task { @MainActor }` for clipboard state updates
+
+**Technical Achievements**
+- All clipboard operations reliable on first attempt (no multiple clicks needed)
+- Panel state persists across app restarts
+- Clean animations without jarring movements
+- Proper Swift 6 strict concurrency throughout
+- Zero compiler warnings or errors
+
+**Files Modified**
+- `ContentView.swift`: New 3-panel layout with HSplitView, panel width tracking
+- `QuestionListView.swift`: Clipboard monitoring, context menu refresh
+- `AnswersMasterDetailView.swift`: Master-detail pattern, persistent selection
+- `AnswerSelectorListView.swift`: Clipboard monitoring for answers
+- `EditorState.swift`: Persistent answer selection, panel width properties, clipboard safe reads
+
+---
+
 *Last updated: 2025-11-19*
-*Current phase: Phase 5.5 Complete ✅ - Ready for Phase 6 (Polish & Testing)*
-*Status: Full multi-selection support for questions and answers with copy/paste/duplicate/delete*
-*Recent: Multi-selection implementation complete with native SwiftUI patterns*
+*Current phase: Phase 5.8 Complete ✅ - Ready for merge to main*
+*Status: GUI restructure complete with persistent state and reliable clipboard operations*
+*Branch: claude/restructure-gui-01WfkmgGQJVgmdWAfoGkjw3J*
