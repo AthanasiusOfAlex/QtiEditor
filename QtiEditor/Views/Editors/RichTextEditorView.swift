@@ -212,11 +212,52 @@ struct RichTextEditorView: NSViewRepresentable {
             let startIndex = bodyRange.upperBound
             let endIndex = endBodyRange.lowerBound
             let bodyContent = html[startIndex..<endIndex]
-            return String(bodyContent).trimmingCharacters(in: .whitespacesAndNewlines)
+            var cleaned = String(bodyContent).trimmingCharacters(in: .whitespacesAndNewlines)
+
+            // Clean up Apple's default classes and unnecessary markup
+            cleaned = cleanupAppleHTML(cleaned)
+
+            return cleaned
         }
 
         // Fallback: return original HTML
         return html
+    }
+
+    /// Remove Apple's default HTML classes and unnecessary spans
+    private func cleanupAppleHTML(_ html: String) -> String {
+        var cleaned = html
+
+        // Remove class attributes from all tags (class="p1", class="s1", etc.)
+        cleaned = cleaned.replacingOccurrences(
+            of: "\\s+class\\s*=\\s*[\"'][^\"']*[\"']",
+            with: "",
+            options: .regularExpression
+        )
+
+        // Remove style attributes that only contain default Apple styles
+        cleaned = cleaned.replacingOccurrences(
+            of: "\\s+style\\s*=\\s*[\"']\\s*[\"']",
+            with: "",
+            options: .regularExpression
+        )
+
+        // Remove unnecessary spans that have no attributes
+        // Match: <span>content</span> -> content
+        cleaned = cleaned.replacingOccurrences(
+            of: "<span\\s*>([^<]*)</span>",
+            with: "$1",
+            options: .regularExpression
+        )
+
+        // Remove empty paragraphs with only whitespace
+        cleaned = cleaned.replacingOccurrences(
+            of: "<p\\s*>\\s*</p>",
+            with: "",
+            options: .regularExpression
+        )
+
+        return cleaned
     }
 
     // MARK: - Coordinator
