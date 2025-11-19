@@ -47,9 +47,44 @@ struct QtiEditorApp: App {
 struct FileCommands: Commands {
     @FocusedValue(\.editorState) private var editorState: EditorState?
     @FocusedValue(\.questionListFocused) private var questionListFocused: Bool?
+    @FocusedValue(\.focusedActions) private var focusedActions: FocusedActions?
     @Environment(\.openWindow) private var openWindow
 
     var body: some Commands {
+        // Focus-aware Edit commands (Copy/Cut/Paste/Select All)
+        CommandGroup(replacing: .pasteboard) {
+            Button("Copy") {
+                focusedActions?.copy?()
+            }
+            .keyboardShortcut("c", modifiers: .command)
+            .disabled(focusedActions?.copy == nil)
+
+            Button("Cut") {
+                focusedActions?.cut?()
+            }
+            .keyboardShortcut("x", modifiers: .command)
+            .disabled(focusedActions?.cut == nil)
+
+            Button("Paste") {
+                focusedActions?.paste?()
+            }
+            .keyboardShortcut("v", modifiers: .command)
+            .disabled(focusedActions?.paste == nil)
+
+            Divider()
+
+            Button("Select All") {
+                focusedActions?.selectAll?()
+            }
+            .keyboardShortcut("a", modifiers: .command)
+            .disabled(focusedActions?.selectAll == nil)
+
+            Button("Delete") {
+                focusedActions?.delete?()
+            }
+            .keyboardShortcut(.delete)
+            .disabled(focusedActions?.delete == nil)
+        }
         CommandGroup(replacing: .newItem) {
             Button("New Quiz Window") {
                 openWindow(id: "main")
@@ -102,27 +137,11 @@ struct FileCommands: Commands {
         }
 
         CommandGroup(after: .newItem) {
-            // Question operations
+            // Question-specific operations
             if let editorState = editorState {
                 let selectionCount = editorState.selectedQuestionIDs.isEmpty
                     ? (editorState.selectedQuestion != nil ? 1 : 0)
                     : editorState.selectedQuestionIDs.count
-
-                Button(selectionCount > 1 ? "Copy \(selectionCount) Questions" : "Copy Question") {
-                    Task { @MainActor in
-                        editorState.copySelectedQuestion()
-                    }
-                }
-                .keyboardShortcut("c", modifiers: [.command, .shift])
-                .disabled(selectionCount == 0)
-
-                Button("Paste Question") {
-                    Task { @MainActor in
-                        editorState.pasteQuestion()
-                    }
-                }
-                .keyboardShortcut("v", modifiers: [.command, .shift])
-                .disabled(editorState.document == nil)
 
                 Button(selectionCount > 1 ? "Duplicate \(selectionCount) Questions" : "Duplicate Question") {
                     Task { @MainActor in
@@ -131,20 +150,6 @@ struct FileCommands: Commands {
                 }
                 .keyboardShortcut("d", modifiers: .command)
                 .disabled(selectionCount == 0)
-
-                Divider()
-
-                if questionListFocused == true {
-                    Button("Select All Questions") {
-                        Task { @MainActor in
-                            if let document = editorState.document {
-                                editorState.selectedQuestionIDs = Set(document.questions.map { $0.id })
-                            }
-                        }
-                    }
-                    .keyboardShortcut("a", modifiers: .command)
-                    .disabled(editorState.document?.questions.isEmpty == true)
-                }
 
                 Divider()
             }
