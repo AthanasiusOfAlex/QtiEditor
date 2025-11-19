@@ -32,13 +32,60 @@ final class EditorState {
     /// Set of selected question IDs for multi-selection operations
     var selectedQuestionIDs: Set<UUID> = []
 
-    /// Set of selected answer IDs for multi-selection operations (scoped to current question)
-    var selectedAnswerIDs: Set<UUID> = []
+    /// Dictionary mapping question IDs to their selected answer IDs (for persistence)
+    private var answerSelectionByQuestion: [UUID: Set<UUID>] = [:]
+
+    /// Set of selected answer IDs for the current question
+    var selectedAnswerIDs: Set<UUID> {
+        get {
+            guard let questionID = selectedQuestionID else { return [] }
+            return answerSelectionByQuestion[questionID] ?? []
+        }
+        set {
+            guard let questionID = selectedQuestionID else { return }
+            answerSelectionByQuestion[questionID] = newValue
+        }
+    }
 
     /// Current editor mode (HTML or Rich Text)
     var editorMode: EditorMode = .richText
 
-    /// Search panel visibility
+    /// Left panel visibility (Questions list)
+    var isLeftPanelVisible: Bool = true {
+        didSet {
+            UserDefaults.standard.set(isLeftPanelVisible, forKey: "isLeftPanelVisible")
+        }
+    }
+
+    /// Left panel width (persisted)
+    var leftPanelWidth: CGFloat = 250 {
+        didSet {
+            UserDefaults.standard.set(leftPanelWidth, forKey: "leftPanelWidth")
+        }
+    }
+
+    /// Right panel visibility (Utilities: Search, Quiz Settings)
+    var isRightPanelVisible: Bool = true {
+        didSet {
+            UserDefaults.standard.set(isRightPanelVisible, forKey: "isRightPanelVisible")
+        }
+    }
+
+    /// Right panel width (persisted)
+    var rightPanelWidth: CGFloat = 300 {
+        didSet {
+            UserDefaults.standard.set(rightPanelWidth, forKey: "rightPanelWidth")
+        }
+    }
+
+    /// Selected tab in the right panel
+    var rightPanelTab: RightPanelTab = .quizSettings {
+        didSet {
+            UserDefaults.standard.set(rightPanelTab.rawValue, forKey: "rightPanelTab")
+        }
+    }
+
+    /// Search panel visibility (deprecated - now part of right panel)
     var isSearchVisible: Bool = false
 
     /// Search text
@@ -77,6 +124,28 @@ final class EditorState {
     init(document: QTIDocument? = nil) {
         // Set the document (may be nil - that's okay, will be created later)
         self.document = document
+
+        // Load panel visibility from UserDefaults (default to true if not set)
+        if UserDefaults.standard.object(forKey: "isLeftPanelVisible") != nil {
+            self.isLeftPanelVisible = UserDefaults.standard.bool(forKey: "isLeftPanelVisible")
+        }
+        if UserDefaults.standard.object(forKey: "isRightPanelVisible") != nil {
+            self.isRightPanelVisible = UserDefaults.standard.bool(forKey: "isRightPanelVisible")
+        }
+
+        // Load panel widths from UserDefaults (defaults: left=250, right=300)
+        if UserDefaults.standard.object(forKey: "leftPanelWidth") != nil {
+            self.leftPanelWidth = CGFloat(UserDefaults.standard.double(forKey: "leftPanelWidth"))
+        }
+        if UserDefaults.standard.object(forKey: "rightPanelWidth") != nil {
+            self.rightPanelWidth = CGFloat(UserDefaults.standard.double(forKey: "rightPanelWidth"))
+        }
+
+        // Load right panel tab selection (default to quizSettings)
+        if let rawValue = UserDefaults.standard.string(forKey: "rightPanelTab"),
+           let tab = RightPanelTab(rawValue: rawValue) {
+            self.rightPanelTab = tab
+        }
     }
 
     /// Returns the currently selected question, if any
@@ -86,6 +155,33 @@ final class EditorState {
             return nil
         }
         return document.questions.first { $0.id == id }
+    }
+
+    /// Ensures that an answer is selected for the current question
+    /// If no answer is selected and the question has answers, selects the first one
+    func ensureAnswerSelected() {
+        guard let question = selectedQuestion else { return }
+
+        // If no answers, nothing to select
+        if question.answers.isEmpty {
+            return
+        }
+
+        // If an answer is already selected and it still exists, keep it
+        if !selectedAnswerIDs.isEmpty {
+            let validAnswerIDs = Set(question.answers.map { $0.id })
+            // Keep only valid selections
+            let validSelections = selectedAnswerIDs.intersection(validAnswerIDs)
+            if !validSelections.isEmpty {
+                selectedAnswerIDs = validSelections
+                return
+            }
+        }
+
+        // No valid selection - select the first answer
+        if let firstAnswer = question.answers.first {
+            selectedAnswerIDs = [firstAnswer.id]
+        }
     }
 
     /// Create a new question and add it to the document
@@ -252,12 +348,17 @@ final class EditorState {
         guard !questionsToCopy.isEmpty else { return }
 
         let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
 
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode(questionsToCopy)
-            pasteboard.setData(data, forType: Self.questionPasteboardType)
+
+            // Use NSPasteboardItem (modern API)
+            let item = NSPasteboardItem()
+            item.setData(data, forType: Self.questionPasteboardType)
+
+            pasteboard.clearContents()
+            pasteboard.writeObjects([item])
         } catch {
             showError("Failed to copy question(s): \(error.localizedDescription)")
         }
@@ -266,12 +367,18 @@ final class EditorState {
     /// Copy a specific question to the pasteboard
     func copyQuestion(_ question: QTIQuestion) {
         let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
 
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode([question])
-            pasteboard.setData(data, forType: Self.questionPasteboardType)
+
+            // Use NSPasteboardItem (modern API)
+            let item = NSPasteboardItem()
+            item.setData(data, forType: Self.questionPasteboardType)
+
+            // clearContents() + writeObjects() is the atomic modern pattern
+            pasteboard.clearContents()
+            pasteboard.writeObjects([item])
         } catch {
             showError("Failed to copy question: \(error.localizedDescription)")
         }
@@ -371,6 +478,62 @@ final class EditorState {
         return pasteboard.types?.contains(Self.answersArrayPasteboardType) ?? false
     }
 
+    /// Get the count of questions in the clipboard (with race condition protection)
+    func clipboardQuestionCount() -> Int {
+        let pasteboard = NSPasteboard.general
+
+        // Safe Read Pattern: Check changeCount before and after read
+        let beforeChangeCount = pasteboard.changeCount
+
+        guard let data = pasteboard.data(forType: Self.questionPasteboardType) else {
+            return 0
+        }
+
+        let afterChangeCount = pasteboard.changeCount
+
+        // Race condition detection: If changeCount changed during read, discard and retry
+        if beforeChangeCount != afterChangeCount {
+            return clipboardQuestionCount() // Recursive retry
+        }
+
+        // Data is consistent - decode it
+        do {
+            let decoder = JSONDecoder()
+            let questions = try decoder.decode([QTIQuestion].self, from: data)
+            return questions.count
+        } catch {
+            return 0
+        }
+    }
+
+    /// Get the count of answers in the clipboard (with race condition protection)
+    func clipboardAnswerCount() -> Int {
+        let pasteboard = NSPasteboard.general
+
+        // Safe Read Pattern: Check changeCount before and after read
+        let beforeChangeCount = pasteboard.changeCount
+
+        guard let data = pasteboard.data(forType: Self.answersArrayPasteboardType) else {
+            return 0
+        }
+
+        let afterChangeCount = pasteboard.changeCount
+
+        // Race condition detection: If changeCount changed during read, discard and retry
+        if beforeChangeCount != afterChangeCount {
+            return clipboardAnswerCount() // Recursive retry
+        }
+
+        // Data is consistent - decode it
+        do {
+            let decoder = JSONDecoder()
+            let answers = try decoder.decode([QTIAnswer].self, from: data)
+            return answers.count
+        } catch {
+            return 0
+        }
+    }
+
     /// Paste answers from pasteboard into a specific question
     /// - Parameter question: The question to paste answers into
     func pasteAnswersIntoQuestion(_ question: QTIQuestion) {
@@ -381,12 +544,17 @@ final class EditorState {
     /// - Parameter answer: The answer to copy
     func copyAnswer(_ answer: QTIAnswer) {
         let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
 
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode(answer)
-            pasteboard.setData(data, forType: Self.answerPasteboardType)
+
+            // Use NSPasteboardItem (modern API)
+            let item = NSPasteboardItem()
+            item.setData(data, forType: Self.answerPasteboardType)
+
+            pasteboard.clearContents()
+            pasteboard.writeObjects([item])
         } catch {
             showError("Failed to copy answer: \(error.localizedDescription)")
         }
@@ -424,12 +592,18 @@ final class EditorState {
         guard !answers.isEmpty else { return }
 
         let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
 
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode(answers)
-            pasteboard.setData(data, forType: Self.answersArrayPasteboardType)
+
+            // Use NSPasteboardItem (modern API)
+            let item = NSPasteboardItem()
+            item.setData(data, forType: Self.answersArrayPasteboardType)
+
+            // clearContents() + writeObjects() is the atomic modern pattern
+            pasteboard.clearContents()
+            pasteboard.writeObjects([item])
         } catch {
             showError("Failed to copy answers: \(error.localizedDescription)")
         }

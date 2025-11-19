@@ -47,9 +47,65 @@ struct QtiEditorApp: App {
 struct FileCommands: Commands {
     @FocusedValue(\.editorState) private var editorState: EditorState?
     @FocusedValue(\.questionListFocused) private var questionListFocused: Bool?
+    @FocusedValue(\.focusedActions) private var focusedActions: FocusedActions?
     @Environment(\.openWindow) private var openWindow
 
     var body: some Commands {
+        // Pasteboard commands - native when text editors have focus,
+        // custom when lists have focus
+        CommandGroup(replacing: .pasteboard) {
+            Button("Copy") {
+                if let copy = focusedActions?.copy {
+                    copy()
+                } else {
+                    // No focused actions - pass through to system
+                    NSApp.sendAction(#selector(NSText.copy(_:)), to: nil, from: nil)
+                }
+            }
+            .keyboardShortcut("c", modifiers: .command)
+
+            Button("Cut") {
+                if let cut = focusedActions?.cut {
+                    cut()
+                } else {
+                    // No focused actions - pass through to system
+                    NSApp.sendAction(#selector(NSText.cut(_:)), to: nil, from: nil)
+                }
+            }
+            .keyboardShortcut("x", modifiers: .command)
+
+            Button("Paste") {
+                if let paste = focusedActions?.paste {
+                    paste()
+                } else {
+                    // No focused actions - pass through to system
+                    NSApp.sendAction(#selector(NSText.paste(_:)), to: nil, from: nil)
+                }
+            }
+            .keyboardShortcut("v", modifiers: .command)
+
+            Divider()
+
+            Button("Select All") {
+                if let selectAll = focusedActions?.selectAll {
+                    selectAll()
+                } else {
+                    // No focused actions - pass through to system
+                    NSApp.sendAction(#selector(NSText.selectAll(_:)), to: nil, from: nil)
+                }
+            }
+            .keyboardShortcut("a", modifiers: .command)
+
+            Button("Delete") {
+                if let delete = focusedActions?.delete {
+                    delete()
+                } else {
+                    // No focused actions - pass through to system
+                    NSApp.sendAction(#selector(NSText.delete(_:)), to: nil, from: nil)
+                }
+            }
+            .keyboardShortcut(.delete)
+        }
         CommandGroup(replacing: .newItem) {
             Button("New Quiz Window") {
                 openWindow(id: "main")
@@ -102,27 +158,11 @@ struct FileCommands: Commands {
         }
 
         CommandGroup(after: .newItem) {
-            // Question operations
+            // Question-specific operations
             if let editorState = editorState {
                 let selectionCount = editorState.selectedQuestionIDs.isEmpty
                     ? (editorState.selectedQuestion != nil ? 1 : 0)
                     : editorState.selectedQuestionIDs.count
-
-                Button(selectionCount > 1 ? "Copy \(selectionCount) Questions" : "Copy Question") {
-                    Task { @MainActor in
-                        editorState.copySelectedQuestion()
-                    }
-                }
-                .keyboardShortcut("c", modifiers: [.command, .shift])
-                .disabled(selectionCount == 0)
-
-                Button("Paste Question") {
-                    Task { @MainActor in
-                        editorState.pasteQuestion()
-                    }
-                }
-                .keyboardShortcut("v", modifiers: [.command, .shift])
-                .disabled(editorState.document == nil)
 
                 Button(selectionCount > 1 ? "Duplicate \(selectionCount) Questions" : "Duplicate Question") {
                     Task { @MainActor in
@@ -131,20 +171,6 @@ struct FileCommands: Commands {
                 }
                 .keyboardShortcut("d", modifiers: .command)
                 .disabled(selectionCount == 0)
-
-                Divider()
-
-                if questionListFocused == true {
-                    Button("Select All Questions") {
-                        Task { @MainActor in
-                            if let document = editorState.document {
-                                editorState.selectedQuestionIDs = Set(document.questions.map { $0.id })
-                            }
-                        }
-                    }
-                    .keyboardShortcut("a", modifiers: .command)
-                    .disabled(editorState.document?.questions.isEmpty == true)
-                }
 
                 Divider()
             }

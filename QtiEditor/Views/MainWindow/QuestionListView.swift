@@ -13,13 +13,10 @@ struct QuestionListView: View {
     @Environment(EditorState.self) private var editorState
     @State private var showDeleteConfirmation = false
     @FocusState private var isListFocused: Bool
-    @State private var clipboardHasAnswers = false
 
-    /// Check and update clipboard state
-    private func checkClipboard() {
-        let pasteboard = NSPasteboard.general
-        clipboardHasAnswers = pasteboard.types?.contains(NSPasteboard.PasteboardType("com.qti-editor.answers-array")) ?? false
-    }
+    // Track clipboard changes to force context menu refresh
+    @State private var clipboardChangeCount: Int = NSPasteboard.general.changeCount
+    @State private var clipboardCheckTimer: Timer?
 
     var body: some View {
         @Bindable var editorState = editorState
@@ -40,14 +37,23 @@ struct QuestionListView: View {
         .navigationTitle("Questions")
         .focused($isListFocused)
         .focusedSceneValue(\.questionListFocused, isListFocused)
+        .focusedSceneValue(\.focusContext, isListFocused ? .questionList : nil)
+        .focusedSceneValue(\.focusedActions, isListFocused ? FocusedActions(
+            copy: { editorState.copySelectedQuestion() },
+            cut: {
+                editorState.copySelectedQuestion()
+                editorState.deleteSelectedQuestions()
+            },
+            paste: { editorState.pasteQuestion() },
+            selectAll: { selectAllQuestions() },
+            delete: { confirmDelete() }
+        ) : nil)
         .onAppear {
             isListFocused = true
-            checkClipboard()
+            startClipboardMonitoring()
         }
-        .onChange(of: isListFocused) { _, focused in
-            if focused {
-                checkClipboard()
-            }
+        .onDisappear {
+            stopClipboardMonitoring()
         }
         .onChange(of: editorState.selectedQuestionIDs) { _, newSelection in
             handleSelectionChange(newSelection: newSelection)
@@ -74,22 +80,6 @@ struct QuestionListView: View {
     @ViewBuilder
     private func buildListContent(editorState: EditorState) -> some View {
         if let document = editorState.document {
-            Section {
-                Button(action: {
-                    editorState.selectedQuestionID = nil
-                    editorState.selectedQuestionIDs.removeAll()
-                }) {
-                    HStack {
-                        Image(systemName: "gearshape")
-                            .foregroundStyle(.blue)
-                        Text("Quiz Settings")
-                            .foregroundStyle(.primary)
-                        Spacer()
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-
             Section("Questions (\(document.questions.count))") {
                 ForEach(Array(document.questions.enumerated()), id: \.element.id) { index, question in
                     QuestionRowView(question: question, index: index + 1)
@@ -115,20 +105,19 @@ struct QuestionListView: View {
 
     @ViewBuilder
     private func buildContextMenu(question: QTIQuestion) -> some View {
+        // Force menu rebuild when clipboard changes by reading clipboardChangeCount
+        let _ = clipboardChangeCount
+
         Group {
             Button("Copy Question") {
                 editorState.copyQuestion(question)
             }
 
-            Button("Paste Question After") {
-                editorState.pasteQuestionAfter(question)
+            // Unified paste button - works based on clipboard contents
+            Button(pasteButtonLabel()) {
+                performPaste(into: question)
             }
-            .disabled(editorState.document == nil || !editorState.canPasteQuestion())
-
-            Button("Paste Answer") {
-                editorState.pasteAnswersIntoQuestion(question)
-            }
-            .disabled(!clipboardHasAnswers)
+            .disabled(!canPaste())
 
             Divider()
 
@@ -146,8 +135,43 @@ struct QuestionListView: View {
                 Label("Delete Question", systemImage: "trash")
             }
         }
-        .onAppear {
-            checkClipboard()
+    }
+
+    /// Generate label for paste button based on clipboard contents
+    /// Reads clipboard directly to ensure fresh data
+    private func pasteButtonLabel() -> String {
+        let questionCount = editorState.clipboardQuestionCount()
+        let answerCount = editorState.clipboardAnswerCount()
+
+        // If both types are available, just show "Paste"
+        if questionCount > 0 && answerCount > 0 {
+            return "Paste"
+        } else if questionCount > 0 {
+            return questionCount == 1 ? "Paste Question" : "Paste Questions"
+        } else if answerCount > 0 {
+            return answerCount == 1 ? "Paste Answer" : "Paste Answers"
+        } else {
+            return "Paste"
+        }
+    }
+
+    /// Check if anything can be pasted
+    /// Reads clipboard directly to ensure fresh data
+    private func canPaste() -> Bool {
+        return editorState.clipboardQuestionCount() > 0 || editorState.clipboardAnswerCount() > 0
+    }
+
+    /// Perform paste based on clipboard contents
+    /// Reads clipboard directly to ensure fresh data
+    private func performPaste(into question: QTIQuestion) {
+        let questionCount = editorState.clipboardQuestionCount()
+        let answerCount = editorState.clipboardAnswerCount()
+
+        // Prefer questions if both are available
+        if questionCount > 0 {
+            editorState.pasteQuestionAfter(question)
+        } else if answerCount > 0 {
+            editorState.pasteAnswersIntoQuestion(question)
         }
     }
 
@@ -184,6 +208,25 @@ struct QuestionListView: View {
         }
     }
 
+    // MARK: - Clipboard Monitoring
+
+    private func startClipboardMonitoring() {
+        // Check clipboard every 0.5 seconds to detect changes
+        clipboardCheckTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+            Task { @MainActor in
+                let currentCount = NSPasteboard.general.changeCount
+                if currentCount != self.clipboardChangeCount {
+                    self.clipboardChangeCount = currentCount
+                }
+            }
+        }
+    }
+
+    private func stopClipboardMonitoring() {
+        clipboardCheckTimer?.invalidate()
+        clipboardCheckTimer = nil
+    }
+
     private func handleSelectionChange(newSelection: Set<UUID>) {
         if newSelection.isEmpty {
             editorState.selectedQuestionID = nil
@@ -193,10 +236,18 @@ struct QuestionListView: View {
             // Use the first selected question
             editorState.selectedQuestionID = editorState.document?.questions.first { newSelection.contains($0.id) }?.id
         }
+
+        // Ensure an answer is always selected when viewing a question
+        editorState.ensureAnswerSelected()
     }
 
     private func confirmDelete() {
         showDeleteConfirmation = true
+    }
+
+    private func selectAllQuestions() {
+        guard let document = editorState.document else { return }
+        editorState.selectedQuestionIDs = Set(document.questions.map { $0.id })
     }
 
     private func computeSelectionCount() -> Int {
