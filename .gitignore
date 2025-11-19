@@ -104,3 +104,6 @@ iOSInjectionProject/
 # Testing
 *.gcda
 *.gcno
+
+#Build Products
+*.dmg
