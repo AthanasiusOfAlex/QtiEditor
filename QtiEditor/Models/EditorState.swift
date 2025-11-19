@@ -234,6 +234,9 @@ final class EditorState {
     /// Custom pasteboard type for QTI answers
     private static let answerPasteboardType = NSPasteboard.PasteboardType("com.qti-editor.answer")
 
+    /// Custom pasteboard type for multiple QTI answers
+    private static let answersArrayPasteboardType = NSPasteboard.PasteboardType("com.qti-editor.answers-array")
+
     /// Copy the selected question(s) to the pasteboard
     func copySelectedQuestion() {
         guard let document = document else { return }
@@ -355,6 +358,52 @@ final class EditorState {
             isDocumentEdited = true
         } catch {
             showError("Failed to paste answer: \(error.localizedDescription)")
+        }
+    }
+
+    /// Copy multiple answers to the pasteboard
+    /// - Parameter answers: The answers to copy
+    func copyAnswers(_ answers: [QTIAnswer]) {
+        guard !answers.isEmpty else { return }
+
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+
+        do {
+            let encoder = JSONEncoder()
+            let data = try encoder.encode(answers)
+            pasteboard.setData(data, forType: Self.answersArrayPasteboardType)
+        } catch {
+            showError("Failed to copy answers: \(error.localizedDescription)")
+        }
+    }
+
+    /// Paste multiple answers from the pasteboard into a question
+    /// - Parameter question: The question to paste into
+    func pasteAnswers(into question: QTIQuestion) {
+        let pasteboard = NSPasteboard.general
+        guard let data = pasteboard.data(forType: Self.answersArrayPasteboardType) else { return }
+
+        do {
+            let decoder = JSONDecoder()
+            let pastedAnswers = try decoder.decode([QTIAnswer].self, from: data)
+
+            for pastedAnswer in pastedAnswers {
+                // Generate new UUID for each pasted answer
+                let newAnswer = pastedAnswer.duplicate(preserveCanvasIdentifier: false)
+
+                // For multiple choice, ensure pasted answers are not correct
+                if question.type == .multipleChoice || question.type == .trueFalse {
+                    newAnswer.isCorrect = false
+                }
+
+                // Add at the end of the answer list
+                question.answers.append(newAnswer)
+            }
+
+            isDocumentEdited = true
+        } catch {
+            showError("Failed to paste answers: \(error.localizedDescription)")
         }
     }
 

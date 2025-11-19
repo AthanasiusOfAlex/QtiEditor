@@ -12,6 +12,8 @@ struct AnswerEditorView: View {
     @Environment(EditorState.self) private var editorState
     let answer: QTIAnswer
     let index: Int
+    let isSelected: Bool
+    let onSelect: (EventModifiers) -> Void
     let onDelete: () -> Void
     let onDuplicate: () -> Void
     let onCorrectChanged: (Bool) -> Void
@@ -36,11 +38,32 @@ struct AnswerEditorView: View {
             editorView
         }
         .padding()
-        .background(answer.isCorrect ? Color.green.opacity(0.05) : Color.secondary.opacity(0.05))
+        .background(backgroundColor)
         .cornerRadius(8)
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .stroke(answer.isCorrect ? Color.green.opacity(0.3) : Color.secondary.opacity(0.2), lineWidth: 1)
+                .stroke(borderColor, lineWidth: isSelected ? 2 : 1)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            // Simple click - select this answer
+            onSelect([])
+        }
+        .simultaneousGesture(
+            TapGesture()
+                .modifiers(.command)
+                .onEnded {
+                    // Cmd+Click - toggle selection
+                    onSelect([.command])
+                }
+        )
+        .simultaneousGesture(
+            TapGesture()
+                .modifiers(.shift)
+                .onEnded {
+                    // Shift+Click - range selection
+                    onSelect([.shift])
+                }
         )
         .contextMenu {
             Button("Copy Answer") {
@@ -56,6 +79,26 @@ struct AnswerEditorView: View {
             Button("Delete Answer", role: .destructive) {
                 onDelete()
             }
+        }
+    }
+
+    private var backgroundColor: Color {
+        if isSelected {
+            return Color.accentColor.opacity(0.15)
+        } else if answer.isCorrect {
+            return Color.green.opacity(0.05)
+        } else {
+            return Color.secondary.opacity(0.05)
+        }
+    }
+
+    private var borderColor: Color {
+        if isSelected {
+            return Color.accentColor.opacity(0.6)
+        } else if answer.isCorrect {
+            return Color.green.opacity(0.3)
+        } else {
+            return Color.secondary.opacity(0.2)
         }
     }
 
@@ -153,6 +196,8 @@ struct AnswerResizeHandle: View {
     return AnswerEditorView(
         answer: sampleAnswer,
         index: 0,
+        isSelected: false,
+        onSelect: { modifiers in print("Selected with modifiers: \(modifiers)") },
         onDelete: { print("Delete tapped") },
         onDuplicate: { print("Duplicate tapped") },
         onCorrectChanged: { isCorrect in print("Correct changed to: \(isCorrect)") }

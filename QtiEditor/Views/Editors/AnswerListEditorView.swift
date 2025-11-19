@@ -7,10 +7,59 @@
 
 import SwiftUI
 
+/// Helper class to expose answer list actions for keyboard shortcuts
+@MainActor
+class AnswerListActionsHelper: AnswerListActions {
+    var selectedAnswerIDsBinding: Binding<Set<UUID>>?
+    var editorState: EditorState?
+    var question: QTIQuestion?
+
+    var hasSelection: Bool {
+        !(selectedAnswerIDsBinding?.wrappedValue.isEmpty ?? true)
+    }
+
+    var selectionCount: Int {
+        selectedAnswerIDsBinding?.wrappedValue.count ?? 0
+    }
+
+    func copySelectedAnswers() {
+        guard let question = question,
+              let selectedIDs = selectedAnswerIDsBinding?.wrappedValue else { return }
+        let selectedAnswers = question.answers.filter { selectedIDs.contains($0.id) }
+        editorState?.copyAnswers(selectedAnswers)
+    }
+
+    func pasteAnswers() {
+        guard let question = question else { return }
+        editorState?.pasteAnswers(into: question)
+    }
+
+    func cutSelectedAnswers() {
+        guard let question = question,
+              let binding = selectedAnswerIDsBinding else { return }
+        let selectedAnswers = question.answers.filter { binding.wrappedValue.contains($0.id) }
+        editorState?.copyAnswers(selectedAnswers)
+        question.answers.removeAll { binding.wrappedValue.contains($0.id) }
+        binding.wrappedValue.removeAll()
+    }
+
+    func clearSelection() {
+        selectedAnswerIDsBinding?.wrappedValue.removeAll()
+    }
+}
+
 /// Container view for editing all answers of a question
 struct AnswerListEditorView: View {
     @Environment(EditorState.self) private var editorState
     let question: QTIQuestion
+
+    // Selection state
+    @State private var selectedAnswerIDs: Set<UUID> = []
+    @State private var lastSelectedID: UUID? = nil
+
+    // Actions helper for keyboard shortcuts
+    @State private var actionsHelper = AnswerListActionsHelper()
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -20,7 +69,34 @@ struct AnswerListEditorView: View {
                     .font(.title2)
                     .bold()
 
+                if !selectedAnswerIDs.isEmpty {
+                    Text("(\(selectedAnswerIDs.count) selected)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
                 Spacer()
+
+                // Selection action buttons
+                if !selectedAnswerIDs.isEmpty {
+                    Button(action: copySelectedAnswers) {
+                        Label("Copy", systemImage: "doc.on.doc")
+                    }
+                    .buttonStyle(.bordered)
+                    .help("Copy selected answer(s) (Shift-Cmd-C)")
+
+                    Button(action: duplicateSelectedAnswers) {
+                        Label("Duplicate", systemImage: "plus.square.on.square")
+                    }
+                    .buttonStyle(.bordered)
+                    .help("Duplicate selected answer(s)")
+
+                    Button(action: deleteSelectedAnswers) {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .buttonStyle(.bordered)
+                    .help("Delete selected answer(s)")
+                }
 
                 // Add Answer button
                 Button(action: addAnswer) {
@@ -45,6 +121,10 @@ struct AnswerListEditorView: View {
                         AnswerEditorView(
                             answer: answer,
                             index: index,
+                            isSelected: selectedAnswerIDs.contains(answer.id),
+                            onSelect: { modifiers in
+                                handleAnswerSelection(answer: answer, modifiers: modifiers)
+                            },
                             onDelete: {
                                 deleteAnswer(answer)
                             },
@@ -60,6 +140,9 @@ struct AnswerListEditorView: View {
                     }
                     .onMove { fromOffsets, toOffset in
                         question.answers.move(fromOffsets: fromOffsets, toOffset: toOffset)
+                        // Clear selection after reordering
+                        selectedAnswerIDs.removeAll()
+                        lastSelectedID = nil
                     }
                 }
                 .listStyle(.plain)
@@ -67,6 +150,13 @@ struct AnswerListEditorView: View {
             }
         }
         .padding()
+        .focused($isFocused)
+        .focusedSceneValue(\.answerListActions, isFocused ? actionsHelper : nil)
+        .onAppear {
+            actionsHelper.editorState = editorState
+            actionsHelper.question = question
+            actionsHelper.selectedAnswerIDsBinding = $selectedAnswerIDs
+        }
     }
 
     // MARK: - Actions
@@ -109,6 +199,94 @@ struct AnswerListEditorView: View {
                 otherAnswer.isCorrect = false
             }
         }
+    }
+
+    // MARK: - Selection Handling
+
+    private func handleAnswerSelection(answer: QTIAnswer, modifiers: EventModifiers) {
+        if modifiers.contains(.command) {
+            // Cmd+Click: Toggle selection
+            if selectedAnswerIDs.contains(answer.id) {
+                selectedAnswerIDs.remove(answer.id)
+            } else {
+                selectedAnswerIDs.insert(answer.id)
+                lastSelectedID = answer.id
+            }
+        } else if modifiers.contains(.shift), let lastID = lastSelectedID {
+            // Shift+Click: Range selection
+            guard let lastIndex = question.answers.firstIndex(where: { $0.id == lastID }),
+                  let currentIndex = question.answers.firstIndex(where: { $0.id == answer.id }) else {
+                return
+            }
+
+            let range = min(lastIndex, currentIndex)...max(lastIndex, currentIndex)
+            for index in range {
+                selectedAnswerIDs.insert(question.answers[index].id)
+            }
+        } else {
+            // Regular click: Select only this one
+            selectedAnswerIDs = [answer.id]
+            lastSelectedID = answer.id
+        }
+    }
+
+    func clearSelection() {
+        selectedAnswerIDs.removeAll()
+        lastSelectedID = nil
+    }
+
+    // MARK: - Multi-Answer Operations
+
+    func copySelectedAnswers() {
+        let selectedAnswers = question.answers.filter { selectedAnswerIDs.contains($0.id) }
+        editorState.copyAnswers(selectedAnswers)
+    }
+
+    private func duplicateSelectedAnswers() {
+        let selectedAnswers = question.answers.filter { selectedAnswerIDs.contains($0.id) }
+        guard !selectedAnswers.isEmpty else { return }
+
+        // Find the last selected answer's index
+        guard let lastIndex = question.answers.lastIndex(where: { selectedAnswerIDs.contains($0.id) }) else {
+            return
+        }
+
+        var insertIndex = lastIndex + 1
+        for answer in selectedAnswers {
+            let duplicated = answer.duplicate(preserveCanvasIdentifier: false)
+
+            // For multiple choice, reset isCorrect to avoid multiple correct answers
+            if question.type == .multipleChoice || question.type == .trueFalse {
+                duplicated.isCorrect = false
+            }
+
+            question.answers.insert(duplicated, at: insertIndex)
+            insertIndex += 1
+        }
+
+        // Clear selection after duplication
+        clearSelection()
+    }
+
+    private func deleteSelectedAnswers() {
+        let count = selectedAnswerIDs.count
+        let message = count == 1
+            ? "Are you sure you want to delete this answer?"
+            : "Are you sure you want to delete \(count) answers?"
+
+        // We'll handle the confirmation in the delete action
+        // For now, just delete directly (we can add confirmation dialog later)
+        question.answers.removeAll { selectedAnswerIDs.contains($0.id) }
+        clearSelection()
+    }
+
+    func pasteAnswers() {
+        editorState.pasteAnswers(into: question)
+    }
+
+    func cutSelectedAnswers() {
+        copySelectedAnswers()
+        deleteSelectedAnswers()
     }
 }
 

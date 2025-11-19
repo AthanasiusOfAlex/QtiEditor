@@ -21,6 +21,12 @@ extension FocusedValues {
         set { self[EditorStateKey.self] = newValue }
     }
 
+    /// Tracks the currently focused answer list for answer operations
+    var answerListActions: AnswerListActions? {
+        get { self[AnswerListActionsKey.self] }
+        set { self[AnswerListActionsKey.self] = newValue }
+    }
+
     struct QuestionListFocusedKey: FocusedValueKey {
         typealias Value = Bool
     }
@@ -28,4 +34,18 @@ extension FocusedValues {
     struct EditorStateKey: FocusedValueKey {
         typealias Value = EditorState
     }
+
+    struct AnswerListActionsKey: FocusedValueKey {
+        typealias Value = AnswerListActions
+    }
+}
+
+/// Protocol for answer list operations (used for keyboard shortcuts)
+protocol AnswerListActions {
+    var hasSelection: Bool { get }
+    var selectionCount: Int { get }
+    func copySelectedAnswers()
+    func pasteAnswers()
+    func cutSelectedAnswers()
+    func clearSelection()
 }
