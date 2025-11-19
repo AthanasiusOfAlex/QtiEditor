@@ -289,9 +289,6 @@ final class EditorState {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
 
-        // Declare types before setting data (required by NSPasteboard)
-        pasteboard.declareTypes([Self.questionPasteboardType], owner: nil)
-
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode(questionsToCopy)
@@ -308,20 +305,17 @@ final class EditorState {
         pasteboard.clearContents()
         print("✂️ [Copy] Cleared clipboard contents")
 
-        // Declare types before setting data (required by NSPasteboard)
-        pasteboard.declareTypes([Self.questionPasteboardType], owner: nil)
-        print("✂️ [Copy] Declared types")
-
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode([question])
             let success = pasteboard.setData(data, forType: Self.questionPasteboardType)
             print("✂️ [Copy] setData returned: \(success)")
-            if success {
-                print("✂️ [Copy] ✅ Successfully copied question")
+
+            // Verify data was written
+            if let verify = pasteboard.data(forType: Self.questionPasteboardType) {
+                print("✂️ [Copy] ✅ Verification: \(verify.count) bytes in clipboard")
             } else {
-                print("✂️ [Copy] ❌ setData failed")
-                showError("Failed to copy question to clipboard")
+                print("✂️ [Copy] ❌ Verification failed: no data in clipboard!")
             }
         } catch {
             print("✂️ [Copy] ❌ Failed to encode question: \(error)")
@@ -479,9 +473,6 @@ final class EditorState {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
 
-        // Declare types before setting data (required by NSPasteboard)
-        pasteboard.declareTypes([Self.answerPasteboardType], owner: nil)
-
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode(answer)
@@ -530,20 +521,17 @@ final class EditorState {
         pasteboard.clearContents()
         print("✂️ [Copy] Cleared clipboard contents")
 
-        // Declare types before setting data (required by NSPasteboard)
-        pasteboard.declareTypes([Self.answersArrayPasteboardType], owner: nil)
-        print("✂️ [Copy] Declared types")
-
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode(answers)
             let success = pasteboard.setData(data, forType: Self.answersArrayPasteboardType)
             print("✂️ [Copy] setData returned: \(success)")
-            if success {
-                print("✂️ [Copy] ✅ Successfully copied \(answers.count) answer(s)")
+
+            // Verify data was written
+            if let verify = pasteboard.data(forType: Self.answersArrayPasteboardType) {
+                print("✂️ [Copy] ✅ Verification: \(verify.count) bytes in clipboard")
             } else {
-                print("✂️ [Copy] ❌ setData failed")
-                showError("Failed to copy answers to clipboard")
+                print("✂️ [Copy] ❌ Verification failed: no data in clipboard!")
             }
         } catch {
             print("✂️ [Copy] ❌ Failed to encode answers: \(error)")
