@@ -92,6 +92,20 @@ xcodebuild -project QtiEditor.xcodeproj -scheme QtiEditor build
 xcodebuild test -project QtiEditor.xcodeproj -scheme QtiEditor
 ```
 
+### Deployment
+
+```bash
+# Quick: Build and run locally
+./scripts/deploy.sh
+
+# Production: Build release with DMG installer
+./scripts/deploy.sh --clean --dmg
+```
+
+For detailed deployment instructions, see:
+- **[QUICK_START_DEPLOYMENT.md](QUICK_START_DEPLOYMENT.md)** - Quick reference
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Complete deployment guide
+
 ## QTI 1.2 Format
 
 Canvas uses QTI 1.2 (IMS Question & Test Interoperability) as its backup format. The `.imscc` files are ZIP archives containing:
