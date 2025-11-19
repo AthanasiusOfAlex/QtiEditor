@@ -379,14 +379,18 @@ final class EditorState {
     }
 
     /// Paste multiple answers from the pasteboard into a question
-    /// - Parameter question: The question to paste into
-    func pasteAnswers(into question: QTIQuestion) {
+    /// - Parameters:
+    ///   - question: The question to paste into
+    ///   - afterIndex: Optional index to insert after (if nil, appends to end)
+    func pasteAnswers(into question: QTIQuestion, afterIndex: Int? = nil) {
         let pasteboard = NSPasteboard.general
         guard let data = pasteboard.data(forType: Self.answersArrayPasteboardType) else { return }
 
         do {
             let decoder = JSONDecoder()
             let pastedAnswers = try decoder.decode([QTIAnswer].self, from: data)
+
+            var insertIndex = afterIndex.map { $0 + 1 } ?? question.answers.count
 
             for pastedAnswer in pastedAnswers {
                 // Generate new UUID for each pasted answer
@@ -397,8 +401,9 @@ final class EditorState {
                     newAnswer.isCorrect = false
                 }
 
-                // Add at the end of the answer list
-                question.answers.append(newAnswer)
+                // Insert at the specified position or append to end
+                question.answers.insert(newAnswer, at: insertIndex)
+                insertIndex += 1
             }
 
             isDocumentEdited = true

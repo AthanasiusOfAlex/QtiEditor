@@ -14,8 +14,10 @@ struct AnswerEditorView: View {
     let index: Int
     let isSelected: Bool
     let hasMultipleSelected: Bool
+    let canPaste: Bool
     let onDelete: () -> Void
     let onDuplicate: () -> Void
+    let onPasteAfter: () -> Void
     let onCorrectChanged: (Bool) -> Void
     @AppStorage("answerEditorHeight") private var storedAnswerHeight: Double = 50
     @State private var editorHeight: CGFloat = 50
@@ -48,6 +50,12 @@ struct AnswerEditorView: View {
             if !hasMultipleSelected {
                 Button("Copy Answer") {
                     editorState.copyAnswer(answer)
+                }
+
+                if canPaste {
+                    Button("Paste After") {
+                        onPasteAfter()
+                    }
                 }
 
                 Button("Duplicate Answer") {
@@ -181,8 +189,10 @@ struct AnswerResizeHandle: View {
         index: 0,
         isSelected: false,
         hasMultipleSelected: false,
+        canPaste: true,
         onDelete: { print("Delete tapped") },
         onDuplicate: { print("Duplicate tapped") },
+        onPasteAfter: { print("Paste after tapped") },
         onCorrectChanged: { isCorrect in print("Correct changed to: \(isCorrect)") }
     )
     .environment(EditorState(document: QTIDocument.empty()))

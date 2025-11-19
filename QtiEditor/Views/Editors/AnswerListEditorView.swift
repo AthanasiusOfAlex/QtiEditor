@@ -20,6 +20,9 @@ struct AnswerListEditorView: View {
     // Confirmation dialog
     @State private var showDeleteConfirmation = false
 
+    // Track if clipboard has answers (for immediate paste button visibility)
+    @State private var clipboardHasAnswers = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // Header
@@ -45,13 +48,13 @@ struct AnswerListEditorView: View {
                     .help("Copy selected answer(s)")
                 }
 
-                // Paste button (always visible when answers exist, to allow cross-question paste)
-                if canPasteAnswers() {
-                    Button(action: pasteAnswers) {
+                // Paste button (visible when clipboard has answers)
+                if clipboardHasAnswers {
+                    Button(action: pasteAnswersAtEnd) {
                         Label("Paste", systemImage: "doc.on.clipboard")
                     }
                     .buttonStyle(.bordered)
-                    .help("Paste answer(s)")
+                    .help("Paste answer(s) at end")
                 }
 
                 if !selectedAnswerIDs.isEmpty {
@@ -93,11 +96,15 @@ struct AnswerListEditorView: View {
                             index: index,
                             isSelected: selectedAnswerIDs.contains(answer.id),
                             hasMultipleSelected: selectedAnswerIDs.count > 1,
+                            canPaste: clipboardHasAnswers,
                             onDelete: {
                                 deleteAnswer(answer)
                             },
                             onDuplicate: {
                                 duplicateAnswer(answer)
+                            },
+                            onPasteAfter: {
+                                pasteAnswersAfter(answer)
                             },
                             onCorrectChanged: { isCorrect in
                                 handleCorrectChanged(for: answer, isCorrect: isCorrect)
@@ -119,6 +126,9 @@ struct AnswerListEditorView: View {
             }
         }
         .padding()
+        .onAppear {
+            checkClipboard()
+        }
         .confirmationDialog(
             deleteDialogTitle(),
             isPresented: $showDeleteConfirmation
@@ -179,6 +189,8 @@ struct AnswerListEditorView: View {
     private func copySelectedAnswers() {
         let selectedAnswers = question.answers.filter { selectedAnswerIDs.contains($0.id) }
         editorState.copyAnswers(selectedAnswers)
+        // Update clipboard state immediately so Paste button appears
+        clipboardHasAnswers = true
     }
 
     private func duplicateSelectedAnswers() {
@@ -235,14 +247,18 @@ struct AnswerListEditorView: View {
             : "Are you sure you want to delete this answer? This action cannot be undone."
     }
 
-    private func pasteAnswers() {
+    private func pasteAnswersAtEnd() {
         editorState.pasteAnswers(into: question)
     }
 
-    private func canPasteAnswers() -> Bool {
+    private func pasteAnswersAfter(_ answer: QTIAnswer) {
+        guard let index = question.answers.firstIndex(where: { $0.id == answer.id }) else { return }
+        editorState.pasteAnswers(into: question, afterIndex: index)
+    }
+
+    private func checkClipboard() {
         let pasteboard = NSPasteboard.general
-        // Check if we have answers array on the clipboard
-        return pasteboard.types?.contains(NSPasteboard.PasteboardType("com.qti-editor.answers-array")) ?? false
+        clipboardHasAnswers = pasteboard.types?.contains(NSPasteboard.PasteboardType("com.qti-editor.answers-array")) ?? false
     }
 }
 
