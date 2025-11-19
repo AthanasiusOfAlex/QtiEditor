@@ -18,7 +18,7 @@ struct AnswerSelectorListView: View {
     @Binding var selectedAnswerIDs: Set<UUID>
 
     // Track clipboard state
-    @State private var clipboardHasAnswers = false
+    @State private var clipboardAnswerCount = 0
     @State private var showDeleteConfirmation = false
     @FocusState private var isListFocused: Bool
 
@@ -109,14 +109,17 @@ struct AnswerSelectorListView: View {
     private func buildContextMenu(for answer: QTIAnswer) -> some View {
         Button("Copy Answer") {
             editorState.copyAnswers([answer])
-            clipboardHasAnswers = true
+            checkClipboard()
         }
 
         // Unified paste button with dynamic label
         Button(pasteButtonLabel()) {
             pasteAnswersAfter(answer)
         }
-        .disabled(!clipboardHasAnswers)
+        .disabled(clipboardAnswerCount == 0)
+        .onAppear {
+            checkClipboard()
+        }
 
         Button("Duplicate Answer") {
             duplicateAnswer(answer)
@@ -131,8 +134,7 @@ struct AnswerSelectorListView: View {
 
     /// Generate label for paste button based on clipboard contents
     private func pasteButtonLabel() -> String {
-        let answerCount = editorState.clipboardAnswerCount()
-        return answerCount == 1 ? "Paste Answer" : "Paste Answers"
+        return clipboardAnswerCount == 1 ? "Paste Answer" : "Paste Answers"
     }
 
     // MARK: - Actions
@@ -229,8 +231,7 @@ struct AnswerSelectorListView: View {
     }
 
     private func checkClipboard() {
-        let pasteboard = NSPasteboard.general
-        clipboardHasAnswers = pasteboard.types?.contains(NSPasteboard.PasteboardType("com.qti-editor.answers-array")) ?? false
+        clipboardAnswerCount = editorState.clipboardAnswerCount()
     }
 
     private func deleteDialogTitle() -> String {

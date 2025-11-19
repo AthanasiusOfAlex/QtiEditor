@@ -13,12 +13,13 @@ struct QuestionListView: View {
     @Environment(EditorState.self) private var editorState
     @State private var showDeleteConfirmation = false
     @FocusState private var isListFocused: Bool
-    @State private var clipboardHasAnswers = false
+    @State private var clipboardQuestionCount = 0
+    @State private var clipboardAnswerCount = 0
 
     /// Check and update clipboard state
     private func checkClipboard() {
-        let pasteboard = NSPasteboard.general
-        clipboardHasAnswers = pasteboard.types?.contains(NSPasteboard.PasteboardType("com.qti-editor.answers-array")) ?? false
+        clipboardQuestionCount = editorState.clipboardQuestionCount()
+        clipboardAnswerCount = editorState.clipboardAnswerCount()
     }
 
     var body: some View {
@@ -144,16 +145,13 @@ struct QuestionListView: View {
 
     /// Generate label for paste button based on clipboard contents
     private func pasteButtonLabel() -> String {
-        let questionCount = editorState.clipboardQuestionCount()
-        let answerCount = editorState.clipboardAnswerCount()
-
         // If both types are available, just show "Paste"
-        if questionCount > 0 && answerCount > 0 {
+        if clipboardQuestionCount > 0 && clipboardAnswerCount > 0 {
             return "Paste"
-        } else if questionCount > 0 {
-            return questionCount == 1 ? "Paste Question" : "Paste Questions"
-        } else if answerCount > 0 {
-            return answerCount == 1 ? "Paste Answer" : "Paste Answers"
+        } else if clipboardQuestionCount > 0 {
+            return clipboardQuestionCount == 1 ? "Paste Question" : "Paste Questions"
+        } else if clipboardAnswerCount > 0 {
+            return clipboardAnswerCount == 1 ? "Paste Answer" : "Paste Answers"
         } else {
             return "Paste"
         }
@@ -161,15 +159,15 @@ struct QuestionListView: View {
 
     /// Check if anything can be pasted
     private func canPaste() -> Bool {
-        return editorState.canPasteQuestion() || clipboardHasAnswers
+        return clipboardQuestionCount > 0 || clipboardAnswerCount > 0
     }
 
     /// Perform paste based on clipboard contents
     private func performPaste(into question: QTIQuestion) {
         // Prefer questions if both are available
-        if editorState.canPasteQuestion() {
+        if clipboardQuestionCount > 0 {
             editorState.pasteQuestionAfter(question)
-        } else if clipboardHasAnswers {
+        } else if clipboardAnswerCount > 0 {
             editorState.pasteAnswersIntoQuestion(question)
         }
     }
