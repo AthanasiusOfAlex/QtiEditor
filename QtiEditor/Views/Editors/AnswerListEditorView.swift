@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import AppKit
+import AppKit  // For NSPasteboard
 
 /// Helper class to expose answer list actions for keyboard shortcuts
 @MainActor
@@ -126,15 +126,12 @@ struct AnswerListEditorView: View {
                 .frame(maxWidth: .infinity)
                 .padding()
             } else {
-                List {
+                List(selection: $selectedAnswerIDs) {
                     ForEach(Array(question.answers.enumerated()), id: \.element.id) { index, answer in
                         AnswerEditorView(
                             answer: answer,
                             index: index,
                             isSelected: selectedAnswerIDs.contains(answer.id),
-                            onSelect: { modifiers in
-                                handleAnswerSelection(answer: answer, modifiers: modifiers)
-                            },
                             onDelete: {
                                 deleteAnswer(answer)
                             },
@@ -145,6 +142,7 @@ struct AnswerListEditorView: View {
                                 handleCorrectChanged(for: answer, isCorrect: isCorrect)
                             }
                         )
+                        .tag(answer.id)
                         .listRowSeparator(.hidden)
                         .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
                     }
@@ -160,16 +158,6 @@ struct AnswerListEditorView: View {
             }
         }
         .padding()
-        .background(
-            // Invisible focusable layer to capture focus
-            Color.clear
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    // Give focus to answer list when tapping in empty space
-                    isFocused = true
-                }
-        )
-        .focusable()
         .focused($isFocused)
         .focusedSceneValue(\.answerListActions, isFocused ? actionsHelper : nil)
         .onAppear {
@@ -177,8 +165,14 @@ struct AnswerListEditorView: View {
             actionsHelper.question = question
             actionsHelper.selectedAnswerIDsBinding = $selectedAnswerIDs
             // Give focus to answer list when it appears
-            DispatchQueue.main.async {
-                isFocused = true
+            isFocused = true
+        }
+        .onChange(of: selectedAnswerIDs) { oldValue, newValue in
+            // Update last selected ID for potential future use
+            if let lastID = newValue.last {
+                lastSelectedID = lastID
+            } else if newValue.isEmpty {
+                lastSelectedID = nil
             }
         }
     }
@@ -225,37 +219,7 @@ struct AnswerListEditorView: View {
         }
     }
 
-    // MARK: - Selection Handling
-
-    private func handleAnswerSelection(answer: QTIAnswer, modifiers: EventModifiers) {
-        // Give focus to answer list when selecting
-        isFocused = true
-
-        if modifiers.contains(.command) {
-            // Cmd+Click: Toggle selection
-            if selectedAnswerIDs.contains(answer.id) {
-                selectedAnswerIDs.remove(answer.id)
-            } else {
-                selectedAnswerIDs.insert(answer.id)
-                lastSelectedID = answer.id
-            }
-        } else if modifiers.contains(.shift), let lastID = lastSelectedID {
-            // Shift+Click: Range selection
-            guard let lastIndex = question.answers.firstIndex(where: { $0.id == lastID }),
-                  let currentIndex = question.answers.firstIndex(where: { $0.id == answer.id }) else {
-                return
-            }
-
-            let range = min(lastIndex, currentIndex)...max(lastIndex, currentIndex)
-            for index in range {
-                selectedAnswerIDs.insert(question.answers[index].id)
-            }
-        } else {
-            // Regular click: Select only this one
-            selectedAnswerIDs = [answer.id]
-            lastSelectedID = answer.id
-        }
-    }
+    // MARK: - Selection Management
 
     func clearSelection() {
         selectedAnswerIDs.removeAll()

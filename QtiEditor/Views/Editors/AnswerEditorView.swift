@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import AppKit
 
 /// Editor view for a single answer choice
 struct AnswerEditorView: View {
@@ -14,7 +13,6 @@ struct AnswerEditorView: View {
     let answer: QTIAnswer
     let index: Int
     let isSelected: Bool
-    let onSelect: (EventModifiers) -> Void
     let onDelete: () -> Void
     let onDuplicate: () -> Void
     let onCorrectChanged: (Bool) -> Void
@@ -45,23 +43,6 @@ struct AnswerEditorView: View {
             RoundedRectangle(cornerRadius: 8)
                 .stroke(borderColor, lineWidth: isSelected ? 2 : 1)
         )
-        .contentShape(Rectangle())
-        .onTapGesture {
-            // Detect modifier keys at tap time
-            var modifiers: EventModifiers = []
-
-            #if os(macOS)
-            let flags = NSEvent.modifierFlags
-            if flags.contains(.command) {
-                modifiers.insert(.command)
-            }
-            if flags.contains(.shift) {
-                modifiers.insert(.shift)
-            }
-            #endif
-
-            onSelect(modifiers)
-        }
         .contextMenu {
             Button("Copy Answer") {
                 editorState.copyAnswer(answer)
@@ -194,7 +175,6 @@ struct AnswerResizeHandle: View {
         answer: sampleAnswer,
         index: 0,
         isSelected: false,
-        onSelect: { modifiers in print("Selected with modifiers: \(modifiers)") },
         onDelete: { print("Delete tapped") },
         onDuplicate: { print("Duplicate tapped") },
         onCorrectChanged: { isCorrect in print("Correct changed to: \(isCorrect)") }
