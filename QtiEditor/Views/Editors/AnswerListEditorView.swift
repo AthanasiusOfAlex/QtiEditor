@@ -104,8 +104,8 @@ struct AnswerListEditorView: View {
                                 duplicateAnswer(answer)
                             },
                             onCopy: {
-                                // Single answer copy from context menu
-                                editorState.copyAnswer(answer)
+                                // Single answer copy from context menu (using array format for compatibility)
+                                editorState.copyAnswers([answer])
                                 clipboardHasAnswers = true
                             },
                             onPasteAfter: {

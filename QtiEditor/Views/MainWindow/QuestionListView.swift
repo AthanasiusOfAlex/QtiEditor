@@ -13,11 +13,12 @@ struct QuestionListView: View {
     @Environment(EditorState.self) private var editorState
     @State private var showDeleteConfirmation = false
     @FocusState private var isListFocused: Bool
+    @State private var clipboardHasAnswers = false
 
-    /// Check if the pasteboard contains answers (local check for context menu reliability)
-    private var canPasteAnswersFromClipboard: Bool {
+    /// Check and update clipboard state
+    private func checkClipboard() {
         let pasteboard = NSPasteboard.general
-        return pasteboard.types?.contains(NSPasteboard.PasteboardType("com.qti-editor.answers-array")) ?? false
+        clipboardHasAnswers = pasteboard.types?.contains(NSPasteboard.PasteboardType("com.qti-editor.answers-array")) ?? false
     }
 
     var body: some View {
@@ -41,6 +42,12 @@ struct QuestionListView: View {
         .focusedSceneValue(\.questionListFocused, isListFocused)
         .onAppear {
             isListFocused = true
+            checkClipboard()
+        }
+        .onChange(of: isListFocused) { _, focused in
+            if focused {
+                checkClipboard()
+            }
         }
         .onChange(of: editorState.selectedQuestionIDs) { _, newSelection in
             handleSelectionChange(newSelection: newSelection)
@@ -120,7 +127,7 @@ struct QuestionListView: View {
         Button("Paste Answer") {
             editorState.pasteAnswersIntoQuestion(question)
         }
-        .disabled(!canPasteAnswersFromClipboard)
+        .disabled(!clipboardHasAnswers)
 
         Divider()
 
