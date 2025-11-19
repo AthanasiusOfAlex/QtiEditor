@@ -71,6 +71,9 @@ final class EditorState {
     /// Whether a file operation is in progress
     var isLoading: Bool = false
 
+    /// Whether the document has unsaved changes
+    var isDocumentEdited: Bool = false
+
     init(document: QTIDocument? = nil) {
         // If no document provided, create a blank quiz
         if let document = document {
@@ -116,6 +119,7 @@ final class EditorState {
         document.questions.append(question)
         selectedQuestionID = question.id
         selectedQuestionIDs = [question.id]
+        isDocumentEdited = true
     }
 
     /// Delete the specified question
@@ -126,6 +130,7 @@ final class EditorState {
             selectedQuestionID = nil
         }
         selectedQuestionIDs.remove(question.id)
+        isDocumentEdited = true
     }
 
     /// Delete all currently selected questions
@@ -144,6 +149,7 @@ final class EditorState {
             selectedQuestionID = nil
         }
         selectedQuestionIDs.removeAll()
+        isDocumentEdited = true
     }
 
     /// Duplicate the specified question and insert it after the original
@@ -165,6 +171,7 @@ final class EditorState {
         // Select the new question
         selectedQuestionID = duplicatedQuestion.id
         selectedQuestionIDs = [duplicatedQuestion.id]
+        isDocumentEdited = true
     }
 
     /// Duplicate the currently selected question
@@ -200,6 +207,7 @@ final class EditorState {
         // Select the duplicated questions
         selectedQuestionIDs = newQuestionIDs
         selectedQuestionID = newQuestionIDs.first
+        isDocumentEdited = true
     }
 
     /// Duplicate an answer and add it after the original
@@ -222,6 +230,7 @@ final class EditorState {
 
         // Insert after the original
         question.answers.insert(duplicatedAnswer, at: index + 1)
+        isDocumentEdited = true
     }
 
     // MARK: - Copy/Paste Operations
@@ -309,6 +318,7 @@ final class EditorState {
             // Select the pasted questions
             selectedQuestionIDs = newQuestionIDs
             selectedQuestionID = newQuestions.first?.id
+            isDocumentEdited = true
         } catch {
             showError("Failed to paste question(s): \(error.localizedDescription)")
         }
@@ -349,6 +359,7 @@ final class EditorState {
 
             // Add at the end of the answer list
             question.answers.append(newAnswer)
+            isDocumentEdited = true
         } catch {
             showError("Failed to paste answer: \(error.localizedDescription)")
         }
@@ -366,6 +377,7 @@ final class EditorState {
             let loadedDocument = try await documentManager.openDocument(from: url)
             self.document = loadedDocument
             self.selectedQuestionID = loadedDocument.questions.first?.id
+            self.isDocumentEdited = false
         } catch let error as QTIError {
             showError(error.localizedDescription)
         } catch {
@@ -382,6 +394,7 @@ final class EditorState {
 
         do {
             try await documentManager.saveDocument(document)
+            self.isDocumentEdited = false
         } catch let error as QTIError {
             showError(error.localizedDescription)
         } catch {
@@ -399,6 +412,7 @@ final class EditorState {
 
         do {
             try await documentManager.saveDocument(document, to: url)
+            self.isDocumentEdited = false
         } catch let error as QTIError {
             showError(error.localizedDescription)
         } catch {
@@ -410,6 +424,15 @@ final class EditorState {
     func createNewDocument() {
         document = documentManager.createNewDocument()
         selectedQuestionID = nil
+        isDocumentEdited = false
+    }
+
+    // MARK: - Document State
+
+    /// Mark the document as having unsaved changes
+    /// Call this method when modifying question/answer properties directly
+    func markDocumentEdited() {
+        isDocumentEdited = true
     }
 
     // MARK: - Error Handling
