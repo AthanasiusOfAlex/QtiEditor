@@ -168,14 +168,22 @@ struct AnswerListEditorView: View {
             actionsHelper.editorState = editorState
             actionsHelper.question = question
             actionsHelper.selectedAnswerIDsBinding = $selectedAnswerIDs
-            // Give focus to answer list when it appears
-            isFocused = true
+            // Don't auto-focus - let user click to activate
         }
         .onChange(of: selectedAnswerIDs) { oldValue, newValue in
+            // Give focus when user selects answers
+            if !newValue.isEmpty {
+                isFocused = true
+            }
+
             // Clear lastSelectedID when selection is cleared
             if newValue.isEmpty {
                 lastSelectedID = nil
             }
+        }
+        .onTapGesture {
+            // Give focus when user clicks in answer area
+            isFocused = true
         }
         .confirmationDialog(
             deleteDialogTitle(),
