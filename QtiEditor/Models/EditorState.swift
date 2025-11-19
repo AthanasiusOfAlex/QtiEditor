@@ -421,8 +421,8 @@ final class EditorState {
     }
 
     /// Creates a new empty document
-    func createNewDocument() {
-        document = documentManager.createNewDocument()
+    func createNewDocument() async {
+        document = await documentManager.createNewDocument()
         selectedQuestionID = nil
         isDocumentEdited = false
     }

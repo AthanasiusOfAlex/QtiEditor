@@ -9,8 +9,7 @@ import Foundation
 
 /// Tracks all open documents and their display names
 /// Used to generate unique "Untitled", "Untitled 2", etc. names
-@MainActor
-final class DocumentRegistry {
+actor DocumentRegistry {
     static let shared = DocumentRegistry()
 
     private var displayNames: Set<String> = []

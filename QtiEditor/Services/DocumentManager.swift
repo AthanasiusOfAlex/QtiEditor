@@ -23,23 +23,7 @@ final class DocumentManager: @unchecked Sendable {
 
     /// Display name for the file (separate from quiz title)
     /// Follows Apple convention: "Untitled", "Untitled 2", etc.
-    private var _displayName: String?
-
-    var displayName: String {
-        get { _displayName ?? "Untitled" }
-        set {
-            let oldValue = _displayName
-            _displayName = newValue
-
-            // Update registry when display name changes
-            if let oldName = oldValue {
-                DocumentRegistry.shared.update(from: oldName, to: newValue)
-            } else {
-                // First time setting - register
-                DocumentRegistry.shared.register(displayName: newValue)
-            }
-        }
-    }
+    private(set) var displayName: String = "Untitled"
 
     /// Whether the document has unsaved changes
     var isDirty: Bool = false
@@ -47,9 +31,11 @@ final class DocumentManager: @unchecked Sendable {
     // MARK: - Lifecycle
 
     deinit {
-        // Unregister display name when document manager is destroyed
-        if let name = _displayName {
-            DocumentRegistry.shared.unregister(displayName: name)
+        // Best-effort cleanup: unregister display name when document manager is destroyed
+        // Use detached task since deinit can't be async
+        let name = displayName
+        Task.detached {
+            await DocumentRegistry.shared.unregister(displayName: name)
         }
     }
 
@@ -72,7 +58,8 @@ final class DocumentManager: @unchecked Sendable {
 
         // Store original URL and extract display name
         fileURL = url
-        displayName = url.deletingPathExtension().lastPathComponent
+        let newName = url.deletingPathExtension().lastPathComponent
+        await updateDisplayName(to: newName)
         isDirty = false
 
         return document
@@ -137,7 +124,8 @@ final class DocumentManager: @unchecked Sendable {
 
         // Update state
         fileURL = url
-        displayName = url.deletingPathExtension().lastPathComponent
+        let newName = url.deletingPathExtension().lastPathComponent
+        await updateDisplayName(to: newName)
         isDirty = false
     }
 
@@ -145,13 +133,14 @@ final class DocumentManager: @unchecked Sendable {
 
     /// Creates a new empty QTI document
     /// - Returns: New QTIDocument
-    func createNewDocument() -> QTIDocument {
+    func createNewDocument() async -> QTIDocument {
         fileURL = nil
         isDirty = false
 
         // Generate display name following Apple convention
         // Uses registry to find next available "Untitled" number
-        displayName = DocumentRegistry.shared.nextUntitledName()
+        let newName = await DocumentRegistry.shared.nextUntitledName()
+        await setDisplayName(to: newName)
 
         return QTIDocument.empty()
     }
@@ -164,6 +153,21 @@ final class DocumentManager: @unchecked Sendable {
             await extractor.cleanup(extractedURL: extractedDirectory)
             self.extractedDirectory = nil
         }
+    }
+
+    // MARK: - Display Name Management
+
+    /// Sets the display name for a new document and registers it
+    private func setDisplayName(to newName: String) async {
+        displayName = newName
+        await DocumentRegistry.shared.register(displayName: newName)
+    }
+
+    /// Updates the display name (e.g., when saving) and updates the registry
+    private func updateDisplayName(to newName: String) async {
+        let oldName = displayName
+        displayName = newName
+        await DocumentRegistry.shared.update(from: oldName, to: newName)
     }
 
     // MARK: - Manifest Generation
