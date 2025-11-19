@@ -19,10 +19,8 @@
     {
       "layers" : [
         {
-          "fill" : "automatic",
-          "glass" : false,
-          "image-name" : "pencil2 2.png",
-          "name" : "Pencil and Quiz"
+          "image-name" : "PencilAndQuiz.png",
+          "name" : "PencilAndQuiz"
         }
       ],
       "name" : "Artwork",
