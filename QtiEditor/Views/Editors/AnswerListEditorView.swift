@@ -8,47 +8,6 @@
 import SwiftUI
 import AppKit  // For NSPasteboard
 
-/// Helper class to expose answer list actions for keyboard shortcuts
-@MainActor
-class AnswerListActionsHelper: AnswerListActions {
-    var selectedAnswerIDsBinding: Binding<Set<UUID>>?
-    var editorState: EditorState?
-    var question: QTIQuestion?
-
-    var hasSelection: Bool {
-        !(selectedAnswerIDsBinding?.wrappedValue.isEmpty ?? true)
-    }
-
-    var selectionCount: Int {
-        selectedAnswerIDsBinding?.wrappedValue.count ?? 0
-    }
-
-    func copySelectedAnswers() {
-        guard let question = question,
-              let selectedIDs = selectedAnswerIDsBinding?.wrappedValue else { return }
-        let selectedAnswers = question.answers.filter { selectedIDs.contains($0.id) }
-        editorState?.copyAnswers(selectedAnswers)
-    }
-
-    func pasteAnswers() {
-        guard let question = question else { return }
-        editorState?.pasteAnswers(into: question)
-    }
-
-    func cutSelectedAnswers() {
-        guard let question = question,
-              let binding = selectedAnswerIDsBinding else { return }
-        let selectedAnswers = question.answers.filter { binding.wrappedValue.contains($0.id) }
-        editorState?.copyAnswers(selectedAnswers)
-        question.answers.removeAll { binding.wrappedValue.contains($0.id) }
-        binding.wrappedValue.removeAll()
-    }
-
-    func clearSelection() {
-        selectedAnswerIDsBinding?.wrappedValue.removeAll()
-    }
-}
-
 /// Container view for editing all answers of a question
 struct AnswerListEditorView: View {
     @Environment(EditorState.self) private var editorState
@@ -57,10 +16,6 @@ struct AnswerListEditorView: View {
     // Selection state
     @State private var selectedAnswerIDs: Set<UUID> = []
     @State private var lastSelectedID: UUID? = nil
-
-    // Actions helper for keyboard shortcuts
-    @State private var actionsHelper = AnswerListActionsHelper()
-    @FocusState private var isFocused: Bool
 
     // Confirmation dialog
     @State private var showDeleteConfirmation = false
@@ -87,8 +42,19 @@ struct AnswerListEditorView: View {
                         Label("Copy", systemImage: "doc.on.doc")
                     }
                     .buttonStyle(.bordered)
-                    .help("Copy selected answer(s) (Shift-Cmd-C)")
+                    .help("Copy selected answer(s)")
+                }
 
+                // Paste button (always visible when answers exist, to allow cross-question paste)
+                if canPasteAnswers() {
+                    Button(action: pasteAnswers) {
+                        Label("Paste", systemImage: "doc.on.clipboard")
+                    }
+                    .buttonStyle(.bordered)
+                    .help("Paste answer(s)")
+                }
+
+                if !selectedAnswerIDs.isEmpty {
                     Button(action: duplicateSelectedAnswers) {
                         Label("Duplicate", systemImage: "plus.square.on.square")
                     }
@@ -100,15 +66,6 @@ struct AnswerListEditorView: View {
                     }
                     .buttonStyle(.bordered)
                     .help("Delete selected answer(s)")
-                }
-
-                // Paste button (always visible when answers exist, to allow cross-question paste)
-                if canPasteAnswers() {
-                    Button(action: pasteAnswers) {
-                        Label("Paste", systemImage: "doc.on.clipboard")
-                    }
-                    .buttonStyle(.bordered)
-                    .help("Paste answer(s) (Shift-Cmd-V)")
                 }
 
                 // Add Answer button
@@ -162,29 +119,6 @@ struct AnswerListEditorView: View {
             }
         }
         .padding()
-        .focused($isFocused)
-        .focusedSceneValue(\.answerListActions, isFocused ? actionsHelper : nil)
-        .onAppear {
-            actionsHelper.editorState = editorState
-            actionsHelper.question = question
-            actionsHelper.selectedAnswerIDsBinding = $selectedAnswerIDs
-            // Don't auto-focus - let user click to activate
-        }
-        .onChange(of: selectedAnswerIDs) { oldValue, newValue in
-            // Give focus when user selects answers
-            if !newValue.isEmpty {
-                isFocused = true
-            }
-
-            // Clear lastSelectedID when selection is cleared
-            if newValue.isEmpty {
-                lastSelectedID = nil
-            }
-        }
-        .onTapGesture {
-            // Give focus when user clicks in answer area
-            isFocused = true
-        }
         .confirmationDialog(
             deleteDialogTitle(),
             isPresented: $showDeleteConfirmation
@@ -240,16 +174,9 @@ struct AnswerListEditorView: View {
         }
     }
 
-    // MARK: - Selection Management
-
-    func clearSelection() {
-        selectedAnswerIDs.removeAll()
-        lastSelectedID = nil
-    }
-
     // MARK: - Multi-Answer Operations
 
-    func copySelectedAnswers() {
+    private func copySelectedAnswers() {
         let selectedAnswers = question.answers.filter { selectedAnswerIDs.contains($0.id) }
         editorState.copyAnswers(selectedAnswers)
     }
@@ -277,7 +204,8 @@ struct AnswerListEditorView: View {
         }
 
         // Clear selection after duplication
-        clearSelection()
+        selectedAnswerIDs.removeAll()
+        lastSelectedID = nil
     }
 
     private func confirmDelete() {
@@ -291,7 +219,8 @@ struct AnswerListEditorView: View {
 
     private func performDelete() {
         question.answers.removeAll { selectedAnswerIDs.contains($0.id) }
-        clearSelection()
+        selectedAnswerIDs.removeAll()
+        lastSelectedID = nil
     }
 
     private func deleteDialogTitle() -> String {
@@ -306,13 +235,8 @@ struct AnswerListEditorView: View {
             : "Are you sure you want to delete this answer? This action cannot be undone."
     }
 
-    func pasteAnswers() {
+    private func pasteAnswers() {
         editorState.pasteAnswers(into: question)
-    }
-
-    func cutSelectedAnswers() {
-        copySelectedAnswers()
-        performDelete()
     }
 
     private func canPasteAnswers() -> Bool {

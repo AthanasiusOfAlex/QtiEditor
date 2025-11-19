@@ -47,7 +47,6 @@ struct QtiEditorApp: App {
 struct FileCommands: Commands {
     @FocusedValue(\.editorState) private var editorState: EditorState?
     @FocusedValue(\.questionListFocused) private var questionListFocused: Bool?
-    @FocusedValue(\.answerListActions) private var answerListActions: AnswerListActions?
     @Environment(\.openWindow) private var openWindow
 
     var body: some Commands {
@@ -146,36 +145,6 @@ struct FileCommands: Commands {
                     .keyboardShortcut("a", modifiers: .command)
                     .disabled(editorState.document?.questions.isEmpty == true)
                 }
-
-                Divider()
-            }
-
-            // Answer operations (when answer list has focus)
-            if let answerActions = answerListActions {
-                let count = answerActions.selectionCount
-
-                Button(count > 1 ? "Copy \(count) Answers" : "Copy Answer") {
-                    Task { @MainActor in
-                        answerActions.copySelectedAnswers()
-                    }
-                }
-                .keyboardShortcut("c", modifiers: [.command, .shift])
-                .disabled(!answerActions.hasSelection)
-
-                Button("Paste Answer(s)") {
-                    Task { @MainActor in
-                        answerActions.pasteAnswers()
-                    }
-                }
-                .keyboardShortcut("v", modifiers: [.command, .shift])
-
-                Button(count > 1 ? "Cut \(count) Answers" : "Cut Answer") {
-                    Task { @MainActor in
-                        answerActions.cutSelectedAnswers()
-                    }
-                }
-                .keyboardShortcut("x", modifiers: [.command, .shift])
-                .disabled(!answerActions.hasSelection)
 
                 Divider()
             }
