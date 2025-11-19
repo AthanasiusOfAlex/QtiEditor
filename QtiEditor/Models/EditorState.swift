@@ -287,12 +287,17 @@ final class EditorState {
         guard !questionsToCopy.isEmpty else { return }
 
         let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
 
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode(questionsToCopy)
-            pasteboard.setData(data, forType: Self.questionPasteboardType)
+
+            // Use NSPasteboardItem (modern API)
+            let item = NSPasteboardItem()
+            item.setData(data, forType: Self.questionPasteboardType)
+
+            pasteboard.clearContents()
+            pasteboard.writeObjects([item])
         } catch {
             showError("Failed to copy question(s): \(error.localizedDescription)")
         }
@@ -303,22 +308,25 @@ final class EditorState {
         print("✂️ [Copy] Copying 1 question to clipboard")
         let pasteboard = NSPasteboard.general
 
-        // Atomic claim: clearContents() increments changeCount immediately
-        pasteboard.clearContents()
-        let afterClearChangeCount = pasteboard.changeCount
-
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode([question])
 
-            // Synchronous write - no delay needed with safe read pattern on reader side
-            let success = pasteboard.setData(data, forType: Self.questionPasteboardType)
-            let afterSetChangeCount = pasteboard.changeCount
+            // Use NSPasteboardItem (modern API)
+            let item = NSPasteboardItem()
+            item.setData(data, forType: Self.questionPasteboardType)
+
+            // clearContents() + writeObjects() is the atomic modern pattern
+            pasteboard.clearContents()
+            let afterClearChangeCount = pasteboard.changeCount
+
+            let success = pasteboard.writeObjects([item])
+            let afterWriteChangeCount = pasteboard.changeCount
 
             if success {
-                print("✂️ [Copy] ✅ Copied question, changeCount: \(afterClearChangeCount) → \(afterSetChangeCount)")
+                print("✂️ [Copy] ✅ Copied question, changeCount: \(afterClearChangeCount) → \(afterWriteChangeCount)")
             } else {
-                print("✂️ [Copy] ❌ setData failed, changeCount: \(afterSetChangeCount)")
+                print("✂️ [Copy] ❌ writeObjects failed, changeCount: \(afterWriteChangeCount)")
             }
         } catch {
             print("✂️ [Copy] ❌ Failed to encode question: \(error)")
@@ -494,12 +502,17 @@ final class EditorState {
     /// - Parameter answer: The answer to copy
     func copyAnswer(_ answer: QTIAnswer) {
         let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
 
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode(answer)
-            pasteboard.setData(data, forType: Self.answerPasteboardType)
+
+            // Use NSPasteboardItem (modern API)
+            let item = NSPasteboardItem()
+            item.setData(data, forType: Self.answerPasteboardType)
+
+            pasteboard.clearContents()
+            pasteboard.writeObjects([item])
         } catch {
             showError("Failed to copy answer: \(error.localizedDescription)")
         }
@@ -542,22 +555,25 @@ final class EditorState {
         print("✂️ [Copy] Copying \(answers.count) answer(s) to clipboard")
         let pasteboard = NSPasteboard.general
 
-        // Atomic claim: clearContents() increments changeCount immediately
-        pasteboard.clearContents()
-        let afterClearChangeCount = pasteboard.changeCount
-
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode(answers)
 
-            // Synchronous write - no delay needed with safe read pattern on reader side
-            let success = pasteboard.setData(data, forType: Self.answersArrayPasteboardType)
-            let afterSetChangeCount = pasteboard.changeCount
+            // Use NSPasteboardItem (modern API)
+            let item = NSPasteboardItem()
+            item.setData(data, forType: Self.answersArrayPasteboardType)
+
+            // clearContents() + writeObjects() is the atomic modern pattern
+            pasteboard.clearContents()
+            let afterClearChangeCount = pasteboard.changeCount
+
+            let success = pasteboard.writeObjects([item])
+            let afterWriteChangeCount = pasteboard.changeCount
 
             if success {
-                print("✂️ [Copy] ✅ Copied \(answers.count) answer(s), changeCount: \(afterClearChangeCount) → \(afterSetChangeCount)")
+                print("✂️ [Copy] ✅ Copied \(answers.count) answer(s), changeCount: \(afterClearChangeCount) → \(afterWriteChangeCount)")
             } else {
-                print("✂️ [Copy] ❌ setData failed, changeCount: \(afterSetChangeCount)")
+                print("✂️ [Copy] ❌ writeObjects failed, changeCount: \(afterWriteChangeCount)")
             }
         } catch {
             print("✂️ [Copy] ❌ Failed to encode answers: \(error)")
