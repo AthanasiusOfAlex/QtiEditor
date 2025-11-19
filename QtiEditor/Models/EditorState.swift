@@ -302,29 +302,23 @@ final class EditorState {
     func copyQuestion(_ question: QTIQuestion) {
         print("✂️ [Copy] Copying 1 question to clipboard")
         let pasteboard = NSPasteboard.general
-        let oldChangeCount = pasteboard.changeCount
-        print("✂️ [Copy] Current changeCount: \(oldChangeCount)")
 
+        // Atomic claim: clearContents() increments changeCount immediately
         pasteboard.clearContents()
-        print("✂️ [Copy] Cleared clipboard contents")
         let afterClearChangeCount = pasteboard.changeCount
-        print("✂️ [Copy] After clear changeCount: \(afterClearChangeCount)")
 
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode([question])
+
+            // Synchronous write - no delay needed with safe read pattern on reader side
             let success = pasteboard.setData(data, forType: Self.questionPasteboardType)
             let afterSetChangeCount = pasteboard.changeCount
-            print("✂️ [Copy] setData returned: \(success), changeCount now: \(afterSetChangeCount)")
 
-            // Force a small delay to ensure pasteboard sync
-            Thread.sleep(forTimeInterval: 0.01) // 10ms
-
-            // Verify data was written
-            if let verify = pasteboard.data(forType: Self.questionPasteboardType) {
-                print("✂️ [Copy] ✅ Verification: \(verify.count) bytes in clipboard")
+            if success {
+                print("✂️ [Copy] ✅ Copied question, changeCount: \(afterClearChangeCount) → \(afterSetChangeCount)")
             } else {
-                print("✂️ [Copy] ❌ Verification failed: no data in clipboard!")
+                print("✂️ [Copy] ❌ setData failed, changeCount: \(afterSetChangeCount)")
             }
         } catch {
             print("✂️ [Copy] ❌ Failed to encode question: \(error)")
@@ -426,48 +420,66 @@ final class EditorState {
         return pasteboard.types?.contains(Self.answersArrayPasteboardType) ?? false
     }
 
-    /// Get the count of questions in the clipboard
+    /// Get the count of questions in the clipboard (with race condition protection)
     func clipboardQuestionCount() -> Int {
         let pasteboard = NSPasteboard.general
-        let changeCount = pasteboard.changeCount
-        let hasQuestionData = pasteboard.data(forType: Self.questionPasteboardType) != nil
-        print("🔍 [Clipboard] Checking for questions - changeCount: \(changeCount), has data: \(hasQuestionData)")
+
+        // Safe Read Pattern: Check changeCount before and after read
+        let beforeChangeCount = pasteboard.changeCount
 
         guard let data = pasteboard.data(forType: Self.questionPasteboardType) else {
-            print("🔍 [Clipboard] Question count: 0 (no data)")
+            print("🔍 [Clipboard] Question count: 0 (no data), changeCount: \(beforeChangeCount)")
             return 0
         }
 
+        let afterChangeCount = pasteboard.changeCount
+
+        // Race condition detection: If changeCount changed during read, discard and retry
+        if beforeChangeCount != afterChangeCount {
+            print("🔍 [Clipboard] ⚠️ Race detected! changeCount: \(beforeChangeCount) → \(afterChangeCount). Retrying...")
+            return clipboardQuestionCount() // Recursive retry
+        }
+
+        // Data is consistent - decode it
         do {
             let decoder = JSONDecoder()
             let questions = try decoder.decode([QTIQuestion].self, from: data)
-            print("🔍 [Clipboard] Question count: \(questions.count)")
+            print("🔍 [Clipboard] Question count: \(questions.count), changeCount: \(beforeChangeCount)")
             return questions.count
         } catch {
-            print("🔍 [Clipboard] Question count: 0 (decode error: \(error))")
+            print("🔍 [Clipboard] Question count: 0 (decode error: \(error)), changeCount: \(beforeChangeCount)")
             return 0
         }
     }
 
-    /// Get the count of answers in the clipboard
+    /// Get the count of answers in the clipboard (with race condition protection)
     func clipboardAnswerCount() -> Int {
         let pasteboard = NSPasteboard.general
-        let changeCount = pasteboard.changeCount
-        let hasAnswerData = pasteboard.data(forType: Self.answersArrayPasteboardType) != nil
-        print("🔍 [Clipboard] Checking for answers - changeCount: \(changeCount), has data: \(hasAnswerData)")
+
+        // Safe Read Pattern: Check changeCount before and after read
+        let beforeChangeCount = pasteboard.changeCount
 
         guard let data = pasteboard.data(forType: Self.answersArrayPasteboardType) else {
-            print("🔍 [Clipboard] Answer count: 0 (no data)")
+            print("🔍 [Clipboard] Answer count: 0 (no data), changeCount: \(beforeChangeCount)")
             return 0
         }
 
+        let afterChangeCount = pasteboard.changeCount
+
+        // Race condition detection: If changeCount changed during read, discard and retry
+        if beforeChangeCount != afterChangeCount {
+            print("🔍 [Clipboard] ⚠️ Race detected! changeCount: \(beforeChangeCount) → \(afterChangeCount). Retrying...")
+            return clipboardAnswerCount() // Recursive retry
+        }
+
+        // Data is consistent - decode it
         do {
             let decoder = JSONDecoder()
             let answers = try decoder.decode([QTIAnswer].self, from: data)
-            print("🔍 [Clipboard] Answer count: \(answers.count)")
+            print("🔍 [Clipboard] Answer count: \(answers.count), changeCount: \(beforeChangeCount)")
             return answers.count
         } catch {
-            print("🔍 [Clipboard] Answer count: 0 (decode error: \(error))")
+            print("🔍 [Clipboard] Answer count: 0 (decode error: \(error)), changeCount: \(beforeChangeCount)")
             return 0
         }
     }
@@ -529,29 +541,23 @@ final class EditorState {
 
         print("✂️ [Copy] Copying \(answers.count) answer(s) to clipboard")
         let pasteboard = NSPasteboard.general
-        let oldChangeCount = pasteboard.changeCount
-        print("✂️ [Copy] Current changeCount: \(oldChangeCount)")
 
+        // Atomic claim: clearContents() increments changeCount immediately
         pasteboard.clearContents()
-        print("✂️ [Copy] Cleared clipboard contents")
         let afterClearChangeCount = pasteboard.changeCount
-        print("✂️ [Copy] After clear changeCount: \(afterClearChangeCount)")
 
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode(answers)
+
+            // Synchronous write - no delay needed with safe read pattern on reader side
             let success = pasteboard.setData(data, forType: Self.answersArrayPasteboardType)
             let afterSetChangeCount = pasteboard.changeCount
-            print("✂️ [Copy] setData returned: \(success), changeCount now: \(afterSetChangeCount)")
 
-            // Force a small delay to ensure pasteboard sync
-            Thread.sleep(forTimeInterval: 0.01) // 10ms
-
-            // Verify data was written
-            if let verify = pasteboard.data(forType: Self.answersArrayPasteboardType) {
-                print("✂️ [Copy] ✅ Verification: \(verify.count) bytes in clipboard")
+            if success {
+                print("✂️ [Copy] ✅ Copied \(answers.count) answer(s), changeCount: \(afterClearChangeCount) → \(afterSetChangeCount)")
             } else {
-                print("✂️ [Copy] ❌ Verification failed: no data in clipboard!")
+                print("✂️ [Copy] ❌ setData failed, changeCount: \(afterSetChangeCount)")
             }
         } catch {
             print("✂️ [Copy] ❌ Failed to encode answers: \(error)")
