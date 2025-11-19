@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 /// Main window container for the QTI Editor
 /// Provides the three-pane layout: Question List (sidebar), Editor (main), Inspector (trailing)
@@ -275,7 +276,7 @@ struct WindowAccessor: NSViewRepresentable {
             switch response {
             case .alertFirstButtonReturn:  // Save
                 // Trigger save operation
-                Task { @MainActor in
+                Task { @MainActor [editorState = self.editorState] in
                     if editorState.documentManager.fileURL != nil {
                         // Has a file URL, save directly
                         await editorState.saveDocument()
