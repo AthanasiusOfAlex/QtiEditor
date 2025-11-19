@@ -24,7 +24,6 @@ struct ContentView: View {
             QuestionListView()
                 .environment(editorState)
                 .frame(
-                    width: editorState.isLeftPanelVisible ? nil : 0,
                     minWidth: editorState.isLeftPanelVisible ? 150 : 0,
                     idealWidth: editorState.isLeftPanelVisible ? editorState.leftPanelWidth : 0,
                     maxWidth: editorState.isLeftPanelVisible ? 350 : 0
@@ -94,7 +93,6 @@ struct ContentView: View {
             ))
             .environment(editorState)
             .frame(
-                width: editorState.isRightPanelVisible ? nil : 0,
                 minWidth: editorState.isRightPanelVisible ? 200 : 0,
                 idealWidth: editorState.isRightPanelVisible ? editorState.rightPanelWidth : 0,
                 maxWidth: editorState.isRightPanelVisible ? 500 : 0
