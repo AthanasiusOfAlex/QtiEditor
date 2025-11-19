@@ -18,7 +18,17 @@ struct QuestionListView: View {
     /// Check and update clipboard state
     private func checkClipboard() {
         let pasteboard = NSPasteboard.general
+
+        // ========== DEBUG START ==========
+        print("🔍 [DEBUG] checkClipboard() called")
+        print("🔍 [DEBUG] Available pasteboard types: \(pasteboard.types?.map { $0.rawValue } ?? [])")
+        // ========== DEBUG END ==========
+
         clipboardHasAnswers = pasteboard.types?.contains(NSPasteboard.PasteboardType("com.qti-editor.answers-array")) ?? false
+
+        // ========== DEBUG START ==========
+        print("🔍 [DEBUG] clipboardHasAnswers set to: \(clipboardHasAnswers)")
+        // ========== DEBUG END ==========
     }
 
     var body: some View {
@@ -95,6 +105,11 @@ struct QuestionListView: View {
                     QuestionRowView(question: question, index: index + 1)
                         .tag(question.id)
                         .contextMenu {
+                            // ========== DEBUG START ==========
+                            let _ = print("🔍 [DEBUG] Context menu opened for question: \(question.id)")
+                            let _ = print("🔍 [DEBUG] About to check clipboard before showing menu")
+                            // ========== DEBUG END ==========
+                            checkClipboard()
                             buildContextMenu(question: question)
                         }
                 }
@@ -115,6 +130,12 @@ struct QuestionListView: View {
 
     @ViewBuilder
     private func buildContextMenu(question: QTIQuestion) -> some View {
+        // ========== DEBUG START ==========
+        let _ = print("🔍 [DEBUG] buildContextMenu called")
+        let _ = print("🔍 [DEBUG] clipboardHasAnswers in buildContextMenu: \(clipboardHasAnswers)")
+        let _ = print("🔍 [DEBUG] Paste Answer button will be disabled: \(!clipboardHasAnswers)")
+        // ========== DEBUG END ==========
+
         Button("Copy Question") {
             editorState.copyQuestion(question)
         }
