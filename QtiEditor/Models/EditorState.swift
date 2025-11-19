@@ -423,10 +423,6 @@ final class EditorState {
     func copyAnswers(_ answers: [QTIAnswer]) {
         guard !answers.isEmpty else { return }
 
-        // ========== DEBUG START ==========
-        print("🔍 [DEBUG] copyAnswers called with \(answers.count) answer(s)")
-        // ========== DEBUG END ==========
-
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
 
@@ -434,15 +430,7 @@ final class EditorState {
             let encoder = JSONEncoder()
             let data = try encoder.encode(answers)
             pasteboard.setData(data, forType: Self.answersArrayPasteboardType)
-
-            // ========== DEBUG START ==========
-            print("🔍 [DEBUG] Successfully wrote answers to pasteboard")
-            print("🔍 [DEBUG] Pasteboard types after write: \(pasteboard.types?.map { $0.rawValue } ?? [])")
-            // ========== DEBUG END ==========
         } catch {
-            // ========== DEBUG START ==========
-            print("🔍 [DEBUG] Failed to copy answers: \(error)")
-            // ========== DEBUG END ==========
             showError("Failed to copy answers: \(error.localizedDescription)")
         }
     }

@@ -18,26 +18,7 @@ struct QuestionListView: View {
     /// Check and update clipboard state
     private func checkClipboard() {
         let pasteboard = NSPasteboard.general
-
-        // ========== DEBUG START ==========
-        print("🔍 [DEBUG] checkClipboard() called")
-        print("🔍 [DEBUG] Available pasteboard types: \(pasteboard.types?.map { $0.rawValue } ?? [])")
-        // ========== DEBUG END ==========
-
         clipboardHasAnswers = pasteboard.types?.contains(NSPasteboard.PasteboardType("com.qti-editor.answers-array")) ?? false
-
-        // ========== DEBUG START ==========
-        print("🔍 [DEBUG] clipboardHasAnswers set to: \(clipboardHasAnswers)")
-        // ========== DEBUG END ==========
-    }
-
-    /// Helper to check clipboard when context menu opens
-    private func onContextMenuOpen(for questionId: UUID) {
-        // ========== DEBUG START ==========
-        print("🔍 [DEBUG] Context menu opened for question: \(questionId)")
-        print("🔍 [DEBUG] About to check clipboard before showing menu")
-        // ========== DEBUG END ==========
-        checkClipboard()
     }
 
     var body: some View {
@@ -114,7 +95,7 @@ struct QuestionListView: View {
                     QuestionRowView(question: question, index: index + 1)
                         .tag(question.id)
                         .contextMenu {
-                            buildContextMenuWithDebug(question: question)
+                            buildContextMenu(question: question)
                         }
                 }
                 .onMove { fromOffsets, toOffset in
@@ -133,45 +114,40 @@ struct QuestionListView: View {
     }
 
     @ViewBuilder
-    private func buildContextMenuWithDebug(question: QTIQuestion) -> some View {
+    private func buildContextMenu(question: QTIQuestion) -> some View {
         Group {
-            buildContextMenu(question: question)
+            Button("Copy Question") {
+                editorState.copyQuestion(question)
+            }
+
+            Button("Paste Question After") {
+                editorState.pasteQuestionAfter(question)
+            }
+            .disabled(editorState.document == nil || !editorState.canPasteQuestion())
+
+            Button("Paste Answer") {
+                editorState.pasteAnswersIntoQuestion(question)
+            }
+            .disabled(!clipboardHasAnswers)
+
+            Divider()
+
+            Button(action: {
+                editorState.duplicateQuestion(question)
+            }) {
+                Label("Duplicate Question", systemImage: "plus.square.on.square")
+            }
+
+            Divider()
+
+            Button(action: {
+                confirmDelete()
+            }) {
+                Label("Delete Question", systemImage: "trash")
+            }
         }
         .onAppear {
-            onContextMenuOpen(for: question.id)
-        }
-    }
-
-    @ViewBuilder
-    private func buildContextMenu(question: QTIQuestion) -> some View {
-        Button("Copy Question") {
-            editorState.copyQuestion(question)
-        }
-
-        Button("Paste Question After") {
-            editorState.pasteQuestionAfter(question)
-        }
-        .disabled(editorState.document == nil || !editorState.canPasteQuestion())
-
-        Button("Paste Answer") {
-            editorState.pasteAnswersIntoQuestion(question)
-        }
-        .disabled(!clipboardHasAnswers)
-
-        Divider()
-
-        Button(action: {
-            editorState.duplicateQuestion(question)
-        }) {
-            Label("Duplicate Question", systemImage: "plus.square.on.square")
-        }
-
-        Divider()
-
-        Button(action: {
-            confirmDelete()
-        }) {
-            Label("Delete Question", systemImage: "trash")
+            checkClipboard()
         }
     }
 
