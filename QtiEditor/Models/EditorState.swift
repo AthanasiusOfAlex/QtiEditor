@@ -406,6 +406,34 @@ final class EditorState {
         return pasteboard.types?.contains(Self.answersArrayPasteboardType) ?? false
     }
 
+    /// Get the count of questions in the clipboard
+    func clipboardQuestionCount() -> Int {
+        let pasteboard = NSPasteboard.general
+        guard let data = pasteboard.data(forType: Self.questionPasteboardType) else { return 0 }
+
+        do {
+            let decoder = JSONDecoder()
+            let questions = try decoder.decode([QTIQuestion].self, from: data)
+            return questions.count
+        } catch {
+            return 0
+        }
+    }
+
+    /// Get the count of answers in the clipboard
+    func clipboardAnswerCount() -> Int {
+        let pasteboard = NSPasteboard.general
+        guard let data = pasteboard.data(forType: Self.answersArrayPasteboardType) else { return 0 }
+
+        do {
+            let decoder = JSONDecoder()
+            let answers = try decoder.decode([QTIAnswer].self, from: data)
+            return answers.count
+        } catch {
+            return 0
+        }
+    }
+
     /// Paste answers from pasteboard into a specific question
     /// - Parameter question: The question to paste answers into
     func pasteAnswersIntoQuestion(_ question: QTIQuestion) {

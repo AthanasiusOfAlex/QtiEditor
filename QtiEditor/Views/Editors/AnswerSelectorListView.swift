@@ -112,8 +112,8 @@ struct AnswerSelectorListView: View {
             clipboardHasAnswers = true
         }
 
-        // Unified paste button
-        Button("Paste Answers") {
+        // Unified paste button with dynamic label
+        Button(pasteButtonLabel()) {
             pasteAnswersAfter(answer)
         }
         .disabled(!clipboardHasAnswers)
@@ -127,6 +127,12 @@ struct AnswerSelectorListView: View {
         Button("Delete Answer", role: .destructive) {
             deleteAnswer(answer)
         }
+    }
+
+    /// Generate label for paste button based on clipboard contents
+    private func pasteButtonLabel() -> String {
+        let answerCount = editorState.clipboardAnswerCount()
+        return answerCount == 1 ? "Paste Answer" : "Paste Answers"
     }
 
     // MARK: - Actions

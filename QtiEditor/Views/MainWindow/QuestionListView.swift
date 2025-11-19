@@ -144,15 +144,16 @@ struct QuestionListView: View {
 
     /// Generate label for paste button based on clipboard contents
     private func pasteButtonLabel() -> String {
-        let hasQuestions = editorState.canPasteQuestion()
-        let hasAnswers = clipboardHasAnswers
+        let questionCount = editorState.clipboardQuestionCount()
+        let answerCount = editorState.clipboardAnswerCount()
 
-        if hasQuestions && hasAnswers {
+        // If both types are available, just show "Paste"
+        if questionCount > 0 && answerCount > 0 {
             return "Paste"
-        } else if hasQuestions {
-            return "Paste Questions"
-        } else if hasAnswers {
-            return "Paste Answers"
+        } else if questionCount > 0 {
+            return questionCount == 1 ? "Paste Question" : "Paste Questions"
+        } else if answerCount > 0 {
+            return answerCount == 1 ? "Paste Answer" : "Paste Answers"
         } else {
             return "Paste"
         }
