@@ -40,6 +40,17 @@ struct QuestionListView: View {
         .navigationTitle("Questions")
         .focused($isListFocused)
         .focusedSceneValue(\.questionListFocused, isListFocused)
+        .focusedSceneValue(\.focusContext, isListFocused ? .questionList : nil)
+        .focusedSceneValue(\.focusedActions, isListFocused ? FocusedActions(
+            copy: { editorState.copySelectedQuestion() },
+            cut: {
+                editorState.copySelectedQuestion()
+                editorState.deleteSelectedQuestions()
+            },
+            paste: { editorState.pasteQuestion() },
+            selectAll: { selectAllQuestions() },
+            delete: { confirmDelete() }
+        ) : nil)
         .onAppear {
             isListFocused = true
             checkClipboard()
@@ -181,6 +192,11 @@ struct QuestionListView: View {
 
     private func confirmDelete() {
         showDeleteConfirmation = true
+    }
+
+    private func selectAllQuestions() {
+        guard let document = editorState.document else { return }
+        editorState.selectedQuestionIDs = Set(document.questions.map { $0.id })
     }
 
     private func computeSelectionCount() -> Int {

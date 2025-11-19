@@ -20,6 +20,7 @@ struct AnswerSelectorListView: View {
     // Track clipboard state
     @State private var clipboardHasAnswers = false
     @State private var showDeleteConfirmation = false
+    @FocusState private var isListFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -71,6 +72,18 @@ struct AnswerSelectorListView: View {
                     }
                 }
                 .listStyle(.sidebar)
+                .focused($isListFocused)
+                .focusedSceneValue(\.focusContext, isListFocused ? .answerList : nil)
+                .focusedSceneValue(\.focusedActions, isListFocused ? FocusedActions(
+                    copy: { copySelectedAnswers() },
+                    cut: {
+                        copySelectedAnswers()
+                        performDelete()
+                    },
+                    paste: { pasteAnswersAtEnd() },
+                    selectAll: { selectAllAnswers() },
+                    delete: { confirmDelete() }
+                ) : nil)
             }
         }
         .frame(minWidth: 200, idealWidth: 250)
@@ -180,10 +193,22 @@ struct AnswerSelectorListView: View {
         selectedAnswerIDs.removeAll()
     }
 
+    private func confirmDelete() {
+        if selectedAnswerIDs.count > 1 {
+            showDeleteConfirmation = true
+        } else {
+            performDelete()
+        }
+    }
+
     private func performDelete() {
         question.answers.removeAll { selectedAnswerIDs.contains($0.id) }
         editorState.markDocumentEdited()
         selectedAnswerIDs.removeAll()
+    }
+
+    private func selectAllAnswers() {
+        selectedAnswerIDs = Set(question.answers.map { $0.id })
     }
 
     private func pasteAnswersAtEnd() {

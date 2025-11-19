@@ -15,6 +15,7 @@ internal import UniformTypeIdentifiers
 struct ContentView: View {
     @State private var editorState = EditorState()
     @Environment(PendingFileManager.self) private var pendingFileManager
+    @FocusedValue(\.focusedActions) private var focusedActions: FocusedActions?
 
     var body: some View {
         @Bindable var editorState = editorState
@@ -115,6 +116,42 @@ struct ContentView: View {
                 }
                 .keyboardShortcut("f", modifiers: .command)
                 .help("Show search panel (Cmd+F)")
+            }
+        }
+        .commands {
+            // Replace default Edit menu commands with focus-aware versions
+            CommandGroup(replacing: .pasteboard) {
+                Button("Copy") {
+                    focusedActions?.copy?()
+                }
+                .keyboardShortcut("c", modifiers: .command)
+                .disabled(focusedActions?.copy == nil)
+
+                Button("Cut") {
+                    focusedActions?.cut?()
+                }
+                .keyboardShortcut("x", modifiers: .command)
+                .disabled(focusedActions?.cut == nil)
+
+                Button("Paste") {
+                    focusedActions?.paste?()
+                }
+                .keyboardShortcut("v", modifiers: .command)
+                .disabled(focusedActions?.paste == nil)
+
+                Divider()
+
+                Button("Select All") {
+                    focusedActions?.selectAll?()
+                }
+                .keyboardShortcut("a", modifiers: .command)
+                .disabled(focusedActions?.selectAll == nil)
+
+                Button("Delete") {
+                    focusedActions?.delete?()
+                }
+                .keyboardShortcut(.delete)
+                .disabled(focusedActions?.delete == nil)
             }
         }
         .focusedSceneValue(\.editorState, editorState)
