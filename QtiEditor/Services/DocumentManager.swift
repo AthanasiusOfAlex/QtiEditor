@@ -23,13 +23,35 @@ final class DocumentManager: @unchecked Sendable {
 
     /// Display name for the file (separate from quiz title)
     /// Follows Apple convention: "Untitled", "Untitled 2", etc.
-    var displayName: String = "Untitled"
+    private var _displayName: String?
+
+    var displayName: String {
+        get { _displayName ?? "Untitled" }
+        set {
+            let oldValue = _displayName
+            _displayName = newValue
+
+            // Update registry when display name changes
+            if let oldName = oldValue {
+                DocumentRegistry.shared.update(from: oldName, to: newValue)
+            } else {
+                // First time setting - register
+                DocumentRegistry.shared.register(displayName: newValue)
+            }
+        }
+    }
 
     /// Whether the document has unsaved changes
     var isDirty: Bool = false
 
-    /// Counter for generating unique "Untitled X" names
-    private static var untitledCounter = 1
+    // MARK: - Lifecycle
+
+    deinit {
+        // Unregister display name when document manager is destroyed
+        if let name = _displayName {
+            DocumentRegistry.shared.unregister(displayName: name)
+        }
+    }
 
     // MARK: - Opening Documents
 
@@ -128,12 +150,8 @@ final class DocumentManager: @unchecked Sendable {
         isDirty = false
 
         // Generate display name following Apple convention
-        if Self.untitledCounter == 1 {
-            displayName = "Untitled"
-        } else {
-            displayName = "Untitled \(Self.untitledCounter)"
-        }
-        Self.untitledCounter += 1
+        // Uses registry to find next available "Untitled" number
+        displayName = DocumentRegistry.shared.nextUntitledName()
 
         return QTIDocument.empty()
     }
