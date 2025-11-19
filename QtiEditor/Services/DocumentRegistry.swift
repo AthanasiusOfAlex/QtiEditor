@@ -18,19 +18,26 @@ actor DocumentRegistry {
 
     /// Registers a display name as in use
     func register(displayName: String) {
+        print("📝 DocumentRegistry - Registering: '\(displayName)'")
         displayNames.insert(displayName)
+        print("📋 DocumentRegistry - All names: \(displayNames)")
     }
 
     /// Unregisters a display name when a document closes
     func unregister(displayName: String) {
+        print("🗑️ DocumentRegistry - Unregistering: '\(displayName)'")
         displayNames.remove(displayName)
+        print("📋 DocumentRegistry - All names: \(displayNames)")
     }
 
     /// Generates the next available "Untitled" name following Apple convention
     /// Returns "Untitled", "Untitled 2", "Untitled 3", etc.
     func nextUntitledName() -> String {
+        print("🔍 DocumentRegistry - Current names: \(displayNames)")
+
         // Check if "Untitled" (without number) is available
         if !displayNames.contains("Untitled") {
+            print("✅ DocumentRegistry - Returning 'Untitled'")
             return "Untitled"
         }
 
@@ -40,6 +47,7 @@ actor DocumentRegistry {
             number += 1
         }
 
+        print("✅ DocumentRegistry - Returning 'Untitled \(number)'")
         return "Untitled \(number)"
     }
 

@@ -127,16 +127,22 @@ struct ContentView: View {
         .onAppear {
             questionEditorHeight = CGFloat(storedQuestionEditorHeight)
 
+            print("🪟 ContentView - onAppear, document exists: \(editorState.document != nil)")
+
             // Check for pending file to open
             if let url = pendingFileManager.consumePendingFile() {
+                print("📂 ContentView - Opening pending file: \(url)")
                 Task { @MainActor in
                     await editorState.openDocument(from: url)
                 }
             } else if editorState.document == nil {
                 // No pending file and no document - create a new one
+                print("➕ ContentView - Creating new document")
                 Task { @MainActor in
                     await editorState.createNewDocument()
                 }
+            } else {
+                print("⏭️ ContentView - Document already exists, skipping creation")
             }
         }
         .onChange(of: questionEditorHeight) { _, newValue in
