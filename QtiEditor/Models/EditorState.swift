@@ -57,10 +57,24 @@ final class EditorState {
         }
     }
 
+    /// Left panel width (persisted)
+    var leftPanelWidth: CGFloat = 250 {
+        didSet {
+            UserDefaults.standard.set(leftPanelWidth, forKey: "leftPanelWidth")
+        }
+    }
+
     /// Right panel visibility (Utilities: Search, Quiz Settings)
     var isRightPanelVisible: Bool = true {
         didSet {
             UserDefaults.standard.set(isRightPanelVisible, forKey: "isRightPanelVisible")
+        }
+    }
+
+    /// Right panel width (persisted)
+    var rightPanelWidth: CGFloat = 300 {
+        didSet {
+            UserDefaults.standard.set(rightPanelWidth, forKey: "rightPanelWidth")
         }
     }
 
@@ -117,6 +131,14 @@ final class EditorState {
         }
         if UserDefaults.standard.object(forKey: "isRightPanelVisible") != nil {
             self.isRightPanelVisible = UserDefaults.standard.bool(forKey: "isRightPanelVisible")
+        }
+
+        // Load panel widths from UserDefaults (defaults: left=250, right=300)
+        if UserDefaults.standard.object(forKey: "leftPanelWidth") != nil {
+            self.leftPanelWidth = CGFloat(UserDefaults.standard.double(forKey: "leftPanelWidth"))
+        }
+        if UserDefaults.standard.object(forKey: "rightPanelWidth") != nil {
+            self.rightPanelWidth = CGFloat(UserDefaults.standard.double(forKey: "rightPanelWidth"))
         }
 
         // Load right panel tab selection (default to quizSettings)

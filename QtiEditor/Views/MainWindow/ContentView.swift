@@ -21,12 +21,29 @@ struct ContentView: View {
 
         HSplitView {
             // LEFT PANEL: Questions list (collapsible, resizable)
-            if editorState.isLeftPanelVisible {
-                QuestionListView()
-                    .environment(editorState)
-                    .frame(minWidth: 150, idealWidth: 200, maxWidth: 350)
-                    .background(Color(nsColor: .controlBackgroundColor))
-            }
+            QuestionListView()
+                .environment(editorState)
+                .frame(
+                    width: editorState.isLeftPanelVisible ? nil : 0,
+                    minWidth: editorState.isLeftPanelVisible ? 150 : 0,
+                    idealWidth: editorState.isLeftPanelVisible ? editorState.leftPanelWidth : 0,
+                    maxWidth: editorState.isLeftPanelVisible ? 350 : 0
+                )
+                .background(Color(nsColor: .controlBackgroundColor))
+                .background(
+                    GeometryReader { geometry in
+                        Color.clear.preference(
+                            key: LeftPanelWidthPreferenceKey.self,
+                            value: geometry.size.width
+                        )
+                    }
+                )
+                .onPreferenceChange(LeftPanelWidthPreferenceKey.self) { width in
+                    if editorState.isLeftPanelVisible && width > 0 {
+                        editorState.leftPanelWidth = width
+                    }
+                }
+                .opacity(editorState.isLeftPanelVisible ? 1 : 0)
 
             // MAIN PANEL: Question + Answers
             VStack(spacing: 0) {
@@ -71,15 +88,35 @@ struct ContentView: View {
             .environment(editorState)
 
             // RIGHT PANEL: Utilities (Search, Quiz Settings) - collapsible, resizable
-            if editorState.isRightPanelVisible {
-                RightPanelView(selectedTab: Binding(
-                    get: { editorState.rightPanelTab },
-                    set: { editorState.rightPanelTab = $0 }
-                ))
-                .environment(editorState)
-                .frame(minWidth: 200, idealWidth: 300, maxWidth: 500)
+            RightPanelView(selectedTab: Binding(
+                get: { editorState.rightPanelTab },
+                set: { editorState.rightPanelTab = $0 }
+            ))
+            .environment(editorState)
+            .frame(
+                width: editorState.isRightPanelVisible ? nil : 0,
+                minWidth: editorState.isRightPanelVisible ? 200 : 0,
+                idealWidth: editorState.isRightPanelVisible ? editorState.rightPanelWidth : 0,
+                maxWidth: editorState.isRightPanelVisible ? 500 : 0
+            )
+            .background(Color(nsColor: .controlBackgroundColor))
+            .background(
+                GeometryReader { geometry in
+                    Color.clear.preference(
+                        key: RightPanelWidthPreferenceKey.self,
+                        value: geometry.size.width
+                    )
+                }
+            )
+            .onPreferenceChange(RightPanelWidthPreferenceKey.self) { width in
+                if editorState.isRightPanelVisible && width > 0 {
+                    editorState.rightPanelWidth = width
+                }
             }
+            .opacity(editorState.isRightPanelVisible ? 1 : 0)
         }
+        .animation(.easeInOut(duration: 0.25), value: editorState.isLeftPanelVisible)
+        .animation(.easeInOut(duration: 0.25), value: editorState.isRightPanelVisible)
         .navigationTitle(editorState.documentManager.displayName)
         .toolbar {
             ToolbarItem(placement: .navigation) {
@@ -247,6 +284,24 @@ struct QuestionEditorResizeHandle: View {
                     )
                     .cursor(.resizeUpDown)
             )
+    }
+}
+
+// MARK: - Preference Keys for Panel Width Tracking
+
+/// Preference key to track left panel width
+struct LeftPanelWidthPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+/// Preference key to track right panel width
+struct RightPanelWidthPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 
