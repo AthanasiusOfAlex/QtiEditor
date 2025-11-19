@@ -17,8 +17,6 @@ struct AnswerSelectorListView: View {
     // Selection state (supports multi-select for bulk operations)
     @Binding var selectedAnswerIDs: Set<UUID>
 
-    // Track clipboard state
-    @State private var clipboardAnswerCount = 0
     @State private var showDeleteConfirmation = false
     @FocusState private var isListFocused: Bool
 
@@ -87,9 +85,6 @@ struct AnswerSelectorListView: View {
             }
         }
         .frame(minWidth: 200, idealWidth: 250)
-        .onAppear {
-            checkClipboard()
-        }
         .confirmationDialog(
             deleteDialogTitle(),
             isPresented: $showDeleteConfirmation
@@ -109,17 +104,13 @@ struct AnswerSelectorListView: View {
     private func buildContextMenu(for answer: QTIAnswer) -> some View {
         Button("Copy Answer") {
             editorState.copyAnswers([answer])
-            checkClipboard()
         }
 
         // Unified paste button with dynamic label
         Button(pasteButtonLabel()) {
             pasteAnswersAfter(answer)
         }
-        .disabled(clipboardAnswerCount == 0)
-        .onAppear {
-            checkClipboard()
-        }
+        .disabled(!canPasteAnswers())
 
         Button("Duplicate Answer") {
             duplicateAnswer(answer)
@@ -133,8 +124,16 @@ struct AnswerSelectorListView: View {
     }
 
     /// Generate label for paste button based on clipboard contents
+    /// Reads clipboard directly to ensure fresh data
     private func pasteButtonLabel() -> String {
-        return clipboardAnswerCount == 1 ? "Paste Answer" : "Paste Answers"
+        let answerCount = editorState.clipboardAnswerCount()
+        return answerCount == 1 ? "Paste Answer" : "Paste Answers"
+    }
+
+    /// Check if answers can be pasted
+    /// Reads clipboard directly to ensure fresh data
+    private func canPasteAnswers() -> Bool {
+        return editorState.clipboardAnswerCount() > 0
     }
 
     // MARK: - Actions
@@ -174,7 +173,6 @@ struct AnswerSelectorListView: View {
     private func copySelectedAnswers() {
         let answers = question.answers.filter { selectedAnswerIDs.contains($0.id) }
         editorState.copyAnswers(answers)
-        checkClipboard()
     }
 
     private func duplicateSelectedAnswers() {
@@ -221,17 +219,11 @@ struct AnswerSelectorListView: View {
 
     private func pasteAnswersAtEnd() {
         editorState.pasteAnswers(into: question)
-        checkClipboard()
     }
 
     private func pasteAnswersAfter(_ answer: QTIAnswer) {
         guard let index = question.answers.firstIndex(where: { $0.id == answer.id }) else { return }
         editorState.pasteAnswers(into: question, afterIndex: index)
-        checkClipboard()
-    }
-
-    private func checkClipboard() {
-        clipboardAnswerCount = editorState.clipboardAnswerCount()
     }
 
     private func deleteDialogTitle() -> String {

@@ -13,14 +13,6 @@ struct QuestionListView: View {
     @Environment(EditorState.self) private var editorState
     @State private var showDeleteConfirmation = false
     @FocusState private var isListFocused: Bool
-    @State private var clipboardQuestionCount = 0
-    @State private var clipboardAnswerCount = 0
-
-    /// Check and update clipboard state
-    private func checkClipboard() {
-        clipboardQuestionCount = editorState.clipboardQuestionCount()
-        clipboardAnswerCount = editorState.clipboardAnswerCount()
-    }
 
     var body: some View {
         @Bindable var editorState = editorState
@@ -54,12 +46,6 @@ struct QuestionListView: View {
         ) : nil)
         .onAppear {
             isListFocused = true
-            checkClipboard()
-        }
-        .onChange(of: isListFocused) { _, focused in
-            if focused {
-                checkClipboard()
-            }
         }
         .onChange(of: editorState.selectedQuestionIDs) { _, newSelection in
             handleSelectionChange(newSelection: newSelection)
@@ -138,36 +124,42 @@ struct QuestionListView: View {
                 Label("Delete Question", systemImage: "trash")
             }
         }
-        .onAppear {
-            checkClipboard()
-        }
     }
 
     /// Generate label for paste button based on clipboard contents
+    /// Reads clipboard directly to ensure fresh data
     private func pasteButtonLabel() -> String {
+        let questionCount = editorState.clipboardQuestionCount()
+        let answerCount = editorState.clipboardAnswerCount()
+
         // If both types are available, just show "Paste"
-        if clipboardQuestionCount > 0 && clipboardAnswerCount > 0 {
+        if questionCount > 0 && answerCount > 0 {
             return "Paste"
-        } else if clipboardQuestionCount > 0 {
-            return clipboardQuestionCount == 1 ? "Paste Question" : "Paste Questions"
-        } else if clipboardAnswerCount > 0 {
-            return clipboardAnswerCount == 1 ? "Paste Answer" : "Paste Answers"
+        } else if questionCount > 0 {
+            return questionCount == 1 ? "Paste Question" : "Paste Questions"
+        } else if answerCount > 0 {
+            return answerCount == 1 ? "Paste Answer" : "Paste Answers"
         } else {
             return "Paste"
         }
     }
 
     /// Check if anything can be pasted
+    /// Reads clipboard directly to ensure fresh data
     private func canPaste() -> Bool {
-        return clipboardQuestionCount > 0 || clipboardAnswerCount > 0
+        return editorState.clipboardQuestionCount() > 0 || editorState.clipboardAnswerCount() > 0
     }
 
     /// Perform paste based on clipboard contents
+    /// Reads clipboard directly to ensure fresh data
     private func performPaste(into question: QTIQuestion) {
+        let questionCount = editorState.clipboardQuestionCount()
+        let answerCount = editorState.clipboardAnswerCount()
+
         // Prefer questions if both are available
-        if clipboardQuestionCount > 0 {
+        if questionCount > 0 {
             editorState.pasteQuestionAfter(question)
-        } else if clipboardAnswerCount > 0 {
+        } else if answerCount > 0 {
             editorState.pasteAnswersIntoQuestion(question)
         }
     }
