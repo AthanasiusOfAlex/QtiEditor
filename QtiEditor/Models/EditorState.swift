@@ -39,29 +39,23 @@ final class EditorState {
     var editorMode: EditorMode = .richText
 
     /// Left panel visibility (Questions list)
-    /// Note: Using UserDefaults directly since @AppStorage can't be used in @Observable classes
-    var isLeftPanelVisible: Bool {
-        get { UserDefaults.standard.bool(forKey: "isLeftPanelVisible") != false }  // Default: true
-        set { UserDefaults.standard.set(newValue, forKey: "isLeftPanelVisible") }
+    var isLeftPanelVisible: Bool = true {
+        didSet {
+            UserDefaults.standard.set(isLeftPanelVisible, forKey: "isLeftPanelVisible")
+        }
     }
 
     /// Right panel visibility (Utilities: Search, Quiz Settings)
-    var isRightPanelVisible: Bool {
-        get { UserDefaults.standard.bool(forKey: "isRightPanelVisible") != false }  // Default: true
-        set { UserDefaults.standard.set(newValue, forKey: "isRightPanelVisible") }
+    var isRightPanelVisible: Bool = true {
+        didSet {
+            UserDefaults.standard.set(isRightPanelVisible, forKey: "isRightPanelVisible")
+        }
     }
 
     /// Selected tab in the right panel
-    var rightPanelTab: RightPanelTab {
-        get {
-            if let rawValue = UserDefaults.standard.string(forKey: "rightPanelTab"),
-               let tab = RightPanelTab(rawValue: rawValue) {
-                return tab
-            }
-            return .quizSettings  // Default to Quiz Settings
-        }
-        set {
-            UserDefaults.standard.set(newValue.rawValue, forKey: "rightPanelTab")
+    var rightPanelTab: RightPanelTab = .quizSettings {
+        didSet {
+            UserDefaults.standard.set(rightPanelTab.rawValue, forKey: "rightPanelTab")
         }
     }
 
@@ -104,6 +98,20 @@ final class EditorState {
     init(document: QTIDocument? = nil) {
         // Set the document (may be nil - that's okay, will be created later)
         self.document = document
+
+        // Load panel visibility from UserDefaults (default to true if not set)
+        if UserDefaults.standard.object(forKey: "isLeftPanelVisible") != nil {
+            self.isLeftPanelVisible = UserDefaults.standard.bool(forKey: "isLeftPanelVisible")
+        }
+        if UserDefaults.standard.object(forKey: "isRightPanelVisible") != nil {
+            self.isRightPanelVisible = UserDefaults.standard.bool(forKey: "isRightPanelVisible")
+        }
+
+        // Load right panel tab selection (default to quizSettings)
+        if let rawValue = UserDefaults.standard.string(forKey: "rightPanelTab"),
+           let tab = RightPanelTab(rawValue: rawValue) {
+            self.rightPanelTab = tab
+        }
     }
 
     /// Returns the currently selected question, if any

@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// Collapsible side panel with show/hide toggle button
+/// Collapsible side panel (controlled by toolbar buttons)
 /// Used for both left (questions) and right (utilities) panels
 struct CollapsiblePanel<Content: View>: View {
     let position: PanelPosition
@@ -18,70 +18,14 @@ struct CollapsiblePanel<Content: View>: View {
     enum PanelPosition {
         case leading  // Left side
         case trailing // Right side
-
-        var toggleIcon: String {
-            switch self {
-            case .leading: return "sidebar.left"
-            case .trailing: return "sidebar.right"
-            }
-        }
-
-        var collapseIcon: String {
-            switch self {
-            case .leading: return "chevron.left"
-            case .trailing: return "chevron.right"
-            }
-        }
-
-        var expandIcon: String {
-            switch self {
-            case .leading: return "chevron.right"
-            case .trailing: return "chevron.left"
-            }
-        }
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            // Leading collapse button (for trailing panels)
-            if position == .trailing {
-                collapseButton
-            }
-
-            // Panel content (when visible)
-            if isVisible {
-                content()
-                    .frame(minWidth: 200, idealWidth: 250, maxWidth: 400)
-                    .transition(.move(edge: position == .leading ? .leading : .trailing))
-            }
-
-            // Trailing collapse button (for leading panels)
-            if position == .leading {
-                collapseButton
-            }
+        if isVisible {
+            content()
+                .frame(minWidth: 200, idealWidth: 250, maxWidth: 400)
+                .transition(.move(edge: position == .leading ? .leading : .trailing))
         }
-    }
-
-    private var collapseButton: some View {
-        VStack {
-            Button(action: {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isVisible.toggle()
-                }
-            }) {
-                Image(systemName: isVisible ? position.collapseIcon : position.expandIcon)
-                    .font(.system(size: 14))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 20, height: 30)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .help(isVisible ? "Hide \(title)" : "Show \(title)")
-
-            Spacer()
-        }
-        .frame(width: 20)
-        .background(Color.secondary.opacity(0.05))
     }
 }
 

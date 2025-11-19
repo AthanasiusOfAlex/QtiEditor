@@ -16,19 +16,19 @@ struct AnswersMasterDetailView: View {
 
     var body: some View {
         HSplitView {
-            // Left: Answer selector list
+            // Left: Answer selector list (narrow like a sidebar)
             AnswerSelectorListView(
                 question: question,
                 selectedAnswerIDs: $selectedAnswerIDs
             )
-            .frame(minWidth: 200, idealWidth: 250)
+            .frame(minWidth: 150, idealWidth: 200, maxWidth: 300)
 
-            // Right: Single answer editor
+            // Right: Single answer editor (takes most of the space)
             SingleAnswerEditorView(
                 question: question,
                 selectedAnswerIDs: selectedAnswerIDs
             )
-            .frame(minWidth: 300)
+            .frame(minWidth: 400)
         }
     }
 }

@@ -72,9 +72,6 @@ struct SingleAnswerEditorView: View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text("Answer \(index + 1)")
-                    .font(.headline)
-
                 Toggle("Correct Answer", isOn: Binding(
                     get: { answer.isCorrect },
                     set: { newValue in
