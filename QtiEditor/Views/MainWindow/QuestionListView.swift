@@ -115,34 +115,39 @@ struct QuestionListView: View {
 
     @ViewBuilder
     private func buildContextMenu(question: QTIQuestion) -> some View {
-        Button("Copy Question") {
-            editorState.copyQuestion(question)
+        Group {
+            Button("Copy Question") {
+                editorState.copyQuestion(question)
+            }
+
+            Button("Paste Question After") {
+                editorState.pasteQuestionAfter(question)
+            }
+            .disabled(editorState.document == nil || !editorState.canPasteQuestion())
+
+            Button("Paste Answer") {
+                editorState.pasteAnswersIntoQuestion(question)
+            }
+            .disabled(!clipboardHasAnswers)
+
+            Divider()
+
+            Button(action: {
+                editorState.duplicateQuestion(question)
+            }) {
+                Label("Duplicate Question", systemImage: "plus.square.on.square")
+            }
+
+            Divider()
+
+            Button(action: {
+                confirmDelete()
+            }) {
+                Label("Delete Question", systemImage: "trash")
+            }
         }
-
-        Button("Paste Question After") {
-            editorState.pasteQuestionAfter(question)
-        }
-        .disabled(editorState.document == nil || !editorState.canPasteQuestion())
-
-        Button("Paste Answer") {
-            editorState.pasteAnswersIntoQuestion(question)
-        }
-        .disabled(!clipboardHasAnswers)
-
-        Divider()
-
-        Button(action: {
-            editorState.duplicateQuestion(question)
-        }) {
-            Label("Duplicate Question", systemImage: "plus.square.on.square")
-        }
-
-        Divider()
-
-        Button(action: {
-            confirmDelete()
-        }) {
-            Label("Delete Question", systemImage: "trash")
+        .onAppear {
+            checkClipboard()
         }
     }
 
