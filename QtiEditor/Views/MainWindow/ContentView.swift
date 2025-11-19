@@ -12,9 +12,6 @@ internal import UniformTypeIdentifiers
 /// Main window container for the QTI Editor
 /// Provides the three-pane layout: Question List (sidebar), Editor (main), Inspector (trailing)
 struct ContentView: View {
-    // Unique ID for this window instance - forces SwiftUI to create separate state
-    private let windowID = UUID()
-
     @State private var editorState = EditorState()
     @AppStorage("questionEditorHeight") private var storedQuestionEditorHeight: Double = 300
     @State private var questionEditorHeight: CGFloat = 300
@@ -130,25 +127,16 @@ struct ContentView: View {
         .onAppear {
             questionEditorHeight = CGFloat(storedQuestionEditorHeight)
 
-            print("🪟 ContentView - onAppear")
-            print("   Window ID: \(windowID)")
-            print("   EditorState ID: \(ObjectIdentifier(editorState))")
-            print("   Document exists: \(editorState.document != nil)")
-
             // Check for pending file to open
             if let url = pendingFileManager.consumePendingFile() {
-                print("📂 ContentView - Opening pending file: \(url)")
                 Task { @MainActor in
                     await editorState.openDocument(from: url)
                 }
             } else if editorState.document == nil {
                 // No pending file and no document - create a new one
-                print("➕ ContentView - Creating new document")
                 Task { @MainActor in
                     await editorState.createNewDocument()
                 }
-            } else {
-                print("⏭️ ContentView - Document already exists, skipping creation")
             }
         }
         .onChange(of: questionEditorHeight) { _, newValue in

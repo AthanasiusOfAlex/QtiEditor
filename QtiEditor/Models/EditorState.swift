@@ -75,7 +75,6 @@ final class EditorState {
     var isDocumentEdited: Bool = false
 
     init(document: QTIDocument? = nil) {
-        print("🎬 EditorState - init called, document provided: \(document != nil)")
         // Set the document (may be nil - that's okay, will be created later)
         self.document = document
     }

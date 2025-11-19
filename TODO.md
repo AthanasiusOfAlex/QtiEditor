@@ -631,6 +631,45 @@ open QtiEditor.xcodeproj
 
 ---
 
-*Last updated: 2025-11-18*
+## Recent Accomplishments (2025-11-19)
+
+### File Naming and Document Management
+- **Separated file name from quiz title** ✅
+  - Added `displayName` property to `DocumentManager` for tracking file names independently
+  - File names follow Apple's standard convention: "Untitled", "Untitled 2", "Untitled 3", etc.
+  - Quiz title in QTI data remains "Untitled Quiz" by default
+  - Window title shows file name instead of quiz title
+  - Files remember their name after saving
+
+- **Implemented DocumentRegistry** ✅
+  - Created `DocumentRegistry.swift` - thread-safe actor for tracking open document names
+  - Registry finds next available "Untitled N" name across all windows
+  - Proper registration/unregistration when documents open/close
+  - Names are reused when windows close (e.g., closing "Untitled" frees up that name)
+
+- **Fixed Multi-Window Support** ✅
+  - Each window now creates its own independent `EditorState` and document
+  - Fixed bug where all windows shared the same document instance
+  - Removed auto-document creation from `EditorState.init()` to enable proper lazy loading
+  - Windows now call `createNewDocument()` on appear, which consults the registry
+  - Each new window gets a properly numbered unique name
+
+- **Swift 6 Concurrency Compliance** ✅
+  - Made `DocumentRegistry` an actor for thread-safe name tracking
+  - All registry operations are async
+  - Proper `@MainActor` isolation throughout
+  - Used `Task.detached` in `deinit` for best-effort cleanup
+  - No concurrency warnings or errors
+
+### Technical Details
+- File operations (Open/Save) now properly update display names in the registry
+- Save dialogs default to the file's display name, not the quiz title
+- Multi-window testing confirmed: "Untitled", "Untitled 2", "Untitled 3" all work correctly
+- Names are freed when windows close and can be reused
+
+---
+
+*Last updated: 2025-11-19*
 *Current phase: Phase 5 Complete - Ready for Phase 6 (Polish & Testing)*
 *Status: Full duplicate and copy/paste support for questions and answers with NSPasteboard*
+*Recent: File naming improvements - proper Apple convention support*
