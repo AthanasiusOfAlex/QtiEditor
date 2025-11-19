@@ -99,15 +99,17 @@ struct FileCommands: Commands {
 
             Divider()
 
-            Button("Select All Questions") {
-                Task { @MainActor in
-                    if let document = editorState.document {
-                        editorState.selectedQuestionIDs = Set(document.questions.map { $0.id })
+            if questionListFocused == true {
+                Button("Select All Questions") {
+                    Task { @MainActor in
+                        if let document = editorState.document {
+                            editorState.selectedQuestionIDs = Set(document.questions.map { $0.id })
+                        }
                     }
                 }
+                .keyboardShortcut("a", modifiers: .command)
+                .disabled(editorState.document?.questions.isEmpty == true)
             }
-            .keyboardShortcut("a", modifiers: .command)
-            .disabled(editorState.document?.questions.isEmpty != false || questionListFocused != true)
 
             Divider()
         }
