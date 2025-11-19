@@ -7,7 +7,7 @@
 
 import SwiftUI
 import AppKit
-import UniformTypeIdentifiers
+internal import UniformTypeIdentifiers
 
 /// Main window container for the QTI Editor
 /// Provides the three-pane layout: Question List (sidebar), Editor (main), Inspector (trailing)
