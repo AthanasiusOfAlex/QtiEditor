@@ -320,6 +320,63 @@ final class EditorState {
         }
     }
 
+    /// Paste question(s) from the pasteboard after a specific question
+    /// - Parameter afterQuestion: The question to paste after
+    func pasteQuestionAfter(_ afterQuestion: QTIQuestion) {
+        guard let document = document else { return }
+        guard let index = document.questions.firstIndex(where: { $0.id == afterQuestion.id }) else { return }
+
+        let pasteboard = NSPasteboard.general
+        guard let data = pasteboard.data(forType: Self.questionPasteboardType) else { return }
+
+        do {
+            let decoder = JSONDecoder()
+            let pastedQuestions = try decoder.decode([QTIQuestion].self, from: data)
+
+            guard !pastedQuestions.isEmpty else { return }
+
+            // Generate new UUIDs for all pasted questions
+            var newQuestions: [QTIQuestion] = []
+            var newQuestionIDs: Set<UUID> = []
+
+            for pastedQuestion in pastedQuestions {
+                let newQuestion = pastedQuestion.duplicate(preserveCanvasIdentifier: false)
+                newQuestions.append(newQuestion)
+                newQuestionIDs.insert(newQuestion.id)
+            }
+
+            // Insert all questions starting after the specified question
+            for (offset, question) in newQuestions.enumerated() {
+                document.questions.insert(question, at: index + 1 + offset)
+            }
+
+            // Select the pasted questions
+            selectedQuestionIDs = newQuestionIDs
+            selectedQuestionID = newQuestions.first?.id
+            isDocumentEdited = true
+        } catch {
+            showError("Failed to paste question(s): \(error.localizedDescription)")
+        }
+    }
+
+    /// Check if pasteboard contains questions
+    func canPasteQuestion() -> Bool {
+        let pasteboard = NSPasteboard.general
+        return pasteboard.types?.contains(Self.questionPasteboardType) ?? false
+    }
+
+    /// Check if pasteboard contains answers
+    func canPasteAnswers() -> Bool {
+        let pasteboard = NSPasteboard.general
+        return pasteboard.types?.contains(Self.answersArrayPasteboardType) ?? false
+    }
+
+    /// Paste answers from pasteboard into a specific question
+    /// - Parameter question: The question to paste answers into
+    func pasteAnswersIntoQuestion(_ question: QTIQuestion) {
+        pasteAnswers(into: question)
+    }
+
     /// Copy an answer to the pasteboard
     /// - Parameter answer: The answer to copy
     func copyAnswer(_ answer: QTIAnswer) {
