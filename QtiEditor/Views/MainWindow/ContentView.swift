@@ -10,52 +10,49 @@ import AppKit
 internal import UniformTypeIdentifiers
 
 /// Main window container for the QTI Editor
-/// Provides the three-pane layout: Question List (sidebar), Editor (main), Inspector (trailing)
+/// Provides the three-panel layout with collapsible sides:
+/// Left: Questions list, Main: Question + Answers (VSplitView), Right: Utilities (Search, Quiz Settings)
 struct ContentView: View {
     @State private var editorState = EditorState()
-    @AppStorage("questionEditorHeight") private var storedQuestionEditorHeight: Double = 300
-    @State private var questionEditorHeight: CGFloat = 300
     @Environment(PendingFileManager.self) private var pendingFileManager
 
     var body: some View {
         @Bindable var editorState = editorState
 
-        NavigationSplitView {
-            // Sidebar - Question List
-            QuestionListView()
-                .navigationSplitViewColumnWidth(min: 200, ideal: 250)
-                .environment(editorState)
-        } content: {
-            // Main editor area
+        HStack(spacing: 0) {
+            // LEFT PANEL: Questions list (collapsible)
+            CollapsiblePanel(
+                position: .leading,
+                title: "Questions",
+                isVisible: Binding(
+                    get: { editorState.isLeftPanelVisible },
+                    set: { editorState.isLeftPanelVisible = $0 }
+                )
+            ) {
+                QuestionListView()
+                    .environment(editorState)
+            }
+
+            // MAIN PANEL: Question + Answers
             VStack(spacing: 0) {
-                // Search panel (collapsible)
-                if editorState.isSearchVisible {
-                    SearchReplaceView()
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
-
-                Divider()
-
-                // Question editor
-                if let question = editorState.selectedQuestion {
-                    VStack(spacing: 0) {
-                        // Fixed metadata section
-                        QuestionMetadataView(
+                // Main content area
+                if editorState.selectedQuestionIDs.count > 1 {
+                    // Multiple questions selected
+                    multipleQuestionsSelectedView
+                } else if let question = editorState.selectedQuestion,
+                          let questionNumber = editorState.document?.questions.firstIndex(where: { $0.id == question.id }).map({ $0 + 1 }) {
+                    // Single question selected - show question + answers in VSplitView
+                    VSplitView {
+                        // Top: Question section
+                        QuestionSectionView(
                             question: question,
-                            questionNumber: editorState.document?.questions.firstIndex(where: { $0.id == question.id }).map { $0 + 1 } ?? 0
+                            questionNumber: questionNumber
                         )
-                        .padding()
+                        .frame(minHeight: 200)
 
-                        // Resizable question editor box
-                        QuestionEditorView(question: question, height: questionEditorHeight)
-                            .padding(.horizontal)
-
-                        // Resize handle between editor and answer list
-                        QuestionEditorResizeHandle(height: $questionEditorHeight)
-
-                        // Answer list - fills remaining space
-                        AnswerListEditorView(question: question)
-                            .frame(maxHeight: .infinity)
+                        // Bottom: Answers master-detail
+                        AnswersMasterDetailView(question: question)
+                            .frame(minHeight: 150)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .id(question.id)  // Force view recreation when question changes
@@ -64,9 +61,10 @@ struct ContentView: View {
                     ContentUnavailableView(
                         "No Question Selected",
                         systemImage: "doc.text",
-                        description: Text("Select a question from the sidebar to edit, or click \"Quiz Settings\" to configure the quiz")
+                        description: Text("Select a question from the sidebar to edit")
                     )
                 } else {
+                    // No document open
                     ContentUnavailableView(
                         "No Quiz Open",
                         systemImage: "doc.text",
@@ -75,27 +73,61 @@ struct ContentView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button(action: {
-                        withAnimation {
-                            editorState.isSearchVisible.toggle()
-                        }
-                    }) {
-                        Label("Search", systemImage: editorState.isSearchVisible ? "magnifyingglass.circle.fill" : "magnifyingglass")
-                    }
-                    .keyboardShortcut("f", modifiers: .command)
-                    .help("Toggle search panel (Cmd+F)")
-                }
-            }
             .environment(editorState)
-        } detail: {
-            // Inspector panel
-            QuestionInspectorView()
-                .navigationSplitViewColumnWidth(min: 200, ideal: 250, max: 300)
+
+            // RIGHT PANEL: Utilities (Search, Quiz Settings) - collapsible
+            CollapsiblePanel(
+                position: .trailing,
+                title: "Utilities",
+                isVisible: Binding(
+                    get: { editorState.isRightPanelVisible },
+                    set: { editorState.isRightPanelVisible = $0 }
+                )
+            ) {
+                RightPanelView(selectedTab: Binding(
+                    get: { editorState.rightPanelTab },
+                    set: { editorState.rightPanelTab = $0 }
+                ))
                 .environment(editorState)
+            }
         }
         .navigationTitle(editorState.documentManager.displayName)
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Button(action: {
+                    withAnimation {
+                        editorState.isLeftPanelVisible.toggle()
+                    }
+                }) {
+                    Label("Toggle Questions", systemImage: "sidebar.left")
+                }
+                .help("Toggle questions panel")
+            }
+
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: {
+                    withAnimation {
+                        editorState.isRightPanelVisible.toggle()
+                    }
+                }) {
+                    Label("Toggle Utilities", systemImage: "sidebar.right")
+                }
+                .help("Toggle utilities panel")
+            }
+
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: {
+                    withAnimation {
+                        editorState.isRightPanelVisible = true
+                        editorState.rightPanelTab = .search
+                    }
+                }) {
+                    Label("Search", systemImage: editorState.rightPanelTab == .search && editorState.isRightPanelVisible ? "magnifyingglass.circle.fill" : "magnifyingglass")
+                }
+                .keyboardShortcut("f", modifiers: .command)
+                .help("Show search panel (Cmd+F)")
+            }
+        }
         .focusedSceneValue(\.editorState, editorState)
         .windowDocumentEdited(editorState.isDocumentEdited, editorState: editorState)
         .overlay {
@@ -126,8 +158,6 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            questionEditorHeight = CGFloat(storedQuestionEditorHeight)
-
             // Check for pending file to open
             if let url = pendingFileManager.consumePendingFile() {
                 Task { @MainActor in
@@ -140,9 +170,28 @@ struct ContentView: View {
                 }
             }
         }
-        .onChange(of: questionEditorHeight) { _, newValue in
-            storedQuestionEditorHeight = Double(newValue)
+    }
+
+    // MARK: - Multi-Selection View
+
+    /// View shown when multiple questions are selected
+    private var multipleQuestionsSelectedView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "checkmark.circle.badge.questionmark")
+                .font(.system(size: 48))
+                .foregroundStyle(.secondary)
+
+            Text("\(editorState.selectedQuestionIDs.count) Questions Selected")
+                .font(.title2)
+                .fontWeight(.medium)
+
+            Text("Use the toolbar buttons to copy, duplicate, or delete multiple questions")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

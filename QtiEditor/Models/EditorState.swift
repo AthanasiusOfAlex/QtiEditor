@@ -38,7 +38,34 @@ final class EditorState {
     /// Current editor mode (HTML or Rich Text)
     var editorMode: EditorMode = .richText
 
-    /// Search panel visibility
+    /// Left panel visibility (Questions list)
+    /// Note: Using UserDefaults directly since @AppStorage can't be used in @Observable classes
+    var isLeftPanelVisible: Bool {
+        get { UserDefaults.standard.bool(forKey: "isLeftPanelVisible") != false }  // Default: true
+        set { UserDefaults.standard.set(newValue, forKey: "isLeftPanelVisible") }
+    }
+
+    /// Right panel visibility (Utilities: Search, Quiz Settings)
+    var isRightPanelVisible: Bool {
+        get { UserDefaults.standard.bool(forKey: "isRightPanelVisible") != false }  // Default: true
+        set { UserDefaults.standard.set(newValue, forKey: "isRightPanelVisible") }
+    }
+
+    /// Selected tab in the right panel
+    var rightPanelTab: RightPanelTab {
+        get {
+            if let rawValue = UserDefaults.standard.string(forKey: "rightPanelTab"),
+               let tab = RightPanelTab(rawValue: rawValue) {
+                return tab
+            }
+            return .quizSettings  // Default to Quiz Settings
+        }
+        set {
+            UserDefaults.standard.set(newValue.rawValue, forKey: "rightPanelTab")
+        }
+    }
+
+    /// Search panel visibility (deprecated - now part of right panel)
     var isSearchVisible: Bool = false
 
     /// Search text
