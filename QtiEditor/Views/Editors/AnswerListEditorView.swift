@@ -304,7 +304,7 @@ struct AnswerListEditorView: View {
 
     func cutSelectedAnswers() {
         copySelectedAnswers()
-        deleteSelectedAnswers()
+        performDelete()
     }
 
     private func canPasteAnswers() -> Bool {
