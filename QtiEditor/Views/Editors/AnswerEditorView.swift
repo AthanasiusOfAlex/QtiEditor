@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AppKit
 
 /// Editor view for a single answer choice
 struct AnswerEditorView: View {
@@ -46,25 +47,21 @@ struct AnswerEditorView: View {
         )
         .contentShape(Rectangle())
         .onTapGesture {
-            // Simple click - select this answer
-            onSelect([])
+            // Detect modifier keys at tap time
+            var modifiers: EventModifiers = []
+
+            #if os(macOS)
+            let flags = NSEvent.modifierFlags
+            if flags.contains(.command) {
+                modifiers.insert(.command)
+            }
+            if flags.contains(.shift) {
+                modifiers.insert(.shift)
+            }
+            #endif
+
+            onSelect(modifiers)
         }
-        .simultaneousGesture(
-            TapGesture()
-                .modifiers(.command)
-                .onEnded {
-                    // Cmd+Click - toggle selection
-                    onSelect([.command])
-                }
-        )
-        .simultaneousGesture(
-            TapGesture()
-                .modifiers(.shift)
-                .onEnded {
-                    // Shift+Click - range selection
-                    onSelect([.shift])
-                }
-        )
         .contextMenu {
             Button("Copy Answer") {
                 editorState.copyAnswer(answer)

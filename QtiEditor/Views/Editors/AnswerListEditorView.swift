@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AppKit
 
 /// Helper class to expose answer list actions for keyboard shortcuts
 @MainActor
@@ -98,6 +99,15 @@ struct AnswerListEditorView: View {
                     .help("Delete selected answer(s)")
                 }
 
+                // Paste button (always visible when answers exist, to allow cross-question paste)
+                if canPasteAnswers() {
+                    Button(action: pasteAnswers) {
+                        Label("Paste", systemImage: "doc.on.clipboard")
+                    }
+                    .buttonStyle(.bordered)
+                    .help("Paste answer(s) (Shift-Cmd-V)")
+                }
+
                 // Add Answer button
                 Button(action: addAnswer) {
                     Label("Add Answer", systemImage: "plus.circle.fill")
@@ -150,12 +160,26 @@ struct AnswerListEditorView: View {
             }
         }
         .padding()
+        .background(
+            // Invisible focusable layer to capture focus
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    // Give focus to answer list when tapping in empty space
+                    isFocused = true
+                }
+        )
+        .focusable()
         .focused($isFocused)
         .focusedSceneValue(\.answerListActions, isFocused ? actionsHelper : nil)
         .onAppear {
             actionsHelper.editorState = editorState
             actionsHelper.question = question
             actionsHelper.selectedAnswerIDsBinding = $selectedAnswerIDs
+            // Give focus to answer list when it appears
+            DispatchQueue.main.async {
+                isFocused = true
+            }
         }
     }
 
@@ -204,6 +228,9 @@ struct AnswerListEditorView: View {
     // MARK: - Selection Handling
 
     private func handleAnswerSelection(answer: QTIAnswer, modifiers: EventModifiers) {
+        // Give focus to answer list when selecting
+        isFocused = true
+
         if modifiers.contains(.command) {
             // Cmd+Click: Toggle selection
             if selectedAnswerIDs.contains(answer.id) {
@@ -269,13 +296,7 @@ struct AnswerListEditorView: View {
     }
 
     private func deleteSelectedAnswers() {
-        let count = selectedAnswerIDs.count
-        let message = count == 1
-            ? "Are you sure you want to delete this answer?"
-            : "Are you sure you want to delete \(count) answers?"
-
-        // We'll handle the confirmation in the delete action
-        // For now, just delete directly (we can add confirmation dialog later)
+        // Delete selected answers directly (could add confirmation dialog later if desired)
         question.answers.removeAll { selectedAnswerIDs.contains($0.id) }
         clearSelection()
     }
@@ -287,6 +308,12 @@ struct AnswerListEditorView: View {
     func cutSelectedAnswers() {
         copySelectedAnswers()
         deleteSelectedAnswers()
+    }
+
+    private func canPasteAnswers() -> Bool {
+        let pasteboard = NSPasteboard.general
+        // Check if we have answers array on the clipboard
+        return pasteboard.types?.contains(NSPasteboard.PasteboardType("com.qti-editor.answers-array")) ?? false
     }
 }
 
