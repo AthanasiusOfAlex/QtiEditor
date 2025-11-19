@@ -43,7 +43,6 @@ struct FileCommands: Commands {
                 }
             }
             .keyboardShortcut("o", modifiers: .command)
-            .disabled(editorState == nil)
         }
 
         CommandGroup(replacing: .saveItem) {
@@ -133,6 +132,13 @@ struct FileCommands: Commands {
 
     @MainActor
     private func openDocument() {
+        // If no window is open, create one first
+        if editorState == nil {
+            openWindow(id: "main")
+            // The user can then use Cmd-O again from the new window
+            return
+        }
+
         guard let editorState = editorState else { return }
 
         let panel = NSOpenPanel()

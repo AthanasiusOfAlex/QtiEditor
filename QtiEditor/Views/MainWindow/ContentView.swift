@@ -233,14 +233,13 @@ struct WindowAccessor: NSViewRepresentable {
         context.coordinator.editorState = editorState
 
         // Find the window and update its document edited state
-        DispatchQueue.main.async {
-            guard let window = nsView.window else { return }
-            window.isDocumentEdited = isDocumentEdited
+        guard let window = nsView.window else { return }
+        window.isDocumentEdited = isDocumentEdited
 
-            // Set the window delegate if not already set
-            if window.delegate == nil {
-                window.delegate = context.coordinator
-            }
+        // Always set our delegate to ensure we handle close events
+        // This may override SwiftUI's delegate, but that's needed for unsaved changes warnings
+        if window.delegate !== context.coordinator {
+            window.delegate = context.coordinator
         }
     }
 
