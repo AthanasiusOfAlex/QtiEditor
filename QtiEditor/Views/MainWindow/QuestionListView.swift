@@ -6,12 +6,19 @@
 //
 
 import SwiftUI
+import AppKit
 
 /// Sidebar view displaying the list of questions in the current quiz
 struct QuestionListView: View {
     @Environment(EditorState.self) private var editorState
     @State private var showDeleteConfirmation = false
     @FocusState private var isListFocused: Bool
+
+    /// Check if the pasteboard contains answers (local check for context menu reliability)
+    private var canPasteAnswersFromClipboard: Bool {
+        let pasteboard = NSPasteboard.general
+        return pasteboard.types?.contains(NSPasteboard.PasteboardType("com.qti-editor.answers-array")) ?? false
+    }
 
     var body: some View {
         @Bindable var editorState = editorState
@@ -113,7 +120,7 @@ struct QuestionListView: View {
         Button("Paste Answer") {
             editorState.pasteAnswersIntoQuestion(question)
         }
-        .disabled(!editorState.canPasteAnswers())
+        .disabled(!canPasteAnswersFromClipboard)
 
         Divider()
 

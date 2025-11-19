@@ -17,6 +17,7 @@ struct AnswerEditorView: View {
     let canPaste: Bool
     let onDelete: () -> Void
     let onDuplicate: () -> Void
+    let onCopy: () -> Void
     let onPasteAfter: () -> Void
     let onCorrectChanged: (Bool) -> Void
     @AppStorage("answerEditorHeight") private var storedAnswerHeight: Double = 50
@@ -49,11 +50,11 @@ struct AnswerEditorView: View {
         .contextMenu {
             if !hasMultipleSelected {
                 Button("Copy Answer") {
-                    editorState.copyAnswer(answer)
+                    onCopy()
                 }
 
                 if canPaste {
-                    Button("Paste After") {
+                    Button("Paste Answer After") {
                         onPasteAfter()
                     }
                 }
