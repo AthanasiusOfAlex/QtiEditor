@@ -289,6 +289,9 @@ final class EditorState {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
 
+        // Declare types before setting data (required by NSPasteboard)
+        pasteboard.declareTypes([Self.questionPasteboardType], owner: nil)
+
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode(questionsToCopy)
@@ -305,13 +308,23 @@ final class EditorState {
         pasteboard.clearContents()
         print("✂️ [Copy] Cleared clipboard contents")
 
+        // Declare types before setting data (required by NSPasteboard)
+        pasteboard.declareTypes([Self.questionPasteboardType], owner: nil)
+        print("✂️ [Copy] Declared types")
+
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode([question])
-            pasteboard.setData(data, forType: Self.questionPasteboardType)
-            print("✂️ [Copy] ✅ Successfully copied question")
+            let success = pasteboard.setData(data, forType: Self.questionPasteboardType)
+            print("✂️ [Copy] setData returned: \(success)")
+            if success {
+                print("✂️ [Copy] ✅ Successfully copied question")
+            } else {
+                print("✂️ [Copy] ❌ setData failed")
+                showError("Failed to copy question to clipboard")
+            }
         } catch {
-            print("✂️ [Copy] ❌ Failed to copy question: \(error)")
+            print("✂️ [Copy] ❌ Failed to encode question: \(error)")
             showError("Failed to copy question: \(error.localizedDescription)")
         }
     }
@@ -466,6 +479,9 @@ final class EditorState {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
 
+        // Declare types before setting data (required by NSPasteboard)
+        pasteboard.declareTypes([Self.answerPasteboardType], owner: nil)
+
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode(answer)
@@ -514,13 +530,23 @@ final class EditorState {
         pasteboard.clearContents()
         print("✂️ [Copy] Cleared clipboard contents")
 
+        // Declare types before setting data (required by NSPasteboard)
+        pasteboard.declareTypes([Self.answersArrayPasteboardType], owner: nil)
+        print("✂️ [Copy] Declared types")
+
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode(answers)
-            pasteboard.setData(data, forType: Self.answersArrayPasteboardType)
-            print("✂️ [Copy] ✅ Successfully copied \(answers.count) answer(s)")
+            let success = pasteboard.setData(data, forType: Self.answersArrayPasteboardType)
+            print("✂️ [Copy] setData returned: \(success)")
+            if success {
+                print("✂️ [Copy] ✅ Successfully copied \(answers.count) answer(s)")
+            } else {
+                print("✂️ [Copy] ❌ setData failed")
+                showError("Failed to copy answers to clipboard")
+            }
         } catch {
-            print("✂️ [Copy] ❌ Failed to copy answers: \(error)")
+            print("✂️ [Copy] ❌ Failed to encode answers: \(error)")
             showError("Failed to copy answers: \(error.localizedDescription)")
         }
     }
