@@ -174,7 +174,7 @@ struct AnswerSelectorListView: View {
     private func copySelectedAnswers() {
         let answers = question.answers.filter { selectedAnswerIDs.contains($0.id) }
         editorState.copyAnswers(answers)
-        clipboardHasAnswers = true
+        checkClipboard()
     }
 
     private func duplicateSelectedAnswers() {
