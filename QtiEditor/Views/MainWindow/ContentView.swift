@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AppKit
 
 /// Main window container for the QTI Editor
 /// Provides the three-pane layout: Question List (sidebar), Editor (main), Inspector (trailing)
@@ -93,6 +94,7 @@ struct ContentView: View {
         }
         .navigationTitle(editorState.document?.title ?? "QTI Quiz Editor")
         .focusedSceneValue(\.editorState, editorState)
+        .windowDocumentEdited(editorState.isDocumentEdited)
         .overlay {
             if editorState.isLoading {
                 ZStack {
@@ -198,4 +200,83 @@ struct QuestionEditorResizeHandle: View {
 #Preview {
     ContentView()
         .environment(EditorState(document: QTIDocument.empty()))
+}
+
+// MARK: - Window Document Edited Modifier
+
+/// View modifier to sync document edited state with NSWindow
+struct WindowDocumentEditedModifier: ViewModifier {
+    let isEdited: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .background(WindowAccessor(isDocumentEdited: isEdited))
+    }
+}
+
+/// Helper view to access and modify NSWindow properties
+struct WindowAccessor: NSViewRepresentable {
+    let isDocumentEdited: Bool
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        view.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        view.setContentHuggingPriority(.defaultLow, for: .vertical)
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        // Find the window and update its document edited state
+        DispatchQueue.main.async {
+            guard let window = nsView.window else { return }
+            window.isDocumentEdited = isDocumentEdited
+
+            // Set the window delegate if not already set
+            if window.delegate == nil {
+                window.delegate = context.coordinator
+            }
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    class Coordinator: NSObject, NSWindowDelegate {
+        func windowShouldClose(_ sender: NSWindow) -> Bool {
+            // If document is not edited, allow close
+            if !sender.isDocumentEdited {
+                return true
+            }
+
+            // Show save dialog
+            let alert = NSAlert()
+            alert.messageText = "Do you want to save the changes?"
+            alert.informativeText = "Your changes will be lost if you don't save them."
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "Save")
+            alert.addButton(withTitle: "Don't Save")
+            alert.addButton(withTitle: "Cancel")
+
+            let response = alert.runModal()
+
+            switch response {
+            case .alertFirstButtonReturn:  // Save
+                // TODO: Trigger save operation
+                // For now, prevent close - user needs to save manually
+                return false
+            case .alertSecondButtonReturn:  // Don't Save
+                return true
+            default:  // Cancel
+                return false
+            }
+        }
+    }
+}
+
+extension View {
+    /// Mark the window as having unsaved changes (shows dot in close button)
+    func windowDocumentEdited(_ isEdited: Bool) -> some View {
+        modifier(WindowDocumentEditedModifier(isEdited: isEdited))
+    }
 }
