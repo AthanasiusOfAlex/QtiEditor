@@ -10,6 +10,8 @@ internal import UniformTypeIdentifiers
 
 @main
 struct QtiEditorApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     var body: some Scene {
         WindowGroup(id: "main") {
             ContentView()
@@ -48,11 +50,17 @@ struct FileCommands: Commands {
             Button("Save") {
                 Task { @MainActor in
                     guard let editorState = editorState else { return }
-                    await editorState.saveDocument()
+                    if editorState.documentManager.fileURL != nil {
+                        // Has file URL, save directly
+                        await editorState.saveDocument()
+                    } else {
+                        // No file URL, show Save As dialog
+                        saveDocumentAs()
+                    }
                 }
             }
             .keyboardShortcut("s", modifiers: .command)
-            .disabled(editorState?.document == nil || editorState?.documentManager.fileURL == nil)
+            .disabled(editorState?.document == nil)
 
             Button("Save As...") {
                 Task { @MainActor in
@@ -61,6 +69,16 @@ struct FileCommands: Commands {
             }
             .keyboardShortcut("s", modifiers: [.command, .shift])
             .disabled(editorState?.document == nil)
+        }
+
+        CommandGroup(replacing: .windowArrangement) {
+            Button("Close Window") {
+                // Close the current window
+                if let window = NSApp.keyWindow {
+                    window.performClose(nil)
+                }
+            }
+            .keyboardShortcut("w", modifiers: .command)
         }
 
         CommandGroup(after: .newItem) {

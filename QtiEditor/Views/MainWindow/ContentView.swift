@@ -94,7 +94,7 @@ struct ContentView: View {
         }
         .navigationTitle(editorState.document?.title ?? "QTI Quiz Editor")
         .focusedSceneValue(\.editorState, editorState)
-        .windowDocumentEdited(editorState.isDocumentEdited)
+        .windowDocumentEdited(editorState.isDocumentEdited, editorState: editorState)
         .overlay {
             if editorState.isLoading {
                 ZStack {
@@ -207,16 +207,18 @@ struct QuestionEditorResizeHandle: View {
 /// View modifier to sync document edited state with NSWindow
 struct WindowDocumentEditedModifier: ViewModifier {
     let isEdited: Bool
+    let editorState: EditorState
 
     func body(content: Content) -> some View {
         content
-            .background(WindowAccessor(isDocumentEdited: isEdited))
+            .background(WindowAccessor(isDocumentEdited: isEdited, editorState: editorState))
     }
 }
 
 /// Helper view to access and modify NSWindow properties
 struct WindowAccessor: NSViewRepresentable {
     let isDocumentEdited: Bool
+    let editorState: EditorState
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
@@ -226,6 +228,9 @@ struct WindowAccessor: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
+        // Update the coordinator's editor state
+        context.coordinator.editorState = editorState
+
         // Find the window and update its document edited state
         DispatchQueue.main.async {
             guard let window = nsView.window else { return }
@@ -239,10 +244,17 @@ struct WindowAccessor: NSViewRepresentable {
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator()
+        Coordinator(editorState: editorState)
     }
 
     class Coordinator: NSObject, NSWindowDelegate {
+        var editorState: EditorState
+
+        init(editorState: EditorState) {
+            self.editorState = editorState
+            super.init()
+        }
+
         func windowShouldClose(_ sender: NSWindow) -> Bool {
             // If document is not edited, allow close
             if !sender.isDocumentEdited {
@@ -262,9 +274,35 @@ struct WindowAccessor: NSViewRepresentable {
 
             switch response {
             case .alertFirstButtonReturn:  // Save
-                // TODO: Trigger save operation
-                // For now, prevent close - user needs to save manually
-                return false
+                // Trigger save operation
+                Task { @MainActor in
+                    if editorState.documentManager.fileURL != nil {
+                        // Has a file URL, save directly
+                        await editorState.saveDocument()
+                        // Close the window after save completes
+                        sender.close()
+                    } else {
+                        // No file URL, show Save As dialog
+                        let panel = NSSavePanel()
+                        panel.allowedContentTypes = [
+                            .init(filenameExtension: "zip")!,
+                            .init(filenameExtension: "imscc")!
+                        ]
+                        panel.nameFieldStringValue = editorState.document?.title ?? "quiz"
+                        panel.message = "Export quiz as Canvas package (.zip recommended)"
+
+                        panel.begin { saveResponse in
+                            guard saveResponse == .OK, let url = panel.url else { return }
+
+                            Task { @MainActor in
+                                await editorState.saveDocument(to: url)
+                                // Close the window after save completes
+                                sender.close()
+                            }
+                        }
+                    }
+                }
+                return false  // Don't close yet, will close after save
             case .alertSecondButtonReturn:  // Don't Save
                 return true
             default:  // Cancel
@@ -276,7 +314,7 @@ struct WindowAccessor: NSViewRepresentable {
 
 extension View {
     /// Mark the window as having unsaved changes (shows dot in close button)
-    func windowDocumentEdited(_ isEdited: Bool) -> some View {
-        modifier(WindowDocumentEditedModifier(isEdited: isEdited))
+    func windowDocumentEdited(_ isEdited: Bool, editorState: EditorState) -> some View {
+        modifier(WindowDocumentEditedModifier(isEdited: isEdited, editorState: editorState))
     }
 }
