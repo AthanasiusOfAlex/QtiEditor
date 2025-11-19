@@ -14,6 +14,10 @@ struct QuestionListView: View {
     @State private var showDeleteConfirmation = false
     @FocusState private var isListFocused: Bool
 
+    // Track clipboard changes to force context menu refresh
+    @State private var clipboardChangeCount: Int = NSPasteboard.general.changeCount
+    @State private var clipboardCheckTimer: Timer?
+
     var body: some View {
         @Bindable var editorState = editorState
 
@@ -46,6 +50,10 @@ struct QuestionListView: View {
         ) : nil)
         .onAppear {
             isListFocused = true
+            startClipboardMonitoring()
+        }
+        .onDisappear {
+            stopClipboardMonitoring()
         }
         .onChange(of: editorState.selectedQuestionIDs) { _, newSelection in
             handleSelectionChange(newSelection: newSelection)
@@ -97,6 +105,9 @@ struct QuestionListView: View {
 
     @ViewBuilder
     private func buildContextMenu(question: QTIQuestion) -> some View {
+        // Force menu rebuild when clipboard changes by reading clipboardChangeCount
+        let _ = clipboardChangeCount
+
         Group {
             Button("Copy Question") {
                 editorState.copyQuestion(question)
@@ -206,6 +217,24 @@ struct QuestionListView: View {
             .disabled(editorState.selectedQuestionIDs.isEmpty && editorState.selectedQuestion == nil)
             .help(deleteHelpText(count: selectionCount))
         }
+    }
+
+    // MARK: - Clipboard Monitoring
+
+    private func startClipboardMonitoring() {
+        // Check clipboard every 0.5 seconds to detect changes
+        clipboardCheckTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [self] _ in
+            let currentCount = NSPasteboard.general.changeCount
+            if currentCount != clipboardChangeCount {
+                print("📋 [QuestionList] Clipboard changed: \(clipboardChangeCount) → \(currentCount)")
+                clipboardChangeCount = currentCount
+            }
+        }
+    }
+
+    private func stopClipboardMonitoring() {
+        clipboardCheckTimer?.invalidate()
+        clipboardCheckTimer = nil
     }
 
     private func handleSelectionChange(newSelection: Set<UUID>) {

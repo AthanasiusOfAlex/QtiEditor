@@ -20,6 +20,10 @@ struct AnswerSelectorListView: View {
     @State private var showDeleteConfirmation = false
     @FocusState private var isListFocused: Bool
 
+    // Track clipboard changes to force context menu refresh
+    @State private var clipboardChangeCount: Int = NSPasteboard.general.changeCount
+    @State private var clipboardCheckTimer: Timer?
+
     var body: some View {
         VStack(spacing: 0) {
             // Header with add button and bulk actions
@@ -82,6 +86,12 @@ struct AnswerSelectorListView: View {
                     selectAll: { selectAllAnswers() },
                     delete: { confirmDelete() }
                 ) : nil)
+                .onAppear {
+                    startClipboardMonitoring()
+                }
+                .onDisappear {
+                    stopClipboardMonitoring()
+                }
             }
         }
         .frame(minWidth: 200, idealWidth: 250)
@@ -102,6 +112,9 @@ struct AnswerSelectorListView: View {
 
     @ViewBuilder
     private func buildContextMenu(for answer: QTIAnswer) -> some View {
+        // Force menu rebuild when clipboard changes by reading clipboardChangeCount
+        let _ = clipboardChangeCount
+
         Button("Copy Answer") {
             editorState.copyAnswers([answer])
         }
@@ -134,6 +147,24 @@ struct AnswerSelectorListView: View {
     /// Reads clipboard directly to ensure fresh data
     private func canPasteAnswers() -> Bool {
         return editorState.clipboardAnswerCount() > 0
+    }
+
+    // MARK: - Clipboard Monitoring
+
+    private func startClipboardMonitoring() {
+        // Check clipboard every 0.5 seconds to detect changes
+        clipboardCheckTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [self] _ in
+            let currentCount = NSPasteboard.general.changeCount
+            if currentCount != clipboardChangeCount {
+                print("📋 [AnswerList] Clipboard changed: \(clipboardChangeCount) → \(currentCount)")
+                clipboardChangeCount = currentCount
+            }
+        }
+    }
+
+    private func stopClipboardMonitoring() {
+        clipboardCheckTimer?.invalidate()
+        clipboardCheckTimer = nil
     }
 
     // MARK: - Actions
