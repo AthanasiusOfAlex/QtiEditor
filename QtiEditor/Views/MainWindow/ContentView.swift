@@ -94,7 +94,7 @@ struct ContentView: View {
                 .navigationSplitViewColumnWidth(min: 200, ideal: 250, max: 300)
                 .environment(editorState)
         }
-        .navigationTitle(editorState.document?.title ?? "QTI Quiz Editor")
+        .navigationTitle(editorState.documentManager.displayName)
         .focusedSceneValue(\.editorState, editorState)
         .windowDocumentEdited(editorState.isDocumentEdited, editorState: editorState)
         .overlay {
@@ -297,7 +297,7 @@ struct WindowAccessor: NSViewRepresentable {
                             .init(filenameExtension: "zip")!,
                             .init(filenameExtension: "imscc")!
                         ]
-                        panel.nameFieldStringValue = editorState.document?.title ?? "quiz"
+                        panel.nameFieldStringValue = editorState.documentManager.displayName
                         panel.message = "Export quiz as Canvas package (.zip recommended)"
 
                         panel.begin { saveResponse in

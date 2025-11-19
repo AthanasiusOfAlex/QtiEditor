@@ -188,7 +188,7 @@ struct FileCommands: Commands {
             .init(filenameExtension: "zip")!,
             .init(filenameExtension: "imscc")!
         ]
-        panel.nameFieldStringValue = editorState.document?.title ?? "quiz"
+        panel.nameFieldStringValue = editorState.documentManager.displayName
         panel.message = "Export quiz as Canvas package (.zip recommended)"
 
         panel.begin { response in

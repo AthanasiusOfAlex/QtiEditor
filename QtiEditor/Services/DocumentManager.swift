@@ -21,8 +21,15 @@ final class DocumentManager: @unchecked Sendable {
     /// Original file URL (for tracking save location)
     var fileURL: URL?
 
+    /// Display name for the file (separate from quiz title)
+    /// Follows Apple convention: "Untitled", "Untitled 2", etc.
+    var displayName: String = "Untitled"
+
     /// Whether the document has unsaved changes
     var isDirty: Bool = false
+
+    /// Counter for generating unique "Untitled X" names
+    private static var untitledCounter = 1
 
     // MARK: - Opening Documents
 
@@ -41,8 +48,9 @@ final class DocumentManager: @unchecked Sendable {
         // Parse the assessment
         let document = try await parser.parse(fileURL: assessmentURL)
 
-        // Store original URL
+        // Store original URL and extract display name
         fileURL = url
+        displayName = url.deletingPathExtension().lastPathComponent
         isDirty = false
 
         return document
@@ -107,6 +115,7 @@ final class DocumentManager: @unchecked Sendable {
 
         // Update state
         fileURL = url
+        displayName = url.deletingPathExtension().lastPathComponent
         isDirty = false
     }
 
@@ -117,6 +126,15 @@ final class DocumentManager: @unchecked Sendable {
     func createNewDocument() -> QTIDocument {
         fileURL = nil
         isDirty = false
+
+        // Generate display name following Apple convention
+        if Self.untitledCounter == 1 {
+            displayName = "Untitled"
+        } else {
+            displayName = "Untitled \(Self.untitledCounter)"
+        }
+        Self.untitledCounter += 1
+
         return QTIDocument.empty()
     }
 
