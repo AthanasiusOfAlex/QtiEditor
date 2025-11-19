@@ -236,6 +236,9 @@ struct QuestionListView: View {
             // Use the first selected question
             editorState.selectedQuestionID = editorState.document?.questions.first { newSelection.contains($0.id) }?.id
         }
+
+        // Ensure an answer is always selected when viewing a question
+        editorState.ensureAnswerSelected()
     }
 
     private func confirmDelete() {

@@ -13,41 +13,46 @@ import SwiftUI
 struct AnswersMasterDetailView: View {
     @Environment(EditorState.self) private var editorState
     let question: QTIQuestion
-    @State private var selectedAnswerIDs: Set<UUID> = []
 
     var body: some View {
-        HSplitView {
+        @Bindable var editorState = editorState
+
+        return HSplitView {
             // Left: Answer selector list (narrow like a sidebar)
             AnswerSelectorListView(
                 question: question,
-                selectedAnswerIDs: $selectedAnswerIDs
+                selectedAnswerIDs: $editorState.selectedAnswerIDs
             )
             .frame(minWidth: 150, idealWidth: 200, maxWidth: 300)
 
             // Right: Single answer editor (takes most of the space)
             SingleAnswerEditorView(
                 question: question,
-                selectedAnswerIDs: selectedAnswerIDs,
+                selectedAnswerIDs: editorState.selectedAnswerIDs,
                 onCopySelected: copySelectedAnswers,
                 onDuplicateSelected: duplicateSelectedAnswers,
                 onDeleteSelected: deleteSelectedAnswers
             )
             .frame(minWidth: 400)
         }
+        .onAppear {
+            // Ensure an answer is selected when the view appears
+            editorState.ensureAnswerSelected()
+        }
     }
 
     // MARK: - Bulk Operations
 
     private func copySelectedAnswers() {
-        let answers = question.answers.filter { selectedAnswerIDs.contains($0.id) }
+        let answers = question.answers.filter { editorState.selectedAnswerIDs.contains($0.id) }
         editorState.copyAnswers(answers)
     }
 
     private func duplicateSelectedAnswers() {
-        let selectedAnswers = question.answers.filter { selectedAnswerIDs.contains($0.id) }
+        let selectedAnswers = question.answers.filter { editorState.selectedAnswerIDs.contains($0.id) }
         guard !selectedAnswers.isEmpty else { return }
 
-        guard let lastIndex = question.answers.lastIndex(where: { selectedAnswerIDs.contains($0.id) }) else {
+        guard let lastIndex = question.answers.lastIndex(where: { editorState.selectedAnswerIDs.contains($0.id) }) else {
             return
         }
 
@@ -64,13 +69,13 @@ struct AnswersMasterDetailView: View {
         }
 
         editorState.markDocumentEdited()
-        selectedAnswerIDs.removeAll()
+        editorState.selectedAnswerIDs.removeAll()
     }
 
     private func deleteSelectedAnswers() {
-        question.answers.removeAll { selectedAnswerIDs.contains($0.id) }
+        question.answers.removeAll { editorState.selectedAnswerIDs.contains($0.id) }
         editorState.markDocumentEdited()
-        selectedAnswerIDs.removeAll()
+        editorState.selectedAnswerIDs.removeAll()
     }
 }
 

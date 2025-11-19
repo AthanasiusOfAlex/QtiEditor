@@ -32,8 +32,20 @@ final class EditorState {
     /// Set of selected question IDs for multi-selection operations
     var selectedQuestionIDs: Set<UUID> = []
 
-    /// Set of selected answer IDs for multi-selection operations (scoped to current question)
-    var selectedAnswerIDs: Set<UUID> = []
+    /// Dictionary mapping question IDs to their selected answer IDs (for persistence)
+    private var answerSelectionByQuestion: [UUID: Set<UUID>] = [:]
+
+    /// Set of selected answer IDs for the current question
+    var selectedAnswerIDs: Set<UUID> {
+        get {
+            guard let questionID = selectedQuestionID else { return [] }
+            return answerSelectionByQuestion[questionID] ?? []
+        }
+        set {
+            guard let questionID = selectedQuestionID else { return }
+            answerSelectionByQuestion[questionID] = newValue
+        }
+    }
 
     /// Current editor mode (HTML or Rich Text)
     var editorMode: EditorMode = .richText
@@ -121,6 +133,33 @@ final class EditorState {
             return nil
         }
         return document.questions.first { $0.id == id }
+    }
+
+    /// Ensures that an answer is selected for the current question
+    /// If no answer is selected and the question has answers, selects the first one
+    func ensureAnswerSelected() {
+        guard let question = selectedQuestion else { return }
+
+        // If no answers, nothing to select
+        if question.answers.isEmpty {
+            return
+        }
+
+        // If an answer is already selected and it still exists, keep it
+        if !selectedAnswerIDs.isEmpty {
+            let validAnswerIDs = Set(question.answers.map { $0.id })
+            // Keep only valid selections
+            let validSelections = selectedAnswerIDs.intersection(validAnswerIDs)
+            if !validSelections.isEmpty {
+                selectedAnswerIDs = validSelections
+                return
+            }
+        }
+
+        // No valid selection - select the first answer
+        if let firstAnswer = question.answers.first {
+            selectedAnswerIDs = [firstAnswer.id]
+        }
     }
 
     /// Create a new question and add it to the document
