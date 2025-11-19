@@ -213,9 +213,9 @@ struct QuestionListView: View {
     private func startClipboardMonitoring() {
         // Check clipboard every 0.5 seconds to detect changes
         clipboardCheckTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
-            Task { @MainActor [clipboardChangeCount] in
+            Task { @MainActor in
                 let currentCount = NSPasteboard.general.changeCount
-                if currentCount != clipboardChangeCount {
+                if currentCount != self.clipboardChangeCount {
                     self.clipboardChangeCount = currentCount
                 }
             }
