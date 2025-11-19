@@ -31,6 +31,15 @@ struct QuestionListView: View {
         // ========== DEBUG END ==========
     }
 
+    /// Helper to check clipboard when context menu opens
+    private func onContextMenuOpen(for questionId: UUID) {
+        // ========== DEBUG START ==========
+        print("🔍 [DEBUG] Context menu opened for question: \(questionId)")
+        print("🔍 [DEBUG] About to check clipboard before showing menu")
+        // ========== DEBUG END ==========
+        checkClipboard()
+    }
+
     var body: some View {
         @Bindable var editorState = editorState
 
@@ -105,12 +114,7 @@ struct QuestionListView: View {
                     QuestionRowView(question: question, index: index + 1)
                         .tag(question.id)
                         .contextMenu {
-                            // ========== DEBUG START ==========
-                            let _ = print("🔍 [DEBUG] Context menu opened for question: \(question.id)")
-                            let _ = print("🔍 [DEBUG] About to check clipboard before showing menu")
-                            // ========== DEBUG END ==========
-                            checkClipboard()
-                            buildContextMenu(question: question)
+                            buildContextMenuWithDebug(question: question)
                         }
                 }
                 .onMove { fromOffsets, toOffset in
@@ -129,13 +133,17 @@ struct QuestionListView: View {
     }
 
     @ViewBuilder
-    private func buildContextMenu(question: QTIQuestion) -> some View {
-        // ========== DEBUG START ==========
-        let _ = print("🔍 [DEBUG] buildContextMenu called")
-        let _ = print("🔍 [DEBUG] clipboardHasAnswers in buildContextMenu: \(clipboardHasAnswers)")
-        let _ = print("🔍 [DEBUG] Paste Answer button will be disabled: \(!clipboardHasAnswers)")
-        // ========== DEBUG END ==========
+    private func buildContextMenuWithDebug(question: QTIQuestion) -> some View {
+        Group {
+            buildContextMenu(question: question)
+        }
+        .onAppear {
+            onContextMenuOpen(for: question.id)
+        }
+    }
 
+    @ViewBuilder
+    private func buildContextMenu(question: QTIQuestion) -> some View {
         Button("Copy Question") {
             editorState.copyQuestion(question)
         }
