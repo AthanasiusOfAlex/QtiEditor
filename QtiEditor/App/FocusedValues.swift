@@ -15,7 +15,17 @@ extension FocusedValues {
         set { self[QuestionListFocusedKey.self] = newValue }
     }
 
+    /// The current window's EditorState (for menu commands)
+    var editorState: EditorState? {
+        get { self[EditorStateKey.self] }
+        set { self[EditorStateKey.self] = newValue }
+    }
+
     struct QuestionListFocusedKey: FocusedValueKey {
         typealias Value = Bool
+    }
+
+    struct EditorStateKey: FocusedValueKey {
+        typealias Value = EditorState
     }
 }

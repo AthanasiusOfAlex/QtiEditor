@@ -10,32 +10,26 @@ internal import UniformTypeIdentifiers
 
 @main
 struct QtiEditorApp: App {
-    @State private var editorState = EditorState(
-        document: createSampleDocument()
-    )
-
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: "main") {
             ContentView()
-                .environment(editorState)
         }
         .commands {
-            FileCommands(editorState: editorState)
+            FileCommands()
         }
     }
 }
 
 /// File menu commands for the app
 struct FileCommands: Commands {
-    let editorState: EditorState
+    @FocusedValue(\.editorState) private var editorState: EditorState?
     @FocusedValue(\.questionListFocused) private var questionListFocused: Bool?
+    @Environment(\.openWindow) private var openWindow
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
-            Button("New Quiz") {
-                Task { @MainActor in
-                    editorState.createNewDocument()
-                }
+            Button("New Quiz Window") {
+                openWindow(id: "main")
             }
             .keyboardShortcut("n", modifiers: .command)
 
@@ -47,16 +41,18 @@ struct FileCommands: Commands {
                 }
             }
             .keyboardShortcut("o", modifiers: .command)
+            .disabled(editorState == nil)
         }
 
         CommandGroup(replacing: .saveItem) {
             Button("Save") {
                 Task { @MainActor in
+                    guard let editorState = editorState else { return }
                     await editorState.saveDocument()
                 }
             }
             .keyboardShortcut("s", modifiers: .command)
-            .disabled(editorState.document == nil || editorState.documentManager.fileURL == nil)
+            .disabled(editorState?.document == nil || editorState?.documentManager.fileURL == nil)
 
             Button("Save As...") {
                 Task { @MainActor in
@@ -64,59 +60,63 @@ struct FileCommands: Commands {
                 }
             }
             .keyboardShortcut("s", modifiers: [.command, .shift])
-            .disabled(editorState.document == nil)
+            .disabled(editorState?.document == nil)
         }
 
         CommandGroup(after: .newItem) {
             // Question operations
-            let selectionCount = editorState.selectedQuestionIDs.isEmpty
-                ? (editorState.selectedQuestion != nil ? 1 : 0)
-                : editorState.selectedQuestionIDs.count
+            if let editorState = editorState {
+                let selectionCount = editorState.selectedQuestionIDs.isEmpty
+                    ? (editorState.selectedQuestion != nil ? 1 : 0)
+                    : editorState.selectedQuestionIDs.count
 
-            Button(selectionCount > 1 ? "Copy \(selectionCount) Questions" : "Copy Question") {
-                Task { @MainActor in
-                    editorState.copySelectedQuestion()
-                }
-            }
-            .keyboardShortcut("c", modifiers: [.command, .shift])
-            .disabled(selectionCount == 0)
-
-            Button("Paste Question") {
-                Task { @MainActor in
-                    editorState.pasteQuestion()
-                }
-            }
-            .keyboardShortcut("v", modifiers: [.command, .shift])
-            .disabled(editorState.document == nil)
-
-            Button(selectionCount > 1 ? "Duplicate \(selectionCount) Questions" : "Duplicate Question") {
-                Task { @MainActor in
-                    editorState.duplicateSelectedQuestions()
-                }
-            }
-            .keyboardShortcut("d", modifiers: .command)
-            .disabled(selectionCount == 0)
-
-            Divider()
-
-            if questionListFocused == true {
-                Button("Select All Questions") {
+                Button(selectionCount > 1 ? "Copy \(selectionCount) Questions" : "Copy Question") {
                     Task { @MainActor in
-                        if let document = editorState.document {
-                            editorState.selectedQuestionIDs = Set(document.questions.map { $0.id })
-                        }
+                        editorState.copySelectedQuestion()
                     }
                 }
-                .keyboardShortcut("a", modifiers: .command)
-                .disabled(editorState.document?.questions.isEmpty == true)
-            }
+                .keyboardShortcut("c", modifiers: [.command, .shift])
+                .disabled(selectionCount == 0)
 
-            Divider()
+                Button("Paste Question") {
+                    Task { @MainActor in
+                        editorState.pasteQuestion()
+                    }
+                }
+                .keyboardShortcut("v", modifiers: [.command, .shift])
+                .disabled(editorState.document == nil)
+
+                Button(selectionCount > 1 ? "Duplicate \(selectionCount) Questions" : "Duplicate Question") {
+                    Task { @MainActor in
+                        editorState.duplicateSelectedQuestions()
+                    }
+                }
+                .keyboardShortcut("d", modifiers: .command)
+                .disabled(selectionCount == 0)
+
+                Divider()
+
+                if questionListFocused == true {
+                    Button("Select All Questions") {
+                        Task { @MainActor in
+                            if let document = editorState.document {
+                                editorState.selectedQuestionIDs = Set(document.questions.map { $0.id })
+                            }
+                        }
+                    }
+                    .keyboardShortcut("a", modifiers: .command)
+                    .disabled(editorState.document?.questions.isEmpty == true)
+                }
+
+                Divider()
+            }
         }
     }
 
     @MainActor
     private func openDocument() {
+        guard let editorState = editorState else { return }
+
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
@@ -138,6 +138,8 @@ struct FileCommands: Commands {
 
     @MainActor
     private func saveDocumentAs() {
+        guard let editorState = editorState else { return }
+
         let panel = NSSavePanel()
         panel.allowedContentTypes = [
             .init(filenameExtension: "zip")!,
@@ -158,41 +160,3 @@ struct FileCommands: Commands {
 
 // MARK: - Import AppKit for file dialogs
 import AppKit
-
-/// Creates a sample document for testing/demonstration
-@MainActor
-private func createSampleDocument() -> QTIDocument {
-    let doc = QTIDocument(
-        title: "Sample Quiz",
-        description: "A sample quiz for demonstration purposes"
-    )
-
-    // Add sample questions
-    let q1 = QTIQuestion(
-        type: .multipleChoice,
-        questionText: "<p>What is the capital of France?</p>",
-        points: 1.0,
-        answers: [
-            QTIAnswer(text: "<p>Paris</p>", isCorrect: true),
-            QTIAnswer(text: "<p>London</p>", isCorrect: false),
-            QTIAnswer(text: "<p>Berlin</p>", isCorrect: false),
-            QTIAnswer(text: "<p>Madrid</p>", isCorrect: false)
-        ]
-    )
-
-    let q2 = QTIQuestion(
-        type: .multipleChoice,
-        questionText: "<p>Which programming language is this app written in?</p>",
-        points: 1.0,
-        answers: [
-            QTIAnswer(text: "<p>Swift</p>", isCorrect: true),
-            QTIAnswer(text: "<p>Python</p>", isCorrect: false),
-            QTIAnswer(text: "<p>JavaScript</p>", isCorrect: false),
-            QTIAnswer(text: "<p>Java</p>", isCorrect: false)
-        ]
-    )
-
-    doc.questions = [q1, q2]
-
-    return doc
-}

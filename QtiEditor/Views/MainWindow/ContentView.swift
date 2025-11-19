@@ -10,7 +10,7 @@ import SwiftUI
 /// Main window container for the QTI Editor
 /// Provides the three-pane layout: Question List (sidebar), Editor (main), Inspector (trailing)
 struct ContentView: View {
-    @Environment(EditorState.self) private var editorState
+    @State private var editorState = EditorState()
     @AppStorage("questionEditorHeight") private var storedQuestionEditorHeight: Double = 300
     @State private var questionEditorHeight: CGFloat = 300
 
@@ -21,6 +21,7 @@ struct ContentView: View {
             // Sidebar - Question List
             QuestionListView()
                 .navigationSplitViewColumnWidth(min: 200, ideal: 250)
+                .environment(editorState)
         } content: {
             // Main editor area
             VStack(spacing: 0) {
@@ -83,12 +84,15 @@ struct ContentView: View {
                     .help("Toggle search panel (Cmd+F)")
                 }
             }
+            .environment(editorState)
         } detail: {
             // Inspector panel
             QuestionInspectorView()
                 .navigationSplitViewColumnWidth(min: 200, ideal: 250, max: 300)
+                .environment(editorState)
         }
         .navigationTitle(editorState.document?.title ?? "QTI Quiz Editor")
+        .focusedSceneValue(\.editorState, editorState)
         .overlay {
             if editorState.isLoading {
                 ZStack {
