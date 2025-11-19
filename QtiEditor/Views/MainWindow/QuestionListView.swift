@@ -74,22 +74,6 @@ struct QuestionListView: View {
     @ViewBuilder
     private func buildListContent(editorState: EditorState) -> some View {
         if let document = editorState.document {
-            Section {
-                Button(action: {
-                    editorState.selectedQuestionID = nil
-                    editorState.selectedQuestionIDs.removeAll()
-                }) {
-                    HStack {
-                        Image(systemName: "gearshape")
-                            .foregroundStyle(.blue)
-                        Text("Quiz Settings")
-                            .foregroundStyle(.primary)
-                        Spacer()
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-
             Section("Questions (\(document.questions.count))") {
                 ForEach(Array(document.questions.enumerated()), id: \.element.id) { index, question in
                     QuestionRowView(question: question, index: index + 1)

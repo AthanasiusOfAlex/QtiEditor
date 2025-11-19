@@ -19,18 +19,13 @@ struct ContentView: View {
     var body: some View {
         @Bindable var editorState = editorState
 
-        HStack(spacing: 0) {
-            // LEFT PANEL: Questions list (collapsible)
-            CollapsiblePanel(
-                position: .leading,
-                title: "Questions",
-                isVisible: Binding(
-                    get: { editorState.isLeftPanelVisible },
-                    set: { editorState.isLeftPanelVisible = $0 }
-                )
-            ) {
+        HSplitView {
+            // LEFT PANEL: Questions list (collapsible, resizable)
+            if editorState.isLeftPanelVisible {
                 QuestionListView()
                     .environment(editorState)
+                    .frame(minWidth: 150, idealWidth: 200, maxWidth: 350)
+                    .background(Color(nsColor: .controlBackgroundColor))
             }
 
             // MAIN PANEL: Question + Answers
@@ -75,20 +70,14 @@ struct ContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .environment(editorState)
 
-            // RIGHT PANEL: Utilities (Search, Quiz Settings) - collapsible
-            CollapsiblePanel(
-                position: .trailing,
-                title: "Utilities",
-                isVisible: Binding(
-                    get: { editorState.isRightPanelVisible },
-                    set: { editorState.isRightPanelVisible = $0 }
-                )
-            ) {
+            // RIGHT PANEL: Utilities (Search, Quiz Settings) - collapsible, resizable
+            if editorState.isRightPanelVisible {
                 RightPanelView(selectedTab: Binding(
                     get: { editorState.rightPanelTab },
                     set: { editorState.rightPanelTab = $0 }
                 ))
                 .environment(editorState)
+                .frame(minWidth: 200, idealWidth: 300, maxWidth: 500)
             }
         }
         .navigationTitle(editorState.documentManager.displayName)

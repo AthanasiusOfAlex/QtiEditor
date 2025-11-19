@@ -40,7 +40,6 @@ struct RightPanelView: View {
                 }
             }
         }
-        .frame(minWidth: 250, idealWidth: 300, maxWidth: 400)
         .background(Color(nsColor: .controlBackgroundColor))
     }
 }

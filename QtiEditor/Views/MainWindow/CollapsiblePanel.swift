@@ -24,6 +24,7 @@ struct CollapsiblePanel<Content: View>: View {
         if isVisible {
             content()
                 .frame(minWidth: 200, idealWidth: 250, maxWidth: 400)
+                .background(Color(nsColor: .controlBackgroundColor))  // Gray background like Xcode sidebars
                 .transition(.move(edge: position == .leading ? .leading : .trailing))
         }
     }

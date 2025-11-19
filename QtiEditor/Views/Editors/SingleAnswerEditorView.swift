@@ -13,6 +13,9 @@ struct SingleAnswerEditorView: View {
     @Environment(EditorState.self) private var editorState
     let question: QTIQuestion
     let selectedAnswerIDs: Set<UUID>
+    let onCopySelected: () -> Void
+    let onDuplicateSelected: () -> Void
+    let onDeleteSelected: () -> Void
 
     var body: some View {
         Group {
@@ -45,7 +48,7 @@ struct SingleAnswerEditorView: View {
     // MARK: - Multiple Selection View
 
     private var multipleSelectionView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             Image(systemName: "checkmark.circle.badge.questionmark")
                 .font(.system(size: 48))
                 .foregroundStyle(.secondary)
@@ -54,11 +57,27 @@ struct SingleAnswerEditorView: View {
                 .font(.title2)
                 .fontWeight(.medium)
 
-            Text("Use the toolbar buttons to copy, duplicate, or delete multiple answers")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
+            // Bulk action buttons
+            HStack(spacing: 16) {
+                Button(action: onCopySelected) {
+                    Label("Copy", systemImage: "doc.on.doc")
+                }
+                .buttonStyle(.bordered)
+                .help("Copy selected answers (Cmd+C)")
+
+                Button(action: onDuplicateSelected) {
+                    Label("Duplicate", systemImage: "plus.square.on.square")
+                }
+                .buttonStyle(.bordered)
+                .help("Duplicate selected answers (Cmd+D)")
+
+                Button(action: onDeleteSelected) {
+                    Label("Delete", systemImage: "trash")
+                }
+                .buttonStyle(.bordered)
+                .tint(.red)
+                .help("Delete selected answers (Delete)")
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -184,7 +203,10 @@ struct SingleAnswerEditorView: View {
 #Preview("No Selection") {
     SingleAnswerEditorView(
         question: QTIDocument.empty().questions[0],
-        selectedAnswerIDs: []
+        selectedAnswerIDs: [],
+        onCopySelected: {},
+        onDuplicateSelected: {},
+        onDeleteSelected: {}
     )
     .environment(EditorState(document: QTIDocument.empty()))
     .frame(width: 400, height: 300)
@@ -203,7 +225,10 @@ struct SingleAnswerEditorView: View {
 
     SingleAnswerEditorView(
         question: question,
-        selectedAnswerIDs: [question.answers[0].id]
+        selectedAnswerIDs: [question.answers[0].id],
+        onCopySelected: {},
+        onDuplicateSelected: {},
+        onDeleteSelected: {}
     )
     .environment(EditorState(document: QTIDocument.empty()))
     .frame(width: 400, height: 300)
@@ -223,7 +248,10 @@ struct SingleAnswerEditorView: View {
 
     SingleAnswerEditorView(
         question: question,
-        selectedAnswerIDs: Set(question.answers.map { $0.id }.prefix(3))
+        selectedAnswerIDs: Set(question.answers.map { $0.id }.prefix(3)),
+        onCopySelected: {},
+        onDuplicateSelected: {},
+        onDeleteSelected: {}
     )
     .environment(EditorState(document: QTIDocument.empty()))
     .frame(width: 400, height: 300)

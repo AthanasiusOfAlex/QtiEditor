@@ -42,47 +42,6 @@ struct AnswerSelectorListView: View {
             .padding(.vertical, 8)
             .background(Color.secondary.opacity(0.05))
 
-            // Bulk action toolbar (visible when multiple selected)
-            if selectedAnswerIDs.count > 1 {
-                HStack(spacing: 8) {
-                    Text("\(selectedAnswerIDs.count) selected")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    Spacer()
-
-                    Button(action: copySelectedAnswers) {
-                        Label("Copy", systemImage: "doc.on.doc")
-                            .font(.caption)
-                    }
-                    .buttonStyle(.borderless)
-
-                    if clipboardHasAnswers {
-                        Button(action: pasteAnswersAtEnd) {
-                            Label("Paste", systemImage: "doc.on.clipboard")
-                                .font(.caption)
-                        }
-                        .buttonStyle(.borderless)
-                    }
-
-                    Button(action: duplicateSelectedAnswers) {
-                        Label("Duplicate", systemImage: "plus.square.on.square")
-                            .font(.caption)
-                    }
-                    .buttonStyle(.borderless)
-
-                    Button(action: { showDeleteConfirmation = true }) {
-                        Label("Delete", systemImage: "trash")
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                    }
-                    .buttonStyle(.borderless)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color.blue.opacity(0.1))
-            }
-
             Divider()
 
             // Answer list
