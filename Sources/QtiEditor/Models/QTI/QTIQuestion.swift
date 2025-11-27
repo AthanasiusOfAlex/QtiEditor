@@ -37,7 +37,7 @@ enum QTIQuestionType: String, Codable, CaseIterable, Sendable {
 @Observable
 final class QTIQuestion: Sendable {
     /// Unique identifier
-    var id: UUID
+    let id: UUID
 
     /// Question type
     var type: QTIQuestionType

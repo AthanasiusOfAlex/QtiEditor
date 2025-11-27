@@ -12,7 +12,7 @@ import Foundation
 @Observable
 final class QTIAnswer: Sendable {
     /// Unique identifier
-    var id: UUID
+    let id: UUID
 
     /// Answer text (HTML content)
     var text: String

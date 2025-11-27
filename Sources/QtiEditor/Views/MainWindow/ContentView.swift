@@ -117,6 +117,15 @@ struct ContentView: View {
             .opacity(editorState.isRightPanelVisible ? 1 : 0)
             .animation(.easeInOut(duration: 0.15), value: editorState.isRightPanelVisible)  // Animate opacity only
         }
+        .background(
+            // Hidden button for Search shortcut (Cmd+F)
+            Button("Search Shortcut") {
+                editorState.isRightPanelVisible = true
+                editorState.rightPanelTab = .search
+            }
+            .keyboardShortcut("f", modifiers: .command)
+            .opacity(0)
+        )
         .navigationTitle(editorState.documentManager.displayName)
         .toolbar {
             ToolbarItem(placement: .navigation) {
@@ -135,17 +144,6 @@ struct ContentView: View {
                     Label("Toggle Utilities", systemImage: "sidebar.right")
                 }
                 .help("Toggle utilities panel")
-            }
-
-            ToolbarItem(placement: .primaryAction) {
-                Button(action: {
-                    editorState.isRightPanelVisible = true
-                    editorState.rightPanelTab = .search
-                }) {
-                    Label("Search", systemImage: editorState.rightPanelTab == .search && editorState.isRightPanelVisible ? "magnifyingglass.circle.fill" : "magnifyingglass")
-                }
-                .keyboardShortcut("f", modifiers: .command)
-                .help("Show search panel (Cmd+F)")
             }
         }
         .focusedSceneValue(\.editorState, editorState)

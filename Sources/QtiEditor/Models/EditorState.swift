@@ -50,6 +50,25 @@ final class EditorState {
     /// Current editor mode (HTML or Rich Text)
     var editorMode: EditorMode = .richText
 
+    // MARK: - Global Points
+    /// Whether global points mode is enabled
+    var isGlobalPointsEnabled: Bool = false {
+        didSet {
+            if isGlobalPointsEnabled {
+                applyGlobalPoints()
+            }
+        }
+    }
+
+    /// Global points value
+    var globalPointsValue: Double = 1.0 {
+        didSet {
+            if isGlobalPointsEnabled {
+                applyGlobalPoints()
+            }
+        }
+    }
+
     /// Left panel visibility (Questions list)
     var isLeftPanelVisible: Bool = true {
         didSet {
@@ -157,6 +176,17 @@ final class EditorState {
         return document.questions.first { $0.id == id }
     }
 
+    /// Apply global points to all questions
+    private func applyGlobalPoints() {
+        guard let document = document else { return }
+        for question in document.questions {
+            if question.points != globalPointsValue {
+                question.points = globalPointsValue
+                isDocumentEdited = true
+            }
+        }
+    }
+
     /// Ensures that an answer is selected for the current question
     /// If no answer is selected and the question has answers, selects the first one
     func ensureAnswerSelected() {
@@ -188,10 +218,12 @@ final class EditorState {
     func addQuestion(type: QTIQuestionType = .multipleChoice) {
         guard let document = document else { return }
 
+        let points = isGlobalPointsEnabled ? globalPointsValue : 1.0
+
         let question = QTIQuestion(
             type: type,
             questionText: "<p>Enter your question here...</p>",
-            points: 1.0,
+            points: points,
             answers: []
         )
 

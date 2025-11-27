@@ -85,6 +85,7 @@ struct QuizSettingsView: View {
     @ViewBuilder
     private func quizSettingsContent(for document: QTIDocument) -> some View {
         @Bindable var document = document
+        @Bindable var editorState = editorState
 
         VStack(alignment: .leading, spacing: 16) {
             Text("Quiz Settings")
@@ -147,6 +148,27 @@ struct QuizSettingsView: View {
                 let totalPoints = document.questions.reduce(0) { $0 + $1.points }
                 Text(String(format: "%.1f", totalPoints))
                     .font(.body)
+            }
+
+            Divider()
+
+            // Global Points
+            VStack(alignment: .leading, spacing: 8) {
+                Toggle("Global Points", isOn: $editorState.isGlobalPointsEnabled)
+                    .toggleStyle(.switch)
+                    .help("Set the same point value for all questions")
+
+                if editorState.isGlobalPointsEnabled {
+                    HStack {
+                        Text("Points:")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        TextField("Value", value: $editorState.globalPointsValue, format: .number)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 80)
+                    }
+                }
             }
 
             Spacer()
