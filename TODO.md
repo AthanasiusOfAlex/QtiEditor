@@ -24,14 +24,17 @@
 
 ## Phase 2: Cosmetic Fixes
 
-- [ ] We need to make the points (both on the top bar and in the quiz side panel) more obviously editable.
-- [ ] The default window size needs to be larger. See `images/example-default-window-size.png`.
-- [ ] The color of the answers list is confusing. Let's instead
-  - [ ] Make the collapsible panels (left and right) light gray, and
-  - [ ] The answers list white
-- [ ] Be sure the structure map in CLAUDE.md (line 81-115) is up to date.
+- [x] We need to make the points (both on the top bar and in the quiz side panel) more obviously editable.
+- [x] The default window size needs to be larger. See `images/example-default-window-size.png`.
+- [x] The color of the answers list is confusing. Let's instead
+  - [x] Make the collapsible panels (left and right) light gray, and
+  - [x] The answers list white
+- [x] Be sure the structure map in CLAUDE.md (line 81-115) is up to date.
 
-## Phase 3: Long-term projects
-- [ ] Add a "recents" list to the File menu
+## Phase 3: Code review
+
 - [ ] Review the code and and see if we can get rid of any legacy AppKit interfaces and modernize completely
+
+## Phase 4: Long-term projects
+- [ ] Add a "recents" list to the File menu
 - [ ] Robust undo/redo system
