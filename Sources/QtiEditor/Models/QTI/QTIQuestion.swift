@@ -57,7 +57,7 @@ final class QTIQuestion: Sendable {
     /// Additional metadata (Canvas-specific fields, etc.)
     var metadata: [String: String]
 
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         type: QTIQuestionType = .multipleChoice,
         questionText: String = "",
@@ -85,7 +85,7 @@ extension QTIQuestion: Codable {
         case id, type, questionText, points, answers, generalFeedback, metadata
     }
 
-    convenience init(from decoder: Decoder) throws {
+    nonisolated convenience init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let id = try container.decode(UUID.self, forKey: .id)
         let type = try container.decode(QTIQuestionType.self, forKey: .type)
@@ -106,15 +106,17 @@ extension QTIQuestion: Codable {
         )
     }
 
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
-        try container.encode(type, forKey: .type)
-        try container.encode(questionText, forKey: .questionText)
-        try container.encode(points, forKey: .points)
-        try container.encode(answers, forKey: .answers)
-        try container.encode(generalFeedback, forKey: .generalFeedback)
-        try container.encode(metadata, forKey: .metadata)
+    nonisolated func encode(to encoder: Encoder) throws {
+        try MainActor.assumeIsolated {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(id, forKey: .id)
+            try container.encode(type, forKey: .type)
+            try container.encode(questionText, forKey: .questionText)
+            try container.encode(points, forKey: .points)
+            try container.encode(answers, forKey: .answers)
+            try container.encode(generalFeedback, forKey: .generalFeedback)
+            try container.encode(metadata, forKey: .metadata)
+        }
     }
 }
 

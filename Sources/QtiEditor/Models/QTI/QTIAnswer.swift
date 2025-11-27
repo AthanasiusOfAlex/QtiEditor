@@ -29,7 +29,7 @@ final class QTIAnswer: Sendable {
     /// Additional metadata (Canvas-specific fields, etc.)
     var metadata: [String: String]
 
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         text: String = "",
         isCorrect: Bool = false,
@@ -55,7 +55,7 @@ extension QTIAnswer: Codable {
         case id, text, isCorrect, feedback, weight, metadata
     }
 
-    convenience init(from decoder: Decoder) throws {
+    nonisolated convenience init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let id = try container.decode(UUID.self, forKey: .id)
         let text = try container.decode(String.self, forKey: .text)
@@ -74,14 +74,16 @@ extension QTIAnswer: Codable {
         )
     }
 
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
-        try container.encode(text, forKey: .text)
-        try container.encode(isCorrect, forKey: .isCorrect)
-        try container.encode(feedback, forKey: .feedback)
-        try container.encode(weight, forKey: .weight)
-        try container.encode(metadata, forKey: .metadata)
+    nonisolated func encode(to encoder: Encoder) throws {
+        try MainActor.assumeIsolated {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(id, forKey: .id)
+            try container.encode(text, forKey: .text)
+            try container.encode(isCorrect, forKey: .isCorrect)
+            try container.encode(feedback, forKey: .feedback)
+            try container.encode(weight, forKey: .weight)
+            try container.encode(metadata, forKey: .metadata)
+        }
     }
 }
 
