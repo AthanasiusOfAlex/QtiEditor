@@ -1,0 +1,6 @@
+format_version = 2
+
+[apps.TestProgressApp]
+identifier = 'com.example.QtiEditor'
+product = 'QtiEditor'
+version = '0.99.0'
