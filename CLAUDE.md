@@ -107,13 +107,11 @@ QtiEditor/
 │   └── Search/
 │       └── SearchReplaceView.swift # Search UI (text fields for patterns)
 │
-├── Services/
-│   ├── IMSCCExtractor.swift        # Extract .imscc ZIP files
-│   ├── HTMLBeautifier.swift        # Format/validate HTML
-│   ├── SearchEngine.swift          # Regex search implementation
-│   └── DocumentManager.swift       # File I/O coordination
-│
-└── QtiEditorTests/                 # Unit tests
+└── Services/
+    ├── IMSCCExtractor.swift        # Extract .imscc ZIP files
+    ├── HTMLBeautifier.swift        # Format/validate HTML
+    ├── SearchEngine.swift          # Regex search implementation
+    └── DocumentManager.swift       # File I/O coordination
 ```
 
 ## QTI 1.2 Format Notes

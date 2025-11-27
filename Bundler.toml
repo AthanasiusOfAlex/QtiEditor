@@ -4,4 +4,4 @@ format_version = 2
 identifier = 'com.example.QtiEditor'
 product = 'QtiEditor'
 version = '0.99.0'
-icon = "images/AppIcon Exports/AppIcon-macOS-Default-1024x1024@1x.png"
+icon = "images/AppIcon.png"

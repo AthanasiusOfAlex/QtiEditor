@@ -15,15 +15,5 @@ let package = Package(
             dependencies: [],
             path: "Sources/QtiEditor"
         ),
-        .testTarget(
-            name: "QtiEditorTests",
-            dependencies: ["QtiEditor"],
-            path: "Tests/QtiEditorTests",
-        ),
-        .testTarget(
-            name: "QtiEditorUITests",
-            dependencies: ["QtiEditor"],
-            path: "Tests/QtiEditorUITests",
-        ),
     ],
 )

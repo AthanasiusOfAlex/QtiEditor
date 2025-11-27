@@ -29,6 +29,7 @@
 - [ ] The color of the answers list is confusing. Let's instead
   - [ ] Make the collapsible panels (left and right) light gray, and
   - [ ] The answers list white
+- [ ] Be sure the structure map in CLAUDE.md (line 81-115) is up to date.
 
 ## Phase 3: Long-term projects
 - [ ] Review the code and and see if we can get rid of any legacy AppKit interfaces and modernize completely
