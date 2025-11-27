@@ -283,7 +283,7 @@ struct QuestionEditorResizeHandle: View {
 
 /// Preference key to track left panel width
 struct LeftPanelWidthPreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
+    static let defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
     }
@@ -291,7 +291,7 @@ struct LeftPanelWidthPreferenceKey: PreferenceKey {
 
 /// Preference key to track right panel width
 struct RightPanelWidthPreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
+    static let defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
     }
