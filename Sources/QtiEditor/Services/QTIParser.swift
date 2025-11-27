@@ -134,11 +134,18 @@ final class QTIParser {
         let actualType = parseQuestionType(from: element) ?? questionType
         let questionMetadata = parseQuestionMetadata(from: element, identifier: identifier, title: title)
 
+        // Use points from metadata if available (Canvas stores the real point value there)
+        // resprocessing often defaults to 100 for correct answers (percentage)
+        var finalPoints = points
+        if let pointsStr = questionMetadata["points_possible"], let pointsVal = Double(pointsStr) {
+            finalPoints = pointsVal
+        }
+
         let question = QTIQuestion(
             id: UUID(),
             type: actualType,
             questionText: questionText,
-            points: points,
+            points: finalPoints,
             answers: answers,
             generalFeedback: "",
             metadata: questionMetadata

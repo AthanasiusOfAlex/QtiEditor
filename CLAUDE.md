@@ -222,23 +222,6 @@ Keep dependencies minimal for maintainability.
 
 ## Development Workflow
 
-### Development Environment Setup (Claude Code on Web)
-
-When working on this project through Claude Code on the web (Linux environment), the Swift toolchain is automatically installed via a session start hook:
-
-- **Swift Version**: 6.0.3 for Ubuntu 24.04
-- **Installation Location**: `~/.swift/swift-6.0.3`
-- **Hook Location**: `.claude/hooks/session_start.sh`
-- **PATH Configuration**: Automatically added to PATH during session initialization
-
-The session start hook:
-1. Checks if Swift 6.0.3 is already installed
-2. Downloads and installs it if needed (from swift.org official releases)
-3. Adds Swift binaries to PATH
-4. Verifies the installation
-
-This allows Claude to test Swift code, run builds, and verify syntax even in the web-based Linux environment.
-
 ### Setting Up the Project (macOS Development)
 1. Create Xcode project on macOS
 2. Configure for macOS Sequoia target
@@ -247,8 +230,7 @@ This allows Claude to test Swift code, run builds, and verify syntax even in the
 
 ### Building
 - **macOS**: Standard Xcode build (Cmd+B)
-- **Linux/Claude Code**: Use `swift build` for syntax validation and testing
-- Run tests (Cmd+U on macOS, `swift test` on Linux)
+- Run tests (Cmd+U on macOS)
 - Personal code signing for local use (macOS only)
 
 ### Version Control

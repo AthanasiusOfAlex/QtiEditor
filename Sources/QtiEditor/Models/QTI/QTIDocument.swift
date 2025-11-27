@@ -13,7 +13,7 @@ import Foundation
 @Observable
 final class QTIDocument: Sendable {
     /// Unique identifier for this quiz
-    var id: UUID
+    let id: UUID
 
     /// Quiz title
     var title: String
