@@ -9,12 +9,12 @@ import Foundation
 import System
 
 /// Service for extracting and creating Canvas IMSCC packages (.imscc ZIP files)
-actor IMSCCExtractor {
+struct IMSCCExtractor {
     /// Extracts an IMSCC package to a temporary directory
     /// - Parameter packageURL: URL to the .imscc file
     /// - Returns: URL to the extracted directory
     /// - Throws: QTIError if extraction fails
-    func extract(packageURL: URL) async throws -> URL {
+    func extract(packageURL: URL) throws -> URL {
         guard FileManager.default.fileExists(atPath: packageURL.path) else {
             throw QTIError.fileNotFound(packageURL.path)
         }
@@ -44,7 +44,7 @@ actor IMSCCExtractor {
     /// - Parameter extractedURL: URL to the extracted directory
     /// - Returns: URL to the assessment.xml file
     /// - Throws: QTIError if assessment file not found
-    func locateAssessmentFile(in extractedURL: URL) async throws -> URL {
+    func locateAssessmentFile(in extractedURL: URL) throws -> URL {
         let manifestURL = extractedURL.appendingPathComponent("imsmanifest.xml")
 
         guard FileManager.default.fileExists(atPath: manifestURL.path) else {
@@ -92,7 +92,7 @@ actor IMSCCExtractor {
     ///   - sourceURL: URL to the directory to package
     ///   - destinationURL: URL where the .imscc file should be created
     /// - Throws: QTIError if package creation fails
-    func createPackage(from sourceURL: URL, to destinationURL: URL) async throws {
+    func createPackage(from sourceURL: URL, to destinationURL: URL) throws {
         do {
             // Remove existing file if present
             if FileManager.default.fileExists(atPath: destinationURL.path) {
@@ -111,7 +111,7 @@ actor IMSCCExtractor {
 
     /// Cleans up a temporary extraction directory
     /// - Parameter url: URL to the temporary directory
-    func cleanup(extractedURL url: URL) async {
+    func cleanup(extractedURL url: URL) {
         try? FileManager.default.removeItem(at: url)
     }
 }

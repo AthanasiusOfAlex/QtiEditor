@@ -57,7 +57,7 @@ final class QTIQuestion: Sendable {
     /// Additional metadata (Canvas-specific fields, etc.)
     var metadata: [String: String]
 
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         type: QTIQuestionType = .multipleChoice,
         questionText: String = "",
@@ -73,6 +73,11 @@ final class QTIQuestion: Sendable {
         self.answers = answers
         self.generalFeedback = generalFeedback
         self.metadata = metadata
+
+        // Ensure canvas_identifier exists
+        if self.metadata["canvas_identifier"] == nil {
+            self.metadata["canvas_identifier"] = UUID().uuidString.replacingOccurrences(of: "-", with: "")
+        }
     }
 }
 
@@ -103,7 +108,7 @@ extension QTIQuestion {
         )
     }
 
-    convenience init(dto: DTO) {
+    nonisolated convenience init(dto: DTO) {
         self.init(
             id: dto.id,
             type: dto.type,

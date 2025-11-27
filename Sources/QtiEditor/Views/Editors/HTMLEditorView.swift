@@ -3,6 +3,7 @@
 //  QtiEditor
 //
 //  Created by Claude on 2025-11-18.
+//  Updated 2025-11-19 to use Swift Regex
 //
 
 import SwiftUI
@@ -65,6 +66,11 @@ struct HTMLEditorView: NSViewRepresentable {
         Coordinator(self)
     }
 
+    // Cached Regexes
+    private static let tagRegex = try? Regex("</?[a-zA-Z][a-zA-Z0-9]*[^>]*>")
+    private static let attrNameRegex = try? Regex("\\s([a-zA-Z-]+)=")
+    private static let stringRegex = try? Regex("\"[^\"]*\"")
+
     /// Apply basic syntax highlighting to HTML
     private func applySyntaxHighlighting(to textView: NSTextView) {
         let text = textView.string
@@ -76,29 +82,31 @@ struct HTMLEditorView: NSViewRepresentable {
         attributedString.addAttribute(.foregroundColor, value: NSColor.textColor, range: fullRange)
 
         // Highlight HTML tags
-        if let tagRegex = try? NSRegularExpression(pattern: "</?[a-zA-Z][a-zA-Z0-9]*[^>]*>", options: []) {
-            let matches = tagRegex.matches(in: text, options: [], range: fullRange)
+        if let tagRegex = Self.tagRegex {
+            let matches = text.matches(of: tagRegex)
             for match in matches {
-                attributedString.addAttribute(.foregroundColor, value: NSColor.systemBlue, range: match.range)
+                let nsRange = NSRange(match.range, in: text)
+                attributedString.addAttribute(.foregroundColor, value: NSColor.systemBlue, range: nsRange)
             }
         }
 
         // Highlight attribute names
-        if let attrNameRegex = try? NSRegularExpression(pattern: "\\s([a-zA-Z-]+)=", options: []) {
-            let matches = attrNameRegex.matches(in: text, options: [], range: fullRange)
+        if let attrNameRegex = Self.attrNameRegex {
+            let matches = text.matches(of: attrNameRegex)
             for match in matches {
-                if match.numberOfRanges > 1 {
-                    let nameRange = match.range(at: 1)
-                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemPurple, range: nameRange)
+                if let range = match.output[1].range {
+                    let nsRange = NSRange(range, in: text)
+                    attributedString.addAttribute(.foregroundColor, value: NSColor.systemPurple, range: nsRange)
                 }
             }
         }
 
         // Highlight attribute values (quoted strings)
-        if let stringRegex = try? NSRegularExpression(pattern: "\"[^\"]*\"", options: []) {
-            let matches = stringRegex.matches(in: text, options: [], range: fullRange)
+        if let stringRegex = Self.stringRegex {
+            let matches = text.matches(of: stringRegex)
             for match in matches {
-                attributedString.addAttribute(.foregroundColor, value: NSColor.systemGreen, range: match.range)
+                let nsRange = NSRange(match.range, in: text)
+                attributedString.addAttribute(.foregroundColor, value: NSColor.systemGreen, range: nsRange)
             }
         }
 
@@ -140,22 +148,4 @@ struct HTMLEditorView: NSViewRepresentable {
             }
         }
     }
-}
-
-#Preview {
-    @Previewable @State var htmlText = """
-    <p>This is a <strong>sample</strong> HTML text with <em>formatting</em>.</p>
-    <ul>
-        <li>Item 1</li>
-        <li>Item 2</li>
-    </ul>
-    """
-
-    return VStack {
-        Text("HTML Editor")
-            .font(.headline)
-        HTMLEditorView(text: $htmlText)
-            .frame(height: 300)
-    }
-    .padding()
 }

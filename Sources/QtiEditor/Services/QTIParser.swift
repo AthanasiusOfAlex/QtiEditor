@@ -8,13 +8,12 @@
 import Foundation
 
 /// Parses QTI 1.2 XML documents into QTIDocument models
-@MainActor
 final class QTIParser {
     /// Parses a QTI XML file into a QTIDocument
     /// - Parameter url: URL to the assessment.xml file
     /// - Returns: Parsed QTIDocument
     /// - Throws: QTIError if parsing fails
-    func parse(fileURL url: URL) async throws -> QTIDocument {
+    func parse(fileURL url: URL) throws -> QTIDocument {
         let data = try Data(contentsOf: url)
         return try parse(data: data)
     }

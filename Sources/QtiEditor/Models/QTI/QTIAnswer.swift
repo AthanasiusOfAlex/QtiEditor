@@ -29,7 +29,7 @@ final class QTIAnswer: Sendable {
     /// Additional metadata (Canvas-specific fields, etc.)
     var metadata: [String: String]
 
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         text: String = "",
         isCorrect: Bool = false,
@@ -43,6 +43,11 @@ final class QTIAnswer: Sendable {
         self.feedback = feedback
         self.weight = weight ?? (isCorrect ? 100.0 : 0.0)
         self.metadata = metadata
+
+        // Ensure canvas_identifier exists
+        if self.metadata["canvas_identifier"] == nil {
+            self.metadata["canvas_identifier"] = UUID().uuidString.lowercased()
+        }
     }
 }
 
@@ -71,7 +76,7 @@ extension QTIAnswer {
         )
     }
 
-    convenience init(dto: DTO) {
+    nonisolated convenience init(dto: DTO) {
         self.init(
             id: dto.id,
             text: dto.text,

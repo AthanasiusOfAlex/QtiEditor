@@ -1,178 +1,17 @@
 //
-//  DocumentManager.swift
+//  IMSCCPackageGenerator.swift
 //  QtiEditor
 //
-//  Created by Claude on 2025-11-16.
+//  Created by Claude on 2025-11-19.
 //
 
 import Foundation
 
-/// Coordinates file operations for QTI documents
-/// Manages opening, saving, and document state
-@MainActor
-final class DocumentManager: @unchecked Sendable {
-    private let extractor = IMSCCExtractor()
-    private let parser = QTIParser()
-    private let serializer = QTISerializer()
+/// Service for generating IMSCC package components (manifest, metadata)
+enum IMSCCPackageGenerator {
 
-    /// Currently extracted package directory (for cleanup)
-    private var extractedDirectory: URL?
-
-    /// Original file URL (for tracking save location)
-    var fileURL: URL?
-
-    /// Display name for the file (separate from quiz title)
-    /// Follows Apple convention: "Untitled", "Untitled 2", etc.
-    private(set) var displayName: String = "Untitled"
-
-    /// Whether the document has unsaved changes
-    var isDirty: Bool = false
-
-    // MARK: - Lifecycle
-
-    deinit {
-        // Best-effort cleanup: unregister display name when document manager is destroyed
-        // Use detached task since deinit can't be async
-        let name = displayName
-        Task.detached {
-            await DocumentRegistry.shared.unregister(displayName: name)
-        }
-    }
-
-    // MARK: - Opening Documents
-
-    /// Opens an IMSCC package and parses it into a QTIDocument
-    /// - Parameter url: URL to the .imscc file
-    /// - Returns: Parsed QTIDocument
-    /// - Throws: QTIError if opening fails
-    func openDocument(from url: URL) async throws -> QTIDocument {
-        // Extract the package
-        let extractedURL = try await extractor.extract(packageURL: url)
-        extractedDirectory = extractedURL
-
-        // Locate assessment file
-        let assessmentURL = try await extractor.locateAssessmentFile(in: extractedURL)
-
-        // Parse the assessment
-        let document = try await parser.parse(fileURL: assessmentURL)
-
-        // Store original URL and extract display name
-        fileURL = url
-        let newName = url.deletingPathExtension().lastPathComponent
-        await updateDisplayName(to: newName)
-        isDirty = false
-
-        return document
-    }
-
-    // MARK: - Saving Documents
-
-    /// Saves a document to its original location
-    /// - Parameter document: The document to save
-    /// - Throws: QTIError if saving fails
-    func saveDocument(_ document: QTIDocument) async throws {
-        guard let fileURL = fileURL else {
-            throw QTIError.cannotWriteFile("No file URL set")
-        }
-
-        try await saveDocument(document, to: fileURL)
-    }
-
-    /// Saves a document to a specific location
-    /// - Parameters:
-    ///   - document: The document to save
-    ///   - url: Destination URL for the .imscc file
-    /// - Throws: QTIError if saving fails
-    func saveDocument(_ document: QTIDocument, to url: URL) async throws {
-        // Create temporary directory for package construction
-        let tempDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent(UUID().uuidString)
-
-        try FileManager.default.createDirectory(
-            at: tempDir,
-            withIntermediateDirectories: true
-        )
-
-        defer {
-            // Clean up temp directory
-            try? FileManager.default.removeItem(at: tempDir)
-        }
-
-        // Create package structure matching Canvas format
-        let quizID = document.metadata["canvas_identifier"] ?? UUID().uuidString.replacingOccurrences(of: "-", with: "")
-        let quizDir = tempDir.appendingPathComponent(quizID)
-        try FileManager.default.createDirectory(at: quizDir, withIntermediateDirectories: true)
-
-        // Generate assessment XML with Canvas naming: {quiz-id}/{quiz-id}.xml
-        let assessmentURL = quizDir.appendingPathComponent("\(quizID).xml")
-        try serializer.serialize(document: document, to: assessmentURL)
-
-        // Generate assessment_meta.xml in quiz directory
-        let metaURL = quizDir.appendingPathComponent("assessment_meta.xml")
-        try generateAssessmentMeta(for: document, quizID: quizID, to: metaURL)
-
-        // Generate manifest at root
-        let manifestURL = tempDir.appendingPathComponent("imsmanifest.xml")
-        try generateManifest(for: document, quizID: quizID, to: manifestURL)
-
-        // Create package as .zip (Canvas uses .zip extension, not .imscc)
-        var finalURL = url
-        if url.pathExtension == "imscc" {
-            finalURL = url.deletingPathExtension().appendingPathExtension("zip")
-        }
-        try await extractor.createPackage(from: tempDir, to: finalURL)
-
-        // Update state
-        fileURL = url
-        let newName = url.deletingPathExtension().lastPathComponent
-        await updateDisplayName(to: newName)
-        isDirty = false
-    }
-
-    // MARK: - Creating New Documents
-
-    /// Creates a new empty QTI document
-    /// - Returns: New QTIDocument
-    func createNewDocument() async -> QTIDocument {
-        fileURL = nil
-        isDirty = false
-
-        // Generate display name following Apple convention
-        // Uses registry to find next available "Untitled" number
-        let newName = await DocumentRegistry.shared.nextUntitledName()
-        await setDisplayName(to: newName)
-
-        return QTIDocument.empty()
-    }
-
-    // MARK: - Cleanup
-
-    /// Cleans up any temporary extracted files
-    func cleanup() async {
-        if let extractedDirectory = extractedDirectory {
-            await extractor.cleanup(extractedURL: extractedDirectory)
-            self.extractedDirectory = nil
-        }
-    }
-
-    // MARK: - Display Name Management
-
-    /// Sets the display name for a new document and registers it
-    private func setDisplayName(to newName: String) async {
-        displayName = newName
-        await DocumentRegistry.shared.register(displayName: newName)
-    }
-
-    /// Updates the display name (e.g., when saving) and updates the registry
-    private func updateDisplayName(to newName: String) async {
-        let oldName = displayName
-        displayName = newName
-        await DocumentRegistry.shared.update(from: oldName, to: newName)
-    }
-
-    // MARK: - Manifest Generation
-
-    private func generateManifest(for document: QTIDocument, quizID: String, to url: URL) throws {
+    /// Generates the imsmanifest.xml file
+    static func generateManifest(for snapshot: QTIDocumentSnapshot, quizID: String, to url: URL) throws {
         // Generate a unique manifest ID
         let manifestID = UUID().uuidString.replacingOccurrences(of: "-", with: "")
         let metaResourceID = UUID().uuidString.replacingOccurrences(of: "-", with: "")
@@ -187,7 +26,7 @@ final class DocumentManager: @unchecked Sendable {
             <imsmd:lom>
               <imsmd:general>
                 <imsmd:title>
-                  <imsmd:string>QTI Quiz Export for \(xmlEscape(document.title))</imsmd:string>
+                  <imsmd:string>QTI Quiz Export for \(xmlEscape(snapshot.title))</imsmd:string>
                 </imsmd:title>
               </imsmd:general>
               <imsmd:lifeCycle>
@@ -223,16 +62,17 @@ final class DocumentManager: @unchecked Sendable {
         try xml.write(to: url, atomically: true, encoding: .utf8)
     }
 
-    private func generateAssessmentMeta(for document: QTIDocument, quizID: String, to url: URL) throws {
+    /// Generates the assessment_meta.xml file
+    static func generateAssessmentMeta(for snapshot: QTIDocumentSnapshot, quizID: String, to url: URL) throws {
         let assignmentID = UUID().uuidString.replacingOccurrences(of: "-", with: "")
         let assignmentGroupID = UUID().uuidString.replacingOccurrences(of: "-", with: "")
-        let pointsPossible = document.questions.reduce(0.0) { $0 + $1.points }
+        let pointsPossible = snapshot.questions.reduce(0.0) { $0 + $1.points }
 
         let xml = """
         <?xml version="1.0"?>
         <quiz xmlns="http://canvas.instructure.com/xsd/cccv1p0" xmlns:xsi="http://canvas.instructure.com/xsd/cccv1p0 https://canvas.instructure.com/xsd/cccv1p0.xsd" identifier="\(quizID)">
-          <title>\(xmlEscape(document.title))</title>
-          <description>\(xmlEscape(document.description))</description>
+          <title>\(xmlEscape(snapshot.title))</title>
+          <description>\(xmlEscape(snapshot.description))</description>
           <due_at/>
           <lock_at/>
           <unlock_at/>
@@ -264,7 +104,7 @@ final class DocumentManager: @unchecked Sendable {
           <disable_document_access>false</disable_document_access>
           <result_view_restricted>false</result_view_restricted>
           <assignment identifier="\(assignmentID)">
-            <title>\(xmlEscape(document.title))</title>
+            <title>\(xmlEscape(snapshot.title))</title>
             <due_at/>
             <lock_at/>
             <unlock_at/>
@@ -311,7 +151,7 @@ final class DocumentManager: @unchecked Sendable {
         try xml.write(to: url, atomically: true, encoding: .utf8)
     }
 
-    private func xmlEscape(_ string: String) -> String {
+    private static func xmlEscape(_ string: String) -> String {
         string
             .replacingOccurrences(of: "&", with: "&amp;")
             .replacingOccurrences(of: "<", with: "&lt;")

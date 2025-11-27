@@ -3,6 +3,7 @@
 //  QtiEditor
 //
 //  Created by Claude on 2025-11-18.
+//  Updated 2025-11-19 to use Swift Regex
 //
 
 import Foundation
@@ -86,40 +87,40 @@ actor HTMLBeautifier {
 
         // Simple validation: check for matching tags
         let tagPattern = "</?([a-zA-Z][a-zA-Z0-9]*)[^>]*>"
-        guard let regex = try? NSRegularExpression(pattern: tagPattern) else {
-            return ValidationResult(isValid: false, errors: ["Failed to create validation regex"])
-        }
 
-        let matches = regex.matches(in: html, range: NSRange(html.startIndex..., in: html))
+        do {
+            let regex = try Regex(tagPattern)
+            let matches = html.matches(of: regex)
 
-        for match in matches {
-            guard let tagRange = Range(match.range(at: 0), in: html),
-                  let nameRange = Range(match.range(at: 1), in: html) else {
-                continue
-            }
+            for match in matches {
+                let fullTag = String(html[match.range])
 
-            let fullTag = String(html[tagRange])
-            let tagName = String(html[nameRange]).lowercased()
+                // Get captured tag name
+                guard let tagNameSubstring = match.output[1].substring else { continue }
+                let tagName = String(tagNameSubstring).lowercased()
 
-            // Skip void elements (self-closing tags)
-            if isVoidElement(fullTag) {
-                continue
-            }
-
-            if fullTag.hasPrefix("</") {
-                // Closing tag
-                if tagStack.isEmpty {
-                    errors.append("Unexpected closing tag: \(fullTag)")
-                } else {
-                    let expectedTag = tagStack.removeLast()
-                    if expectedTag != tagName {
-                        errors.append("Mismatched tags: expected </\(expectedTag)>, found \(fullTag)")
-                    }
+                // Skip void elements (self-closing tags)
+                if isVoidElement(fullTag) {
+                    continue
                 }
-            } else if !fullTag.hasSuffix("/>") {
-                // Opening tag (not self-closing)
-                tagStack.append(tagName)
+
+                if fullTag.hasPrefix("</") {
+                    // Closing tag
+                    if tagStack.isEmpty {
+                        errors.append("Unexpected closing tag: \(fullTag)")
+                    } else {
+                        let expectedTag = tagStack.removeLast()
+                        if expectedTag != tagName {
+                            errors.append("Mismatched tags: expected </\(expectedTag)>, found \(fullTag)")
+                        }
+                    }
+                } else if !fullTag.hasSuffix("/>") {
+                    // Opening tag (not self-closing)
+                    tagStack.append(tagName)
+                }
             }
+        } catch {
+            return ValidationResult(isValid: false, errors: ["Failed to create validation regex"])
         }
 
         // Check for unclosed tags
