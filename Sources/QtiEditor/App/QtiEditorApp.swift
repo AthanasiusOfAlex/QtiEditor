@@ -37,6 +37,7 @@ struct QtiEditorApp: App {
             ContentView()
                 .environment(PendingFileManager.shared)
         }
+        .defaultSize(width: 1500, height: 950)
         .commands {
             FileCommands()
         }

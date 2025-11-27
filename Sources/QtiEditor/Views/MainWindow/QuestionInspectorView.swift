@@ -30,6 +30,7 @@ struct QuestionInspectorView: View {
         }
         .padding()
         .frame(minWidth: 200, idealWidth: 250)
+        .background(Color(nsColor: .controlBackgroundColor))
         .navigationTitle("Inspector")
     }
 
