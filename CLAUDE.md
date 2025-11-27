@@ -13,6 +13,12 @@ A macOS native application for editing Canvas LMS quiz exports in QTI 1.2 format
 
 **NOTE**: You will not be able to compile or test this code base directly on your Linux system. It only works in MacOS. Don't bother installing Swift. Let the user do the testing.
 
+## Programming Princples
+
+1. Always use modern APIs (SwiftUI, Swift Concurrency, Swift regex) when available
+2. Don't attempt backward compatibility; don't be afraid to bump up the minimum requirements
+3. For the UI: Keep It Simple Stupid (KISS)
+
 ## Core Features
 
 ### 1. File Operations
@@ -106,9 +112,6 @@ QtiEditor/
 │   ├── HTMLBeautifier.swift        # Format/validate HTML
 │   ├── SearchEngine.swift          # Regex search implementation
 │   └── DocumentManager.swift       # File I/O coordination
-│
-├── Resources/
-│   └── Assets.xcassets             # Icons, colors, etc.
 │
 └── QtiEditorTests/                 # Unit tests
 ```
