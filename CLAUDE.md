@@ -11,6 +11,8 @@ A macOS native application for editing Canvas LMS quiz exports in QTI 1.2 format
 - **Framework**: SwiftUI with AppKit integration
 - **Deployment**: Personal use (no App Store requirements)
 
+**NOTE**: You will not be able to compile or test this code base directly on your Linux system. It only works in MacOS. Don't bother installing Swift. Let the user do the testing.
+
 ## Core Features
 
 ### 1. File Operations
