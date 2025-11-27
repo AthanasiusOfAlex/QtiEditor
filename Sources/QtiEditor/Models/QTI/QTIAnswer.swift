@@ -29,7 +29,7 @@ final class QTIAnswer: Sendable {
     /// Additional metadata (Canvas-specific fields, etc.)
     var metadata: [String: String]
 
-    nonisolated init(
+    init(
         id: UUID = UUID(),
         text: String = "",
         isCorrect: Bool = false,
@@ -49,22 +49,19 @@ final class QTIAnswer: Sendable {
 // MARK: - Identifiable Conformance
 extension QTIAnswer: Identifiable {}
 
-// MARK: - Codable Conformance
-extension QTIAnswer: Codable {
-    enum CodingKeys: String, CodingKey {
-        case id, text, isCorrect, feedback, weight, metadata
+// MARK: - DTO for Serialization
+extension QTIAnswer {
+    struct DTO: Codable, Sendable {
+        let id: UUID
+        let text: String
+        let isCorrect: Bool
+        let feedback: String
+        let weight: Double
+        let metadata: [String: String]
     }
 
-    nonisolated convenience init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let id = try container.decode(UUID.self, forKey: .id)
-        let text = try container.decode(String.self, forKey: .text)
-        let isCorrect = try container.decode(Bool.self, forKey: .isCorrect)
-        let feedback = try container.decode(String.self, forKey: .feedback)
-        let weight = try container.decode(Double.self, forKey: .weight)
-        let metadata = try container.decode([String: String].self, forKey: .metadata)
-
-        self.init(
+    var dto: DTO {
+        DTO(
             id: id,
             text: text,
             isCorrect: isCorrect,
@@ -74,16 +71,15 @@ extension QTIAnswer: Codable {
         )
     }
 
-    nonisolated func encode(to encoder: Encoder) throws {
-        try MainActor.assumeIsolated {
-            var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(id, forKey: .id)
-            try container.encode(text, forKey: .text)
-            try container.encode(isCorrect, forKey: .isCorrect)
-            try container.encode(feedback, forKey: .feedback)
-            try container.encode(weight, forKey: .weight)
-            try container.encode(metadata, forKey: .metadata)
-        }
+    convenience init(dto: DTO) {
+        self.init(
+            id: dto.id,
+            text: dto.text,
+            isCorrect: dto.isCorrect,
+            feedback: dto.feedback,
+            weight: dto.weight,
+            metadata: dto.metadata
+        )
     }
 }
 

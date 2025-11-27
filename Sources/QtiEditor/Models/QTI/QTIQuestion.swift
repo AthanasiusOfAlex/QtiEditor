@@ -57,7 +57,7 @@ final class QTIQuestion: Sendable {
     /// Additional metadata (Canvas-specific fields, etc.)
     var metadata: [String: String]
 
-    nonisolated init(
+    init(
         id: UUID = UUID(),
         type: QTIQuestionType = .multipleChoice,
         questionText: String = "",
@@ -79,44 +79,40 @@ final class QTIQuestion: Sendable {
 // MARK: - Identifiable Conformance
 extension QTIQuestion: Identifiable {}
 
-// MARK: - Codable Conformance
-extension QTIQuestion: Codable {
-    enum CodingKeys: String, CodingKey {
-        case id, type, questionText, points, answers, generalFeedback, metadata
+// MARK: - DTO for Serialization
+extension QTIQuestion {
+    struct DTO: Codable, Sendable {
+        let id: UUID
+        let type: QTIQuestionType
+        let questionText: String
+        let points: Double
+        let answers: [QTIAnswer.DTO]
+        let generalFeedback: String
+        let metadata: [String: String]
     }
 
-    nonisolated convenience init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let id = try container.decode(UUID.self, forKey: .id)
-        let type = try container.decode(QTIQuestionType.self, forKey: .type)
-        let questionText = try container.decode(String.self, forKey: .questionText)
-        let points = try container.decode(Double.self, forKey: .points)
-        let answers = try container.decode([QTIAnswer].self, forKey: .answers)
-        let generalFeedback = try container.decode(String.self, forKey: .generalFeedback)
-        let metadata = try container.decode([String: String].self, forKey: .metadata)
-
-        self.init(
+    var dto: DTO {
+        DTO(
             id: id,
             type: type,
             questionText: questionText,
             points: points,
-            answers: answers,
+            answers: answers.map { $0.dto },
             generalFeedback: generalFeedback,
             metadata: metadata
         )
     }
 
-    nonisolated func encode(to encoder: Encoder) throws {
-        try MainActor.assumeIsolated {
-            var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(id, forKey: .id)
-            try container.encode(type, forKey: .type)
-            try container.encode(questionText, forKey: .questionText)
-            try container.encode(points, forKey: .points)
-            try container.encode(answers, forKey: .answers)
-            try container.encode(generalFeedback, forKey: .generalFeedback)
-            try container.encode(metadata, forKey: .metadata)
-        }
+    convenience init(dto: DTO) {
+        self.init(
+            id: dto.id,
+            type: dto.type,
+            questionText: dto.questionText,
+            points: dto.points,
+            answers: dto.answers.map { QTIAnswer(dto: $0) },
+            generalFeedback: dto.generalFeedback,
+            metadata: dto.metadata
+        )
     }
 }
 

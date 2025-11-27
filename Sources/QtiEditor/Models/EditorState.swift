@@ -383,7 +383,8 @@ final class EditorState {
 
         do {
             let encoder = JSONEncoder()
-            let data = try encoder.encode(questionsToCopy)
+            let dtos = questionsToCopy.map { $0.dto }
+            let data = try encoder.encode(dtos)
 
             // Use NSPasteboardItem (modern API)
             let item = NSPasteboardItem()
@@ -402,7 +403,8 @@ final class EditorState {
 
         do {
             let encoder = JSONEncoder()
-            let data = try encoder.encode([question])
+            let dtos = [question.dto]
+            let data = try encoder.encode(dtos)
 
             // Use NSPasteboardItem (modern API)
             let item = NSPasteboardItem()
@@ -425,7 +427,8 @@ final class EditorState {
 
         do {
             let decoder = JSONDecoder()
-            let pastedQuestions = try decoder.decode([QTIQuestion].self, from: data)
+            let pastedDTOs = try decoder.decode([QTIQuestion.DTO].self, from: data)
+            let pastedQuestions = pastedDTOs.map { QTIQuestion(dto: $0) }
 
             guard !pastedQuestions.isEmpty else { return }
 
@@ -470,7 +473,8 @@ final class EditorState {
 
         do {
             let decoder = JSONDecoder()
-            let pastedQuestions = try decoder.decode([QTIQuestion].self, from: data)
+            let pastedDTOs = try decoder.decode([QTIQuestion.DTO].self, from: data)
+            let pastedQuestions = pastedDTOs.map { QTIQuestion(dto: $0) }
 
             guard !pastedQuestions.isEmpty else { return }
 
@@ -531,8 +535,8 @@ final class EditorState {
         // Data is consistent - decode it
         do {
             let decoder = JSONDecoder()
-            let questions = try decoder.decode([QTIQuestion].self, from: data)
-            return questions.count
+            let dtos = try decoder.decode([QTIQuestion.DTO].self, from: data)
+            return dtos.count
         } catch {
             return 0
         }
@@ -559,8 +563,8 @@ final class EditorState {
         // Data is consistent - decode it
         do {
             let decoder = JSONDecoder()
-            let answers = try decoder.decode([QTIAnswer].self, from: data)
-            return answers.count
+            let dtos = try decoder.decode([QTIAnswer.DTO].self, from: data)
+            return dtos.count
         } catch {
             return 0
         }
@@ -579,7 +583,8 @@ final class EditorState {
 
         do {
             let encoder = JSONEncoder()
-            let data = try encoder.encode(answer)
+            let dto = answer.dto
+            let data = try encoder.encode(dto)
 
             // Use NSPasteboardItem (modern API)
             let item = NSPasteboardItem()
@@ -600,7 +605,8 @@ final class EditorState {
 
         do {
             let decoder = JSONDecoder()
-            let pastedAnswer = try decoder.decode(QTIAnswer.self, from: data)
+            let pastedDTO = try decoder.decode(QTIAnswer.DTO.self, from: data)
+            let pastedAnswer = QTIAnswer(dto: pastedDTO)
 
             // Generate new UUID for the pasted answer
             let newAnswer = pastedAnswer.duplicate(preserveCanvasIdentifier: false)
@@ -627,7 +633,8 @@ final class EditorState {
 
         do {
             let encoder = JSONEncoder()
-            let data = try encoder.encode(answers)
+            let dtos = answers.map { $0.dto }
+            let data = try encoder.encode(dtos)
 
             // Use NSPasteboardItem (modern API)
             let item = NSPasteboardItem()
@@ -651,7 +658,8 @@ final class EditorState {
 
         do {
             let decoder = JSONDecoder()
-            let pastedAnswers = try decoder.decode([QTIAnswer].self, from: data)
+            let pastedDTOs = try decoder.decode([QTIAnswer.DTO].self, from: data)
+            let pastedAnswers = pastedDTOs.map { QTIAnswer(dto: $0) }
 
             var insertIndex = afterIndex.map { $0 + 1 } ?? question.answers.count
 
