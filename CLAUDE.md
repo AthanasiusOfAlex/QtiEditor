@@ -95,9 +95,11 @@ QtiEditor/
 │
 ├── Views/
 │   ├── MainWindow/
-│   │   ├── ContentView.swift       # Main container view
-│   │   ├── QuestionListView.swift  # Sidebar navigation
-│   │   └── InspectorView.swift     # Question metadata panel
+│   │   ├── ContentView.swift           # Main container view
+│   │   ├── QuestionListView.swift      # Sidebar navigation
+│   │   ├── QuestionInspectorView.swift # Question metadata & settings (Sidebar)
+│   │   ├── RightPanelView.swift        # Utilities panel (Right side)
+│   │   └── QuestionHeaderView.swift    # Question top bar
 │   │
 │   ├── Editors/
 │   │   ├── HTMLEditorView.swift    # Code editor for HTML

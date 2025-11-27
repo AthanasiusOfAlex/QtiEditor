@@ -95,6 +95,7 @@ struct AnswerSelectorListView: View {
             }
         }
         .frame(minWidth: 200, idealWidth: 250)
+        .background(Color(nsColor: .textBackgroundColor))
         .confirmationDialog(
             deleteDialogTitle(),
             isPresented: $showDeleteConfirmation

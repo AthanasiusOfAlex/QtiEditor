@@ -49,7 +49,7 @@ struct QuestionHeaderView: View {
                             editorState.markDocumentEdited()
                         }
                     ), format: .number)
-                    .textFieldStyle(.plain)
+                    .textFieldStyle(.roundedBorder)
                     .frame(width: 40)
                     .multilineTextAlignment(.trailing)
 
