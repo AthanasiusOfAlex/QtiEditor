@@ -42,13 +42,7 @@ struct QuestionHeaderView: View {
 
                 // Points (editable inline)
                 HStack(spacing: 4) {
-                    TextField("Points", value: Binding(
-                        get: { question.points },
-                        set: { newValue in
-                            question.points = newValue
-                            editorState.markDocumentEdited()
-                        }
-                    ), format: .number)
+                    TextField("Points", value: $question.points, format: .number)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 40)
                     .multilineTextAlignment(.trailing)
@@ -91,7 +85,6 @@ struct QuestionHeaderView: View {
                     get: { question.metadata["canvas_title"] ?? "" },
                     set: { newValue in
                         question.metadata["canvas_title"] = newValue
-                        editorState.markDocumentEdited()
                     }
                 ))
                 .textFieldStyle(.roundedBorder)
@@ -117,17 +110,17 @@ struct QuestionHeaderView: View {
 #Preview {
     VStack(spacing: 20) {
         QuestionHeaderView(
-            question: QTIDocument.empty().questions[0],
+            question: .constant(QTIQuestion()),
             questionNumber: 1
         )
 
         QuestionHeaderView(
-            question: QTIQuestion(
+            question: .constant(QTIQuestion(
                 type: .essay,
                 questionText: "<p>Test question</p>",
                 points: 5.0,
                 answers: []
-            ),
+            )),
             questionNumber: 2
         )
     }

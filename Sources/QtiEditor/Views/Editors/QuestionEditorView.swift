@@ -11,7 +11,7 @@ import SwiftUI
 /// Contains editor toolbar and appropriate editor view based on mode
 struct QuestionEditorView: View {
     @Environment(EditorState.self) private var editorState
-    let question: QTIQuestion
+    @Binding var question: QTIQuestion
     let height: CGFloat
 
     var body: some View {
@@ -22,7 +22,7 @@ struct QuestionEditorView: View {
                     HStack {
                         Button(action: {
                             Task {
-                                await beautifyHTML(for: question)
+                                await beautifyHTML()
                             }
                         }) {
                             Label("Beautify", systemImage: "wand.and.stars")
@@ -32,7 +32,7 @@ struct QuestionEditorView: View {
 
                         Button(action: {
                             Task {
-                                await validateHTML(for: question)
+                                await validateHTML()
                             }
                         }) {
                             Label("Validate", systemImage: "checkmark.circle")
@@ -45,24 +45,12 @@ struct QuestionEditorView: View {
                     .background(Color.secondary.opacity(0.1))
 
                     // HTML editor
-                    HTMLEditorView(text: Binding(
-                        get: { question.questionText },
-                        set: { newValue in
-                            question.questionText = newValue
-                            editorState.markDocumentEdited()
-                        }
-                    ))
+                    HTMLEditorView(text: $question.questionText)
                 }
                 .border(Color.secondary.opacity(0.3), width: 1)
                 .cornerRadius(4)
             } else {
-                RichTextEditorView(htmlText: Binding(
-                    get: { question.questionText },
-                    set: { newValue in
-                        question.questionText = newValue
-                        editorState.markDocumentEdited()
-                    }
-                ))
+                RichTextEditorView(htmlText: $question.questionText)
                 .border(Color.secondary.opacity(0.3), width: 1)
                 .cornerRadius(4)
             }
@@ -73,19 +61,20 @@ struct QuestionEditorView: View {
     // MARK: - Helper Functions
 
     /// Beautify HTML for the given question
-    private func beautifyHTML(for question: QTIQuestion) async {
+    private func beautifyHTML() async {
+        let text = question.questionText
         let beautifier = HTMLBeautifier()
-        let beautified = await beautifier.beautify(question.questionText)
+        let beautified = await beautifier.beautify(text)
         await MainActor.run {
             question.questionText = beautified
-            editorState.markDocumentEdited()
         }
     }
 
     /// Validate HTML for the given question
-    private func validateHTML(for question: QTIQuestion) async {
+    private func validateHTML() async {
+        let text = question.questionText
         let beautifier = HTMLBeautifier()
-        let result = await beautifier.validate(question.questionText)
+        let result = await beautifier.validate(text)
 
         await MainActor.run {
             if result.isValid {
@@ -103,7 +92,7 @@ struct QuestionEditorView: View {
 
 #Preview {
     QuestionEditorView(
-        question: QTIDocument.empty().questions[0],
+        question: .constant(QTIQuestion()),
         height: 300
     )
     .environment(EditorState(document: QTIDocument.empty()))

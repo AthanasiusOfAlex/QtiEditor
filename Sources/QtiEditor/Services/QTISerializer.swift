@@ -8,23 +8,23 @@
 
 import Foundation
 
-/// Serializes QTIDocumentSnapshot models into Canvas-compatible QTI 1.2 XML
+/// Serializes QTIDocument models into Canvas-compatible QTI 1.2 XML
 struct QTISerializer {
-    /// Serializes a QTIDocumentSnapshot to QTI XML data
-    /// - Parameter snapshot: The document snapshot to serialize
+    /// Serializes a QTIDocument to QTI XML data
+    /// - Parameter snapshot: The document to serialize
     /// - Returns: XML data
     /// - Throws: QTIError if serialization fails
-    func serialize(snapshot: QTIDocumentSnapshot) throws -> Data {
+    func serialize(snapshot: QTIDocument) throws -> Data {
         let xmlDoc = try generateXML(for: snapshot)
         return xmlDoc.xmlData(options: [.nodePrettyPrint])
      }
 
-    /// Serializes a QTIDocumentSnapshot to a file
+    /// Serializes a QTIDocument to a file
     /// - Parameters:
-    ///   - snapshot: The document snapshot to serialize
+    ///   - snapshot: The document to serialize
     ///   - url: Destination file URL
     /// - Throws: QTIError if serialization fails
-    func serialize(snapshot: QTIDocumentSnapshot, to url: URL) throws {
+    func serialize(snapshot: QTIDocument, to url: URL) throws {
         let data = try serialize(snapshot: snapshot)
 
         do {
@@ -36,7 +36,7 @@ struct QTISerializer {
 
     // MARK: - XML Generation
 
-    private func generateXML(for snapshot: QTIDocumentSnapshot) throws -> XMLDocument {
+    private func generateXML(for snapshot: QTIDocument) throws -> XMLDocument {
         // Create root element with proper Canvas namespaces
         let root = XMLElement(name: "questestinterop")
         let ns = XMLNode.namespace(withName: "", stringValue: "http://www.imsglobal.org/xsd/ims_qtiasiv1p2") as! XMLNode
@@ -62,7 +62,7 @@ struct QTISerializer {
         return xmlDoc
     }
 
-    private func createAssessmentElement(for snapshot: QTIDocumentSnapshot) -> XMLElement {
+    private func createAssessmentElement(for snapshot: QTIDocument) -> XMLElement {
         let assessment = XMLElement(name: "assessment")
 
         // Set attributes
@@ -86,7 +86,7 @@ struct QTISerializer {
         return assessment
     }
 
-    private func createAssessmentMetadata(for snapshot: QTIDocumentSnapshot) -> XMLElement {
+    private func createAssessmentMetadata(for snapshot: QTIDocument) -> XMLElement {
         let qtimetadata = XMLElement(name: "qtimetadata")
 
         // Add cc_maxattempts

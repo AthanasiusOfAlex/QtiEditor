@@ -9,20 +9,20 @@ import Foundation
 
 /// Parses QTI 1.2 XML documents into QTIDocument models
 struct QTIParser {
-    /// Parses a QTI XML file into a QTIDocumentSnapshot
+    /// Parses a QTI XML file into a QTIDocument
     /// - Parameter url: URL to the assessment.xml file
-    /// - Returns: Parsed QTIDocumentSnapshot
+    /// - Returns: Parsed QTIDocument
     /// - Throws: QTIError if parsing fails
-    func parse(fileURL url: URL) throws -> QTIDocumentSnapshot {
+    func parse(fileURL url: URL) throws -> QTIDocument {
         let data = try Data(contentsOf: url)
         return try parse(data: data)
     }
 
-    /// Parses QTI XML data into a QTIDocumentSnapshot
+    /// Parses QTI XML data into a QTIDocument
     /// - Parameter data: XML data
-    /// - Returns: Parsed QTIDocumentSnapshot
+    /// - Returns: Parsed QTIDocument
     /// - Throws: QTIError if parsing fails
-    func parse(data: Data) throws -> QTIDocumentSnapshot {
+    func parse(data: Data) throws -> QTIDocument {
         let xmlDoc: XMLDocument
         do {
             xmlDoc = try XMLDocument(data: data)
@@ -46,7 +46,7 @@ struct QTIParser {
 
     // MARK: - Assessment Parsing
 
-    private func parseAssessment(_ element: XMLElement) throws -> QTIDocumentSnapshot {
+    private func parseAssessment(_ element: XMLElement) throws -> QTIDocument {
         // Parse assessment attributes
         let title = element.attribute(forName: "title")?.stringValue ?? "Untitled Quiz"
         let identifier = element.attribute(forName: "ident")?.stringValue ?? UUID().uuidString
@@ -83,7 +83,7 @@ struct QTIParser {
         }
 
         // Create document
-        let document = QTIDocumentSnapshot(
+        let document = QTIDocument(
             title: title,
             description: "",
             questions: allQuestions,
@@ -250,7 +250,7 @@ struct QTIParser {
             }
 
             // Store Canvas identifier in metadata for round-trip preservation
-            let answer = QTIAnswer(
+            var answer = QTIAnswer(
                 id: UUID(),
                 text: answerText,
                 isCorrect: isCorrect,

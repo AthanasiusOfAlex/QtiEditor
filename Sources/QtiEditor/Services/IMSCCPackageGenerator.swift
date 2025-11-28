@@ -11,7 +11,7 @@ import Foundation
 enum IMSCCPackageGenerator {
 
     /// Generates the imsmanifest.xml file
-    static func generateManifest(for snapshot: QTIDocumentSnapshot, quizID: String, to url: URL) throws {
+    static func generateManifest(for snapshot: QTIDocument, quizID: String, to url: URL) throws {
         // Generate a unique manifest ID
         let manifestID = UUID().uuidString.replacingOccurrences(of: "-", with: "")
         let metaResourceID = UUID().uuidString.replacingOccurrences(of: "-", with: "")
@@ -63,7 +63,7 @@ enum IMSCCPackageGenerator {
     }
 
     /// Generates the assessment_meta.xml file
-    static func generateAssessmentMeta(for snapshot: QTIDocumentSnapshot, quizID: String, to url: URL) throws {
+    static func generateAssessmentMeta(for snapshot: QTIDocument, quizID: String, to url: URL) throws {
         let assignmentID = UUID().uuidString.replacingOccurrences(of: "-", with: "")
         let assignmentGroupID = UUID().uuidString.replacingOccurrences(of: "-", with: "")
         let pointsPossible = snapshot.questions.reduce(0.0) { $0 + $1.points }

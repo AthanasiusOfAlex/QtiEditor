@@ -8,7 +8,7 @@
 import Foundation
 
 /// Represents an answer choice for a QTI question
-struct QTIAnswer: Identifiable, Codable, Sendable {
+struct QTIAnswer: Identifiable, Codable, Sendable, Equatable {
     /// Unique identifier
     let id: UUID
 
