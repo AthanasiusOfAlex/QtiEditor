@@ -18,7 +18,8 @@ extension UTType {
 /// Represents a complete QTI quiz document
 /// This is the root model that contains all quiz data
 @Observable
-final class QTIDocument: ReferenceFileDocument, @unchecked Sendable {
+@MainActor
+final class QTIDocument: ReferenceFileDocument {
     /// Unique identifier for this quiz
     let id: UUID
 
@@ -37,11 +38,12 @@ final class QTIDocument: ReferenceFileDocument, @unchecked Sendable {
     // MARK: - ReferenceFileDocument Conformance
 
     static var readableContentTypes: [UTType] { [.imscc, .zip] }
+    static var writableContentTypes: [UTType] { [.imscc, .zip] }
 
     typealias Snapshot = QTIDocumentSnapshot
 
     /// Designated initializer
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         title: String = "Untitled Quiz",
         description: String = "",
@@ -61,14 +63,14 @@ final class QTIDocument: ReferenceFileDocument, @unchecked Sendable {
     }
 
     /// Initialize from a file
-    init(configuration: ReadConfiguration) throws {
+    nonisolated init(configuration: ReadConfiguration) throws {
         let fileWrapper = configuration.file
 
         let extractor = IMSCCExtractor()
         let parser = QTIParser()
 
         // Helper to perform parsing from a directory URL
-        func parseFromDirectory(_ directoryURL: URL) throws -> QTIDocument {
+        func parseFromDirectory(_ directoryURL: URL) throws -> QTIDocumentSnapshot {
              let assessmentURL = try extractor.locateAssessmentFile(in: directoryURL)
              return try parser.parse(fileURL: assessmentURL)
         }
@@ -84,13 +86,13 @@ final class QTIDocument: ReferenceFileDocument, @unchecked Sendable {
             let extractedDir = try extractor.extract(packageURL: tempZipURL)
             defer { extractor.cleanup(extractedURL: extractedDir) }
 
-            let doc = try parseFromDirectory(extractedDir)
+            let snapshot = try parseFromDirectory(extractedDir)
 
-            self.id = doc.id
-            self.title = doc.title
-            self.description = doc.description
-            self.questions = doc.questions
-            self.metadata = doc.metadata
+            self.id = UUID()
+            self.title = snapshot.title
+            self.description = snapshot.description
+            self.questions = snapshot.questions
+            self.metadata = snapshot.metadata
             return
         }
 
@@ -106,13 +108,13 @@ final class QTIDocument: ReferenceFileDocument, @unchecked Sendable {
         QTIDocumentSnapshot(
             title: title,
             description: description,
-            questions: questions.map { $0.dto },
+            questions: questions,
             metadata: metadata
         )
     }
 
     /// Write the snapshot to a file wrapper
-    func fileWrapper(snapshot: QTIDocumentSnapshot, configuration: WriteConfiguration) throws -> FileWrapper {
+    nonisolated func fileWrapper(snapshot: QTIDocumentSnapshot, configuration: WriteConfiguration) throws -> FileWrapper {
         // 1. Create temp directory
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)

@@ -10,15 +10,13 @@ import SwiftUI
 /// Top section of the main panel containing question header and editor
 struct QuestionSectionView: View {
     @Environment(EditorState.self) private var editorState
-    let question: QTIQuestion
+    @Binding var question: QTIQuestion
     let questionNumber: Int
 
     var body: some View {
-        @Bindable var question = question
-
         return VStack(spacing: 0) {
             // Compact header with metadata
-            QuestionHeaderView(question: question, questionNumber: questionNumber)
+            QuestionHeaderView(question: $question, questionNumber: questionNumber)
                 .padding()
 
             Divider()
@@ -31,16 +29,17 @@ struct QuestionSectionView: View {
                         HStack {
                             Button(action: {
                                 Task {
-                                    await beautifyHTML(for: question)
+                                    await beautifyHTML()
                                 }
                             }) {
                                 Label("Beautify", systemImage: "wand.and.stars")
                             }
                             .buttonStyle(.bordered)
+                            .disabled(true)
 
                             Button(action: {
                                 Task {
-                                    await validateHTML(for: question)
+                                    await validateHTML()
                                 }
                             }) {
                                 Label("Validate", systemImage: "checkmark.circle")
@@ -85,7 +84,7 @@ struct QuestionSectionView: View {
     // MARK: - Helper Functions
 
     /// Beautify HTML for the given question
-    private func beautifyHTML(for question: QTIQuestion) async {
+    private func beautifyHTML() async {
         let beautifier = HTMLBeautifier()
         let beautified = await beautifier.beautify(question.questionText)
         await MainActor.run {
@@ -95,14 +94,16 @@ struct QuestionSectionView: View {
     }
 
     /// Validate HTML for the given question
-    private func validateHTML(for question: QTIQuestion) async {
+    private func validateHTML() async {
         let beautifier = HTMLBeautifier()
         let result = await beautifier.validate(question.questionText)
 
         await MainActor.run {
             if result.isValid {
+                editorState.alertTitle = "Success"
                 editorState.alertMessage = "✓ HTML is valid!"
             } else {
+                editorState.alertTitle = "Validation Error"
                 let errors = result.errors.joined(separator: "\n")
                 editorState.alertMessage = "HTML Validation Errors:\n\n\(errors)"
             }

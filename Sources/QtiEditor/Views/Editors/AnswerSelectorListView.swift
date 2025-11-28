@@ -12,7 +12,7 @@ import AppKit
 /// Similar to QuestionListView but for answers
 struct AnswerSelectorListView: View {
     @Environment(EditorState.self) private var editorState
-    let question: QTIQuestion
+    @Binding var question: QTIQuestion
 
     // Selection state (supports multi-select for bulk operations)
     @Binding var selectedAnswerIDs: Set<UUID>

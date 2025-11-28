@@ -128,6 +128,9 @@ final class EditorState {
     /// Current search match being viewed (for highlighting)
     var currentSearchMatch: SearchMatch?
 
+    /// Alert title to display
+    var alertTitle: String = "Error"
+
     /// Alert message to display
     var alertMessage: String?
 
@@ -176,9 +179,9 @@ final class EditorState {
 
     /// Apply global points to all questions
     private func applyGlobalPoints() {
-        for question in document.questions {
-            if question.points != globalPointsValue {
-                question.points = globalPointsValue
+        for index in document.questions.indices {
+            if document.questions[index].points != globalPointsValue {
+                document.questions[index].points = globalPointsValue
                 markDocumentEdited()
             }
         }
@@ -216,7 +219,7 @@ final class EditorState {
 
         let points = isGlobalPointsEnabled ? globalPointsValue : 1.0
 
-        let question = QTIQuestion(
+        var question = QTIQuestion(
             type: type,
             questionText: "<p>Enter your question here...</p>",
             points: points,
@@ -328,21 +331,23 @@ final class EditorState {
     ///   - answer: The answer to duplicate
     ///   - question: The question containing the answer
     func duplicateAnswer(_ answer: QTIAnswer, in question: QTIQuestion) {
+        guard let qIndex = document.questions.firstIndex(where: { $0.id == question.id }) else { return }
+
         // Find the index of the original answer
-        guard let index = question.answers.firstIndex(where: { $0.id == answer.id }) else {
+        guard let index = document.questions[qIndex].answers.firstIndex(where: { $0.id == answer.id }) else {
             return
         }
 
         // Create a deep copy
-        let duplicatedAnswer = answer.duplicate(preserveCanvasIdentifier: false)
+        var duplicatedAnswer = answer.duplicate(preserveCanvasIdentifier: false)
 
         // For multiple choice, reset isCorrect to avoid multiple correct answers
-        if question.type == .multipleChoice {
+        if document.questions[qIndex].type == .multipleChoice {
             duplicatedAnswer.isCorrect = false
         }
 
         // Insert after the original
-        question.answers.insert(duplicatedAnswer, at: index + 1)
+        document.questions[qIndex].answers.insert(duplicatedAnswer, at: index + 1)
         markDocumentEdited()
     }
 
@@ -374,8 +379,7 @@ final class EditorState {
 
         do {
             let encoder = JSONEncoder()
-            let dtos = questionsToCopy.map { $0.dto }
-            let data = try encoder.encode(dtos)
+            let data = try encoder.encode(questionsToCopy)
 
             // Use NSPasteboardItem (modern API)
             let item = NSPasteboardItem()
@@ -394,8 +398,7 @@ final class EditorState {
 
         do {
             let encoder = JSONEncoder()
-            let dtos = [question.dto]
-            let data = try encoder.encode(dtos)
+            let data = try encoder.encode([question])
 
             // Use NSPasteboardItem (modern API)
             let item = NSPasteboardItem()
@@ -417,8 +420,7 @@ final class EditorState {
 
         do {
             let decoder = JSONDecoder()
-            let pastedDTOs = try decoder.decode([QTIQuestion.DTO].self, from: data)
-            let pastedQuestions = pastedDTOs.map { QTIQuestion(dto: $0) }
+            let pastedQuestions = try decoder.decode([QTIQuestion].self, from: data)
 
             guard !pastedQuestions.isEmpty else { return }
 
@@ -462,8 +464,7 @@ final class EditorState {
 
         do {
             let decoder = JSONDecoder()
-            let pastedDTOs = try decoder.decode([QTIQuestion.DTO].self, from: data)
-            let pastedQuestions = pastedDTOs.map { QTIQuestion(dto: $0) }
+            let pastedQuestions = try decoder.decode([QTIQuestion].self, from: data)
 
             guard !pastedQuestions.isEmpty else { return }
 
@@ -524,8 +525,8 @@ final class EditorState {
         // Data is consistent - decode it
         do {
             let decoder = JSONDecoder()
-            let dtos = try decoder.decode([QTIQuestion.DTO].self, from: data)
-            return dtos.count
+            let questions = try decoder.decode([QTIQuestion].self, from: data)
+            return questions.count
         } catch {
             return 0
         }
@@ -552,8 +553,8 @@ final class EditorState {
         // Data is consistent - decode it
         do {
             let decoder = JSONDecoder()
-            let dtos = try decoder.decode([QTIAnswer.DTO].self, from: data)
-            return dtos.count
+            let answers = try decoder.decode([QTIAnswer].self, from: data)
+            return answers.count
         } catch {
             return 0
         }
@@ -572,8 +573,7 @@ final class EditorState {
 
         do {
             let encoder = JSONEncoder()
-            let dto = answer.dto
-            let data = try encoder.encode(dto)
+            let data = try encoder.encode(answer)
 
             // Use NSPasteboardItem (modern API)
             let item = NSPasteboardItem()
@@ -589,24 +589,25 @@ final class EditorState {
     /// Paste an answer from the pasteboard into a question
     /// - Parameter question: The question to paste into
     func pasteAnswer(into question: QTIQuestion) {
+        guard let qIndex = document.questions.firstIndex(where: { $0.id == question.id }) else { return }
+
         let pasteboard = NSPasteboard.general
         guard let data = pasteboard.data(forType: Self.answerPasteboardType) else { return }
 
         do {
             let decoder = JSONDecoder()
-            let pastedDTO = try decoder.decode(QTIAnswer.DTO.self, from: data)
-            let pastedAnswer = QTIAnswer(dto: pastedDTO)
+            let pastedAnswer = try decoder.decode(QTIAnswer.self, from: data)
 
             // Generate new UUID for the pasted answer
-            let newAnswer = pastedAnswer.duplicate(preserveCanvasIdentifier: false)
+            var newAnswer = pastedAnswer.duplicate(preserveCanvasIdentifier: false)
 
             // For multiple choice, ensure the new answer is not correct
-            if question.type == .multipleChoice || question.type == .trueFalse {
+            if document.questions[qIndex].type == .multipleChoice || document.questions[qIndex].type == .trueFalse {
                 newAnswer.isCorrect = false
             }
 
             // Add at the end of the answer list
-            question.answers.append(newAnswer)
+            document.questions[qIndex].answers.append(newAnswer)
             markDocumentEdited()
         } catch {
             showError("Failed to paste answer: \(error.localizedDescription)")
@@ -622,8 +623,7 @@ final class EditorState {
 
         do {
             let encoder = JSONEncoder()
-            let dtos = answers.map { $0.dto }
-            let data = try encoder.encode(dtos)
+            let data = try encoder.encode(answers)
 
             // Use NSPasteboardItem (modern API)
             let item = NSPasteboardItem()
@@ -642,27 +642,28 @@ final class EditorState {
     ///   - question: The question to paste into
     ///   - afterIndex: Optional index to insert after (if nil, appends to end)
     func pasteAnswers(into question: QTIQuestion, afterIndex: Int? = nil) {
+        guard let qIndex = document.questions.firstIndex(where: { $0.id == question.id }) else { return }
+
         let pasteboard = NSPasteboard.general
         guard let data = pasteboard.data(forType: Self.answersArrayPasteboardType) else { return }
 
         do {
             let decoder = JSONDecoder()
-            let pastedDTOs = try decoder.decode([QTIAnswer.DTO].self, from: data)
-            let pastedAnswers = pastedDTOs.map { QTIAnswer(dto: $0) }
+            let pastedAnswers = try decoder.decode([QTIAnswer].self, from: data)
 
-            var insertIndex = afterIndex.map { $0 + 1 } ?? question.answers.count
+            var insertIndex = afterIndex.map { $0 + 1 } ?? document.questions[qIndex].answers.count
 
             for pastedAnswer in pastedAnswers {
                 // Generate new UUID for each pasted answer
-                let newAnswer = pastedAnswer.duplicate(preserveCanvasIdentifier: false)
+                var newAnswer = pastedAnswer.duplicate(preserveCanvasIdentifier: false)
 
                 // For multiple choice, ensure pasted answers are not correct
-                if question.type == .multipleChoice || question.type == .trueFalse {
+                if document.questions[qIndex].type == .multipleChoice || document.questions[qIndex].type == .trueFalse {
                     newAnswer.isCorrect = false
                 }
 
                 // Insert at the specified position or append to end
-                question.answers.insert(newAnswer, at: insertIndex)
+                document.questions[qIndex].answers.insert(newAnswer, at: insertIndex)
                 insertIndex += 1
             }
 
@@ -684,6 +685,7 @@ final class EditorState {
     // MARK: - Error Handling
 
     private func showError(_ message: String) {
+        alertTitle = "Error"
         alertMessage = message
         showAlert = true
     }

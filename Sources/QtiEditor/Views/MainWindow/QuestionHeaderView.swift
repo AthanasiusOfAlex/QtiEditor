@@ -11,7 +11,7 @@ import SwiftUI
 /// Displays: Question #, Type, Points, Validation status
 struct QuestionHeaderView: View {
     @Environment(EditorState.self) private var editorState
-    let question: QTIQuestion
+    @Binding var question: QTIQuestion
     let questionNumber: Int
 
     var body: some View {

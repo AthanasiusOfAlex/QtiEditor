@@ -98,7 +98,7 @@ final class QTISerializer {
         return qtimetadata
     }
 
-    private func createSectionElement(for questions: [QTIQuestion.DTO]) -> XMLElement {
+    private func createSectionElement(for questions: [QTIQuestion]) -> XMLElement {
         let section = XMLElement(name: "section")
         section.addAttribute(XMLNode.attribute(withName: "ident", stringValue: "root_section") as! XMLNode)
 
@@ -113,7 +113,7 @@ final class QTISerializer {
 
     // MARK: - Item (Question) Generation
 
-    private func createItemElement(for question: QTIQuestion.DTO) -> XMLElement {
+    private func createItemElement(for question: QTIQuestion) -> XMLElement {
         let item = XMLElement(name: "item")
 
         let identifier = question.metadata["canvas_identifier"] ?? UUID().uuidString.replacingOccurrences(of: "-", with: "")
@@ -140,7 +140,7 @@ final class QTISerializer {
     // MARK: - Helper Methods
 
     /// Ensures an answer has a canvas_identifier, generating one if needed
-    private func ensureCanvasIdentifier(for answer: QTIAnswer.DTO) -> String {
+    private func ensureCanvasIdentifier(for answer: QTIAnswer) -> String {
         if let existing = answer.metadata["canvas_identifier"] {
             return existing
         }
@@ -148,7 +148,7 @@ final class QTISerializer {
         return UUID().uuidString.lowercased()
     }
 
-    private func createItemMetadata(for question: QTIQuestion.DTO) -> XMLElement {
+    private func createItemMetadata(for question: QTIQuestion) -> XMLElement {
         let itemmetadata = XMLElement(name: "itemmetadata")
         let qtimetadata = XMLElement(name: "qtimetadata")
 
@@ -185,7 +185,7 @@ final class QTISerializer {
 
     // MARK: - Presentation Generation
 
-    private func createPresentationElement(for question: QTIQuestion.DTO) -> XMLElement {
+    private func createPresentationElement(for question: QTIQuestion) -> XMLElement {
         let presentation = XMLElement(name: "presentation")
 
         // Add question text material (with HTML encoding)
@@ -220,7 +220,7 @@ final class QTISerializer {
         return material
     }
 
-    private func createResponseLidElement(for question: QTIQuestion.DTO) -> XMLElement {
+    private func createResponseLidElement(for question: QTIQuestion) -> XMLElement {
         let responseLid = XMLElement(name: "response_lid")
         responseLid.addAttribute(XMLNode.attribute(withName: "ident", stringValue: "response1") as! XMLNode)
         responseLid.addAttribute(XMLNode.attribute(withName: "rcardinality", stringValue: "Single") as! XMLNode)
@@ -242,7 +242,7 @@ final class QTISerializer {
         return responseLid
     }
 
-    private func createResponseStrElement(for question: QTIQuestion.DTO) -> XMLElement {
+    private func createResponseStrElement(for question: QTIQuestion) -> XMLElement {
         let responseStr = XMLElement(name: "response_str")
         responseStr.addAttribute(XMLNode.attribute(withName: "ident", stringValue: "response1") as! XMLNode)
         responseStr.addAttribute(XMLNode.attribute(withName: "rcardinality", stringValue: "Single") as! XMLNode)
@@ -256,7 +256,7 @@ final class QTISerializer {
 
     // MARK: - Response Processing Generation
 
-    private func createResponseProcessingElement(for question: QTIQuestion.DTO) -> XMLElement {
+    private func createResponseProcessingElement(for question: QTIQuestion) -> XMLElement {
         let resprocessing = XMLElement(name: "resprocessing")
 
         // Add outcomes declaration

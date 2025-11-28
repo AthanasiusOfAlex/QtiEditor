@@ -11,6 +11,6 @@ import Foundation
 struct QTIDocumentSnapshot: Codable, Sendable {
     let title: String
     let description: String
-    let questions: [QTIQuestion.DTO]
+    let questions: [QTIQuestion]
     let metadata: [String: String]
 }

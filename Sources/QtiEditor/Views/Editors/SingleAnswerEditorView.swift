@@ -11,7 +11,7 @@ import SwiftUI
 /// Shows different states: no selection, single selection, multi-selection
 struct SingleAnswerEditorView: View {
     @Environment(EditorState.self) private var editorState
-    let question: QTIQuestion
+    @Binding var question: QTIQuestion
     let selectedAnswerIDs: Set<UUID>
     let onCopySelected: () -> Void
     let onDuplicateSelected: () -> Void
@@ -23,10 +23,9 @@ struct SingleAnswerEditorView: View {
                 // No selection
                 noSelectionView
             } else if selectedAnswerIDs.count == 1, let answerID = selectedAnswerIDs.first,
-                      let answer = question.answers.first(where: { $0.id == answerID }),
                       let index = question.answers.firstIndex(where: { $0.id == answerID }) {
                 // Single selection - show editor
-                singleAnswerEditor(answer: answer, index: index)
+                singleAnswerEditor(answer: $question.answers[index], index: index)
             } else {
                 // Multiple selection
                 multipleSelectionView
@@ -85,18 +84,16 @@ struct SingleAnswerEditorView: View {
     // MARK: - Single Answer Editor
 
     @ViewBuilder
-    private func singleAnswerEditor(answer: QTIAnswer, index: Int) -> some View {
-        @Bindable var answer = answer
-
+    private func singleAnswerEditor(answer: Binding<QTIAnswer>, index: Int) -> some View {
         VStack(spacing: 0) {
             // Header
             HStack {
                 Toggle("Correct Answer", isOn: Binding(
-                    get: { answer.isCorrect },
+                    get: { answer.wrappedValue.isCorrect },
                     set: { newValue in
-                        answer.isCorrect = newValue
+                        answer.wrappedValue.isCorrect = newValue
                         editorState.markDocumentEdited()
-                        handleCorrectChanged(for: answer, isCorrect: newValue)
+                        handleCorrectChanged(for: answer.wrappedValue, isCorrect: newValue)
                     }
                 ))
                 .toggleStyle(.checkbox)
@@ -123,6 +120,7 @@ struct SingleAnswerEditorView: View {
                             Label("Beautify", systemImage: "wand.and.stars")
                         }
                         .buttonStyle(.bordered)
+                        .disabled(true)
 
                         Button(action: {
                             Task {
@@ -167,31 +165,35 @@ struct SingleAnswerEditorView: View {
     private func handleCorrectChanged(for answer: QTIAnswer, isCorrect: Bool) {
         if isCorrect && (question.type == .multipleChoice || question.type == .trueFalse) {
             // Uncheck all other answers
-            for otherAnswer in question.answers where otherAnswer.id != answer.id {
-                otherAnswer.isCorrect = false
+            for i in question.answers.indices {
+                if question.answers[i].id != answer.id {
+                    question.answers[i].isCorrect = false
+                }
             }
         }
     }
 
     /// Beautify HTML for the given answer
-    private func beautifyHTML(for answer: QTIAnswer) async {
+    private func beautifyHTML(for answer: Binding<QTIAnswer>) async {
         let beautifier = HTMLBeautifier()
-        let beautified = await beautifier.beautify(answer.text)
+        let beautified = await beautifier.beautify(answer.wrappedValue.text)
         await MainActor.run {
-            answer.text = beautified
+            answer.wrappedValue.text = beautified
             editorState.markDocumentEdited()
         }
     }
 
     /// Validate HTML for the given answer
-    private func validateHTML(for answer: QTIAnswer) async {
+    private func validateHTML(for answer: Binding<QTIAnswer>) async {
         let beautifier = HTMLBeautifier()
-        let result = await beautifier.validate(answer.text)
+        let result = await beautifier.validate(answer.wrappedValue.text)
 
         await MainActor.run {
             if result.isValid {
+                editorState.alertTitle = "Success"
                 editorState.alertMessage = "✓ HTML is valid!"
             } else {
+                editorState.alertTitle = "Validation Error"
                 let errors = result.errors.joined(separator: "\n")
                 editorState.alertMessage = "HTML Validation Errors:\n\n\(errors)"
             }
