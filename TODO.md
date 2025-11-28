@@ -2,7 +2,7 @@
 
 ## Phase 1: Fine Tuning
 
-- [x] Refactor QTIDocument architecture to separate FileDocument (struct) from EditorState (MainActor class) to avoid unsafe initialization (remove `nonisolated(unsafe)` usage). It appears that Swift 6.2+ does not allow the `nonisolated(unsafe)` usage.
+- [ ] 
 
 ## Phase 2: Long-term projects
 
