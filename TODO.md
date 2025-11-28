@@ -1,13 +1,13 @@
 # QTI Quiz Editor - Implementation Roadmap
 
-## Phase 1: Fine Tuning
+## Phase 1: Bug fixing
 
-- [x] I need a toggle that turns autosave on or off (and stays persistent). Should be OFF by default. Right now, undo/redo is too primitive to make autosave worth it except to test.
-- [x] I can't save new files. It get the following message: 'The document "Untitled" could not be saved as "Untitled". QtiEditor is unable to save using this document type.' I tried to fix this previously by employing a `.plist`, but I am not sure it is being used properly. The `.plist` can be found at `Sources/QtiEditor/Resources/FileAssociations.plist`. Steps to reproduce.
-  - Open a new file (Cmd+N)
-  - Add a new question (Shft+Cmd+N)
-  - Attempt to save (Cmd+S)
-  - Accept the proposed file (Untitled) by clicking on "Save".
+- [ ] I need to turn autosave off. We attempted to do this using Info.plist (which gets updated via Bundler.toml). The correct keypair appears in the Info.plist file:
+  ```
+  <key>NSAutosaveInPlace</key>
+	<false/>
+  ```
+  However, the app still silently autosaves. Any ideas?
 
 ## Phase 2: Long-term projects
 
