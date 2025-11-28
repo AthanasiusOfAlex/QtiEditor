@@ -13,10 +13,7 @@ let package = Package(
         .executableTarget(
             name: "QtiEditor",
             dependencies: [],
-            path: "Sources/QtiEditor",
-            resources: [
-                .process("Resources/FileAssociations.plist")
-            ]
+            path: "Sources/QtiEditor"
         ),
         .testTarget(
             name: "QtiEditorTests",
