@@ -113,8 +113,10 @@ struct QuestionSectionView: View {
 }
 
 #Preview {
+    @Previewable @State var question = QTIDocument.empty().questions[0]
+    
     QuestionSectionView(
-        question: QTIDocument.empty().questions[0],
+        question: $question,
         questionNumber: 1
     )
     .environment(EditorState(document: QTIDocument.empty()))

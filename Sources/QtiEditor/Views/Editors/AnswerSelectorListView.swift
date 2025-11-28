@@ -310,8 +310,7 @@ struct AnswerRowView: View {
 
 #Preview {
     @Previewable @State var selectedIDs: Set<UUID> = []
-
-    let question = QTIQuestion(
+    @Previewable @State var question = QTIQuestion(
         type: .multipleChoice,
         questionText: "<p>What is the capital of France?</p>",
         points: 1.0,
@@ -324,7 +323,7 @@ struct AnswerRowView: View {
     )
 
     AnswerSelectorListView(
-        question: question,
+        question: $question,
         selectedAnswerIDs: $selectedIDs
     )
     .environment(EditorState(document: QTIDocument.empty()))

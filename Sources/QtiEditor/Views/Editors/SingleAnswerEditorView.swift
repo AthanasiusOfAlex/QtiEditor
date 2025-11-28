@@ -92,7 +92,6 @@ struct SingleAnswerEditorView: View {
                     get: { answer.wrappedValue.isCorrect },
                     set: { newValue in
                         answer.wrappedValue.isCorrect = newValue
-                        editorState.markDocumentEdited()
                         handleCorrectChanged(for: answer.wrappedValue, isCorrect: newValue)
                     }
                 ))
@@ -203,8 +202,10 @@ struct SingleAnswerEditorView: View {
 }
 
 #Preview("No Selection") {
+    @Previewable @State var question = QTIDocument.empty().questions[0]
+    
     SingleAnswerEditorView(
-        question: QTIDocument.empty().questions[0],
+        question: $question,
         selectedAnswerIDs: [],
         onCopySelected: {},
         onDuplicateSelected: {},
@@ -215,7 +216,7 @@ struct SingleAnswerEditorView: View {
 }
 
 #Preview("Single Selection") {
-    let question = QTIQuestion(
+    @Previewable @State var question = QTIQuestion(
         type: .multipleChoice,
         questionText: "<p>Test</p>",
         points: 1.0,
@@ -226,7 +227,7 @@ struct SingleAnswerEditorView: View {
     )
 
     SingleAnswerEditorView(
-        question: question,
+        question: $question,
         selectedAnswerIDs: [question.answers[0].id],
         onCopySelected: {},
         onDuplicateSelected: {},
@@ -237,7 +238,7 @@ struct SingleAnswerEditorView: View {
 }
 
 #Preview("Multiple Selection") {
-    let question = QTIQuestion(
+    @Previewable @State var question = QTIQuestion(
         type: .multipleChoice,
         questionText: "<p>Test</p>",
         points: 1.0,
@@ -249,7 +250,7 @@ struct SingleAnswerEditorView: View {
     )
 
     SingleAnswerEditorView(
-        question: question,
+        question: $question,
         selectedAnswerIDs: Set(question.answers.map { $0.id }.prefix(3)),
         onCopySelected: {},
         onDuplicateSelected: {},

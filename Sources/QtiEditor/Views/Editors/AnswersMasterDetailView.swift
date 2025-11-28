@@ -58,7 +58,7 @@ struct AnswersMasterDetailView: View {
 
         var insertIndex = lastIndex + 1
         for answer in selectedAnswers {
-            let duplicated = answer.duplicate(preserveCanvasIdentifier: false)
+            var duplicated = answer.duplicate(preserveCanvasIdentifier: false)
 
             if question.type == .multipleChoice || question.type == .trueFalse {
                 duplicated.isCorrect = false
@@ -68,19 +68,17 @@ struct AnswersMasterDetailView: View {
             insertIndex += 1
         }
 
-        editorState.markDocumentEdited()
         editorState.selectedAnswerIDs.removeAll()
     }
 
     private func deleteSelectedAnswers() {
         question.answers.removeAll { editorState.selectedAnswerIDs.contains($0.id) }
-        editorState.markDocumentEdited()
         editorState.selectedAnswerIDs.removeAll()
     }
 }
 
 #Preview {
-    let question = QTIQuestion(
+    @Previewable @State var question = QTIQuestion(
         type: .multipleChoice,
         questionText: "<p>What is the capital of France?</p>",
         points: 1.0,
@@ -92,7 +90,7 @@ struct AnswersMasterDetailView: View {
         ]
     )
 
-    AnswersMasterDetailView(question: question)
+    AnswersMasterDetailView(question: $question)
         .environment(EditorState(document: QTIDocument.empty()))
         .frame(width: 800, height: 400)
 }

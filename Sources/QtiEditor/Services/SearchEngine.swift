@@ -76,7 +76,7 @@ final class SearchEngine {
         with replacement: String,
         pattern: String,
         isRegex: Bool,
-        in document: QTIDocument
+        in document: inout QTIDocument
     ) throws {
         // Create a hashable key for grouping
         struct MatchKey: Hashable {
@@ -91,12 +91,13 @@ final class SearchEngine {
         }
 
         for (key, _) in groupedMatches {
-            guard let question = document.questions.first(where: { $0.id == key.questionID }) else {
+            guard let questionIndex = document.questions.firstIndex(where: { $0.id == key.questionID }) else {
                 continue
             }
 
             try replaceInField(
-                question: question,
+                document: &document,
+                questionIndex: questionIndex,
                 answerID: key.answerID,
                 field: key.field,
                 pattern: pattern,
@@ -275,7 +276,8 @@ final class SearchEngine {
     }
 
     private func replaceInField(
-        question: QTIQuestion,
+        document: inout QTIDocument,
+        questionIndex: Int,
         answerID: UUID?,
         field: SearchField,
         pattern: String,
@@ -284,8 +286,8 @@ final class SearchEngine {
     ) throws {
         switch field {
         case .questionTitle:
-            let titleText = question.metadata["canvas_title"] ?? ""
-            question.metadata["canvas_title"] = try performReplace(
+            let titleText = document.questions[questionIndex].metadata["canvas_title"] ?? ""
+            document.questions[questionIndex].metadata["canvas_title"] = try performReplace(
                 in: titleText,
                 pattern: pattern,
                 replacement: replacement,
@@ -293,8 +295,8 @@ final class SearchEngine {
             )
 
         case .questionText:
-            question.questionText = try performReplace(
-                in: question.questionText,
+            document.questions[questionIndex].questionText = try performReplace(
+                in: document.questions[questionIndex].questionText,
                 pattern: pattern,
                 replacement: replacement,
                 isRegex: isRegex
@@ -302,19 +304,19 @@ final class SearchEngine {
 
         case .answerText:
             guard let answerID = answerID,
-                  let answer = question.answers.first(where: { $0.id == answerID }) else {
+                  let answerIndex = document.questions[questionIndex].answers.firstIndex(where: { $0.id == answerID }) else {
                 return
             }
-            answer.text = try performReplace(
-                in: answer.text,
+            document.questions[questionIndex].answers[answerIndex].text = try performReplace(
+                in: document.questions[questionIndex].answers[answerIndex].text,
                 pattern: pattern,
                 replacement: replacement,
                 isRegex: isRegex
             )
 
         case .feedback:
-            question.generalFeedback = try performReplace(
-                in: question.generalFeedback,
+            document.questions[questionIndex].generalFeedback = try performReplace(
+                in: document.questions[questionIndex].generalFeedback,
                 pattern: pattern,
                 replacement: replacement,
                 isRegex: isRegex
