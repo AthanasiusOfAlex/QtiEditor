@@ -20,11 +20,11 @@ enum EditorMode: String, CaseIterable, Sendable {
 @MainActor
 @Observable
 final class EditorState {
-    /// Document manager for file operations
-    let documentManager = DocumentManager()
-
     /// Currently open document
-    var document: QTIDocument?
+    var document: QTIDocument
+
+    /// System UndoManager
+    weak var undoManager: UndoManager?
 
     /// Currently selected question ID (focused for editing)
     var selectedQuestionID: UUID?
@@ -140,8 +140,7 @@ final class EditorState {
     /// Whether the document has unsaved changes
     var isDocumentEdited: Bool = false
 
-    init(document: QTIDocument? = nil) {
-        // Set the document (may be nil - that's okay, will be created later)
+    init(document: QTIDocument) {
         self.document = document
 
         // Load panel visibility from UserDefaults (default to true if not set)
@@ -169,8 +168,7 @@ final class EditorState {
 
     /// Returns the currently selected question, if any
     var selectedQuestion: QTIQuestion? {
-        guard let id = selectedQuestionID,
-              let document = document else {
+        guard let id = selectedQuestionID else {
             return nil
         }
         return document.questions.first { $0.id == id }
@@ -178,11 +176,10 @@ final class EditorState {
 
     /// Apply global points to all questions
     private func applyGlobalPoints() {
-        guard let document = document else { return }
         for question in document.questions {
             if question.points != globalPointsValue {
                 question.points = globalPointsValue
-                isDocumentEdited = true
+                markDocumentEdited()
             }
         }
     }
@@ -216,7 +213,6 @@ final class EditorState {
 
     /// Create a new question and add it to the document
     func addQuestion(type: QTIQuestionType = .multipleChoice) {
-        guard let document = document else { return }
 
         let points = isGlobalPointsEnabled ? globalPointsValue : 1.0
 
@@ -240,23 +236,21 @@ final class EditorState {
         document.questions.append(question)
         selectedQuestionID = question.id
         selectedQuestionIDs = [question.id]
-        isDocumentEdited = true
+        markDocumentEdited()
     }
 
     /// Delete the specified question
     func deleteQuestion(_ question: QTIQuestion) {
-        guard let document = document else { return }
         document.questions.removeAll { $0.id == question.id }
         if selectedQuestionID == question.id {
             selectedQuestionID = nil
         }
         selectedQuestionIDs.remove(question.id)
-        isDocumentEdited = true
+        markDocumentEdited()
     }
 
     /// Delete all currently selected questions
     func deleteSelectedQuestions() {
-        guard let document = document else { return }
 
         // If no multi-selection, delete the focused question
         let idsToDelete = selectedQuestionIDs.isEmpty
@@ -270,13 +264,12 @@ final class EditorState {
             selectedQuestionID = nil
         }
         selectedQuestionIDs.removeAll()
-        isDocumentEdited = true
+        markDocumentEdited()
     }
 
     /// Duplicate the specified question and insert it after the original
     /// - Parameter question: The question to duplicate
     func duplicateQuestion(_ question: QTIQuestion) {
-        guard let document = document else { return }
 
         // Find the index of the original question
         guard let index = document.questions.firstIndex(where: { $0.id == question.id }) else {
@@ -292,7 +285,7 @@ final class EditorState {
         // Select the new question
         selectedQuestionID = duplicatedQuestion.id
         selectedQuestionIDs = [duplicatedQuestion.id]
-        isDocumentEdited = true
+        markDocumentEdited()
     }
 
     /// Duplicate the currently selected question
@@ -303,7 +296,6 @@ final class EditorState {
 
     /// Duplicate all currently selected questions
     func duplicateSelectedQuestions() {
-        guard let document = document else { return }
 
         // If no multi-selection, duplicate the focused question
         let idsToDuplicate = selectedQuestionIDs.isEmpty
@@ -328,7 +320,7 @@ final class EditorState {
         // Select the duplicated questions
         selectedQuestionIDs = newQuestionIDs
         selectedQuestionID = newQuestionIDs.first
-        isDocumentEdited = true
+        markDocumentEdited()
     }
 
     /// Duplicate an answer and add it after the original
@@ -351,7 +343,7 @@ final class EditorState {
 
         // Insert after the original
         question.answers.insert(duplicatedAnswer, at: index + 1)
-        isDocumentEdited = true
+        markDocumentEdited()
     }
 
     // MARK: - Copy/Paste Operations
@@ -367,7 +359,6 @@ final class EditorState {
 
     /// Copy the selected question(s) to the pasteboard
     func copySelectedQuestion() {
-        guard let document = document else { return }
 
         // If no multi-selection, copy the focused question
         let idsToCopy = selectedQuestionIDs.isEmpty
@@ -420,7 +411,6 @@ final class EditorState {
 
     /// Paste question(s) from the pasteboard
     func pasteQuestion() {
-        guard let document = document else { return }
 
         let pasteboard = NSPasteboard.general
         guard let data = pasteboard.data(forType: Self.questionPasteboardType) else { return }
@@ -456,7 +446,7 @@ final class EditorState {
             // Select the pasted questions
             selectedQuestionIDs = newQuestionIDs
             selectedQuestionID = newQuestions.first?.id
-            isDocumentEdited = true
+            markDocumentEdited()
         } catch {
             showError("Failed to paste question(s): \(error.localizedDescription)")
         }
@@ -465,7 +455,6 @@ final class EditorState {
     /// Paste question(s) from the pasteboard after a specific question
     /// - Parameter afterQuestion: The question to paste after
     func pasteQuestionAfter(_ afterQuestion: QTIQuestion) {
-        guard let document = document else { return }
         guard let index = document.questions.firstIndex(where: { $0.id == afterQuestion.id }) else { return }
 
         let pasteboard = NSPasteboard.general
@@ -496,7 +485,7 @@ final class EditorState {
             // Select the pasted questions
             selectedQuestionIDs = newQuestionIDs
             selectedQuestionID = newQuestions.first?.id
-            isDocumentEdited = true
+            markDocumentEdited()
         } catch {
             showError("Failed to paste question(s): \(error.localizedDescription)")
         }
@@ -618,7 +607,7 @@ final class EditorState {
 
             // Add at the end of the answer list
             question.answers.append(newAnswer)
-            isDocumentEdited = true
+            markDocumentEdited()
         } catch {
             showError("Failed to paste answer: \(error.localizedDescription)")
         }
@@ -677,72 +666,10 @@ final class EditorState {
                 insertIndex += 1
             }
 
-            isDocumentEdited = true
+            markDocumentEdited()
         } catch {
             showError("Failed to paste answers: \(error.localizedDescription)")
         }
-    }
-
-    // MARK: - File Operations
-
-    /// Opens a QTI document from a file
-    /// - Parameter url: URL to the .imscc file
-    func openDocument(from url: URL) async {
-        isLoading = true
-        defer { isLoading = false }
-
-        do {
-            let loadedDocument = try await documentManager.openDocument(from: url)
-            self.document = loadedDocument
-            self.selectedQuestionID = loadedDocument.questions.first?.id
-            self.isDocumentEdited = false
-        } catch let error as QTIError {
-            showError(error.localizedDescription)
-        } catch {
-            showError("Failed to open document: \(error.localizedDescription)")
-        }
-    }
-
-    /// Saves the current document
-    func saveDocument() async {
-        guard let document = document else { return }
-
-        isLoading = true
-        defer { isLoading = false }
-
-        do {
-            try await documentManager.saveDocument(document)
-            self.isDocumentEdited = false
-        } catch let error as QTIError {
-            showError(error.localizedDescription)
-        } catch {
-            showError("Failed to save document: \(error.localizedDescription)")
-        }
-    }
-
-    /// Saves the current document to a new location
-    /// - Parameter url: Destination URL
-    func saveDocument(to url: URL) async {
-        guard let document = document else { return }
-
-        isLoading = true
-        defer { isLoading = false }
-
-        do {
-            try await documentManager.saveDocument(document, to: url)
-            self.isDocumentEdited = false
-        } catch let error as QTIError {
-            showError(error.localizedDescription)
-        } catch {
-            showError("Failed to save document: \(error.localizedDescription)")
-        }
-    }
-
-    /// Creates a new empty document
-    func createNewDocument() async {
-        document = await documentManager.createNewDocument()
-        selectedQuestionID = nil
-        isDocumentEdited = false
     }
 
     // MARK: - Document State
@@ -751,6 +678,7 @@ final class EditorState {
     /// Call this method when modifying question/answer properties directly
     func markDocumentEdited() {
         isDocumentEdited = true
+        undoManager?.registerUndo(withTarget: document) { _ in }
     }
 
     // MARK: - Error Handling

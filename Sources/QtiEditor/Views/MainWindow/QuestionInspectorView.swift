@@ -16,16 +16,9 @@ struct QuestionInspectorView: View {
             if let question = editorState.selectedQuestion {
                 // Question is selected - show question inspector
                 questionInspector(for: question)
-            } else if let document = editorState.document {
-                // No question selected - show quiz metadata
-                quizInspector(for: document)
             } else {
-                // No document open
-                ContentUnavailableView(
-                    "No Quiz Open",
-                    systemImage: "doc",
-                    description: Text("Open or create a quiz to see details")
-                )
+                // No question selected - show quiz metadata
+                quizInspector(for: editorState.document)
             }
         }
         .padding()

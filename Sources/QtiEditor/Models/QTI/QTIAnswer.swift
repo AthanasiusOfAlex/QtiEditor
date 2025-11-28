@@ -8,9 +8,8 @@
 import Foundation
 
 /// Represents an answer choice for a QTI question
-@MainActor
 @Observable
-final class QTIAnswer: Sendable {
+final class QTIAnswer: @unchecked Sendable {
     /// Unique identifier
     let id: UUID
 
@@ -43,6 +42,11 @@ final class QTIAnswer: Sendable {
         self.feedback = feedback
         self.weight = weight ?? (isCorrect ? 100.0 : 0.0)
         self.metadata = metadata
+
+        // Ensure canvas_identifier exists
+        if self.metadata["canvas_identifier"] == nil {
+            self.metadata["canvas_identifier"] = UUID().uuidString.lowercased()
+        }
     }
 }
 

@@ -33,9 +33,8 @@ enum QTIQuestionType: String, Codable, CaseIterable, Sendable {
 }
 
 /// Represents a single question in a QTI quiz
-@MainActor
 @Observable
-final class QTIQuestion: Sendable {
+final class QTIQuestion: @unchecked Sendable {
     /// Unique identifier
     let id: UUID
 
@@ -73,6 +72,11 @@ final class QTIQuestion: Sendable {
         self.answers = answers
         self.generalFeedback = generalFeedback
         self.metadata = metadata
+
+        // Ensure canvas_identifier exists
+        if self.metadata["canvas_identifier"] == nil {
+            self.metadata["canvas_identifier"] = UUID().uuidString.replacingOccurrences(of: "-", with: "")
+        }
     }
 }
 

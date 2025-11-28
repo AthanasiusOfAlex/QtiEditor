@@ -3,6 +3,7 @@
 //  QtiEditor
 //
 //  Created by Claude on 2025-11-16.
+//  Updated 2025-11-19 to use Swift Regex
 //
 
 import Foundation
@@ -26,15 +27,6 @@ enum SearchError: LocalizedError {
 @MainActor
 final class SearchEngine {
     /// Performs a search across the specified scope
-    /// - Parameters:
-    ///   - pattern: Search pattern (plain text or regex string)
-    ///   - isRegex: Whether to treat pattern as regex
-    ///   - isCaseSensitive: Whether search is case-sensitive
-    ///   - scope: Search scope
-    ///   - field: Field to search in
-    ///   - document: Document to search
-    ///   - currentQuestionID: ID of current question (for currentQuestion scope)
-    /// - Returns: Array of search matches
     func search(
         pattern: String,
         isRegex: Bool,
@@ -79,12 +71,6 @@ final class SearchEngine {
     }
 
     /// Replaces all occurrences matching the pattern
-    /// - Parameters:
-    ///   - matches: Search matches to replace
-    ///   - replacement: Replacement text (supports regex capture groups like $1)
-    ///   - pattern: Original search pattern
-    ///   - isRegex: Whether pattern is regex
-    ///   - document: Document to modify
     func replaceAll(
         matches: [SearchMatch],
         with replacement: String,
@@ -211,38 +197,31 @@ final class SearchEngine {
         var matches: [SearchMatch] = []
 
         if isRegex {
-            // Use NSRegularExpression for consistent behavior with replace
-            let options: NSRegularExpression.Options = isCaseSensitive ? [] : [.caseInsensitive]
-            let regex: NSRegularExpression
             do {
-                regex = try NSRegularExpression(pattern: pattern, options: options)
+                let regex = try Regex(pattern)
+                let query = isCaseSensitive ? regex : regex.ignoresCase()
+
+                let regexMatches = text.matches(of: query)
+
+                for match in regexMatches {
+                    let matchRange = match.range
+                    let matchedText = String(text[matchRange])
+                    let context = extractContext(from: text, around: matchRange)
+
+                    let searchMatch = SearchMatch(
+                        questionID: questionID,
+                        field: field,
+                        answerID: answerID,
+                        range: matchRange,
+                        matchedText: matchedText,
+                        context: context,
+                        lineNumber: nil
+                    )
+
+                    matches.append(searchMatch)
+                }
             } catch {
                 throw SearchError.invalidRegexPattern(pattern)
-            }
-
-            // Find all matches
-            let nsRange = NSRange(text.startIndex..<text.endIndex, in: text)
-            let regexMatches = regex.matches(in: text, range: nsRange)
-
-            for match in regexMatches {
-                guard let matchRange = Range(match.range, in: text) else {
-                    continue
-                }
-
-                let matchedText = String(text[matchRange])
-                let context = extractContext(from: text, around: matchRange)
-
-                let searchMatch = SearchMatch(
-                    questionID: questionID,
-                    field: field,
-                    answerID: answerID,
-                    range: matchRange,
-                    matchedText: matchedText,
-                    context: context,
-                    lineNumber: nil
-                )
-
-                matches.append(searchMatch)
             }
         } else {
             // Simple text search
@@ -280,8 +259,8 @@ final class SearchEngine {
 
         var context = String(text[start..<end])
 
-        // Strip HTML tags for cleaner preview
-        context = context.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+        // Strip HTML tags for cleaner preview (using Regex!)
+        try? context.replace(Regex("<[^>]+>"), with: "")
         context = context.trimmingCharacters(in: .whitespacesAndNewlines)
 
         // Add ellipsis if truncated
@@ -354,11 +333,8 @@ final class SearchEngine {
         isRegex: Bool
     ) throws -> String {
         if isRegex {
-            // Use NSRegularExpression for replacement to get built-in template support
-            // This automatically handles $0 (entire match), $1, $2, etc. (capture groups)
-            let nsRegex = try NSRegularExpression(pattern: pattern, options: [])
-            let range = NSRange(text.startIndex..<text.endIndex, in: text)
-            return nsRegex.stringByReplacingMatches(in: text, range: range, withTemplate: replacement)
+            // Use custom extension for template support ($1, etc)
+            return try text.replacingWithTemplate(matching: pattern, with: replacement)
         } else {
             return text.replacingOccurrences(of: pattern, with: replacement)
         }
