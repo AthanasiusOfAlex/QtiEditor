@@ -24,16 +24,16 @@ final class QTIDocument: ReferenceFileDocument {
     let id: UUID
 
     /// Quiz title
-    var title: String
+    nonisolated(unsafe) var title: String
 
     /// Quiz description (optional)
-    var description: String
+    nonisolated(unsafe) var description: String
 
     /// Collection of questions in this quiz
-    var questions: [QTIQuestion]
+    nonisolated(unsafe) var questions: [QTIQuestion]
 
     /// Quiz-level settings and metadata
-    var metadata: [String: String]
+    nonisolated(unsafe) var metadata: [String: String]
 
     // MARK: - ReferenceFileDocument Conformance
 

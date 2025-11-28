@@ -8,7 +8,7 @@
 import Foundation
 
 /// Parses QTI 1.2 XML documents into QTIDocument models
-final class QTIParser {
+struct QTIParser {
     /// Parses a QTI XML file into a QTIDocumentSnapshot
     /// - Parameter url: URL to the assessment.xml file
     /// - Returns: Parsed QTIDocumentSnapshot
