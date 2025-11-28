@@ -677,7 +677,7 @@ final class EditorState {
     /// Mark the document as having unsaved changes
     /// Call this method when modifying question/answer properties directly
     func markDocumentEdited() {
-        markDocumentEdited()
+        isDocumentEdited = true
         undoManager?.registerUndo(withTarget: document) { _ in }
     }
 
