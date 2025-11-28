@@ -11,7 +11,7 @@ import AppKit  // For NSPasteboard
 /// Container view for editing all answers of a question
 struct AnswerListEditorView: View {
     @Environment(EditorState.self) private var editorState
-    let question: QTIQuestion
+    @Binding var question: QTIQuestion
 
     // Selection state
     @State private var selectedAnswerIDs: Set<UUID> = []
@@ -90,9 +90,9 @@ struct AnswerListEditorView: View {
                 .padding()
             } else {
                 List(selection: $selectedAnswerIDs) {
-                    ForEach(Array(question.answers.enumerated()), id: \.element.id) { index, answer in
+                    ForEach(Array($question.answers.enumerated()), id: \.element.id) { index, $answer in
                         AnswerEditorView(
-                            answer: answer,
+                            answer: $answer,
                             index: index,
                             isSelected: selectedAnswerIDs.contains(answer.id),
                             hasMultipleSelected: selectedAnswerIDs.count > 1,
@@ -121,7 +121,6 @@ struct AnswerListEditorView: View {
                     }
                     .onMove { fromOffsets, toOffset in
                         question.answers.move(fromOffsets: fromOffsets, toOffset: toOffset)
-                        editorState.markDocumentEdited()
                         // Clear selection after reordering
                         selectedAnswerIDs.removeAll()
                         lastSelectedID = nil
@@ -156,12 +155,10 @@ struct AnswerListEditorView: View {
             isCorrect: false
         )
         question.answers.append(newAnswer)
-        editorState.markDocumentEdited()
     }
 
     private func deleteAnswer(_ answer: QTIAnswer) {
         question.answers.removeAll { $0.id == answer.id }
-        editorState.markDocumentEdited()
     }
 
     private func duplicateAnswer(_ answer: QTIAnswer) {
@@ -171,7 +168,7 @@ struct AnswerListEditorView: View {
         }
 
         // Create a deep copy
-        let duplicatedAnswer = answer.duplicate(preserveCanvasIdentifier: false)
+        var duplicatedAnswer = answer.duplicate(preserveCanvasIdentifier: false)
 
         // For multiple choice, reset isCorrect to avoid multiple correct answers
         if question.type == .multipleChoice || question.type == .trueFalse {
@@ -180,15 +177,16 @@ struct AnswerListEditorView: View {
 
         // Insert after the original
         question.answers.insert(duplicatedAnswer, at: index + 1)
-        editorState.markDocumentEdited()
     }
 
     private func handleCorrectChanged(for answer: QTIAnswer, isCorrect: Bool) {
         // For multiple choice and true/false questions, only one answer can be correct
         if isCorrect && (question.type == .multipleChoice || question.type == .trueFalse) {
             // Uncheck all other answers
-            for otherAnswer in question.answers where otherAnswer.id != answer.id {
-                otherAnswer.isCorrect = false
+            for index in question.answers.indices {
+                if question.answers[index].id != answer.id {
+                    question.answers[index].isCorrect = false
+                }
             }
         }
     }
@@ -213,7 +211,7 @@ struct AnswerListEditorView: View {
 
         var insertIndex = lastIndex + 1
         for answer in selectedAnswers {
-            let duplicated = answer.duplicate(preserveCanvasIdentifier: false)
+            var duplicated = answer.duplicate(preserveCanvasIdentifier: false)
 
             // For multiple choice, reset isCorrect to avoid multiple correct answers
             if question.type == .multipleChoice || question.type == .trueFalse {
@@ -223,8 +221,6 @@ struct AnswerListEditorView: View {
             question.answers.insert(duplicated, at: insertIndex)
             insertIndex += 1
         }
-
-        editorState.markDocumentEdited()
 
         // Clear selection after duplication
         selectedAnswerIDs.removeAll()
@@ -242,7 +238,6 @@ struct AnswerListEditorView: View {
 
     private func performDelete() {
         question.answers.removeAll { selectedAnswerIDs.contains($0.id) }
-        editorState.markDocumentEdited()
         selectedAnswerIDs.removeAll()
         lastSelectedID = nil
     }
@@ -275,7 +270,7 @@ struct AnswerListEditorView: View {
 }
 
 #Preview {
-    let question = QTIQuestion(
+    @Previewable @State var question = QTIQuestion(
         type: .multipleChoice,
         questionText: "<p>What is the capital of France?</p>",
         points: 1.0,
@@ -287,7 +282,7 @@ struct AnswerListEditorView: View {
         ]
     )
 
-    return AnswerListEditorView(question: question)
+    return AnswerListEditorView(question: $question)
         .environment(EditorState(document: QTIDocument.empty()))
         .frame(width: 700, height: 600)
 }
