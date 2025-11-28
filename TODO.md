@@ -2,7 +2,7 @@
 
 ## Phase 1: Bug fixing
 
-- [x] I need to turn autosave off. We attempted to do this using Info.plist (which gets updated via Bundler.toml). The correct keypair appears in the Info.plist file:
+- [ ] I need to turn autosave off. We attempted to do this using Info.plist (which gets updated via Bundler.toml). The correct keypair appears in the Info.plist file:
   ```
   <key>NSAutosaveInPlace</key>
 	<false/>
