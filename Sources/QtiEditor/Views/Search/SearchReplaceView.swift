@@ -304,7 +304,7 @@ struct SearchReplaceView: View {
     }
 
     private func performReplaceAll() {
-        let document = editorState.document
+        var document = editorState.document
 
         isSearching = true
         errorMessage = nil
@@ -316,11 +316,8 @@ struct SearchReplaceView: View {
                     with: editorState.replacementText,
                     pattern: editorState.searchText,
                     isRegex: editorState.isRegexEnabled,
-                    in: document
+                    in: &document
                 )
-
-                // Mark document as edited
-                editorState.markDocumentEdited()
 
                 // Clear results after replacement
                 searchResults = []

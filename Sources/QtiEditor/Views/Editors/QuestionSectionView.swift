@@ -56,7 +56,6 @@ struct QuestionSectionView: View {
                             get: { question.questionText },
                             set: { newValue in
                                 question.questionText = newValue
-                                editorState.markDocumentEdited()
                             }
                         ))
                         .frame(maxHeight: .infinity)
@@ -68,7 +67,6 @@ struct QuestionSectionView: View {
                         get: { question.questionText },
                         set: { newValue in
                             question.questionText = newValue
-                            editorState.markDocumentEdited()
                         }
                     ))
                     .frame(maxHeight: .infinity)
@@ -89,7 +87,6 @@ struct QuestionSectionView: View {
         let beautified = await beautifier.beautify(question.questionText)
         await MainActor.run {
             question.questionText = beautified
-            editorState.markDocumentEdited()
         }
     }
 

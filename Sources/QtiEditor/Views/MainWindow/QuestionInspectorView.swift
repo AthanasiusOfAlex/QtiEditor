@@ -76,10 +76,10 @@ struct QuestionInspectorView: View {
                     .foregroundStyle(.secondary)
 
                 HStack {
-                    Image(systemName: question.hasCorrectAnswer ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                        .foregroundStyle(question.hasCorrectAnswer ? .green : .orange)
+                    Image(systemName: question.wrappedValue.hasCorrectAnswer ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                        .foregroundStyle(question.wrappedValue.hasCorrectAnswer ? .green : .orange)
 
-                    Text(question.hasCorrectAnswer ? "Has correct answer" : "No correct answer")
+                    Text(question.wrappedValue.hasCorrectAnswer ? "Has correct answer" : "No correct answer")
                         .font(.caption)
                 }
             }
@@ -142,7 +142,7 @@ struct QuestionInspectorView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                let totalPoints = document.questions.reduce(0) { $0 + $1.points }
+                let totalPoints = document.wrappedValue.questions.reduce(0) { $0 + $1.points }
                 Text(String(format: "%.1f", totalPoints))
                     .font(.body)
             }

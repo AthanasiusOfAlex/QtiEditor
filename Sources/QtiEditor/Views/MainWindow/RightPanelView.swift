@@ -72,11 +72,7 @@ struct QuizSettingsView: View {
 
     var body: some View {
         @Bindable var editorState = editorState
-        quizSettingsContent(for: $editorState.document)
-    }
-
-    @ViewBuilder
-    private func quizSettingsContent(for document: Binding<QTIDocument>) -> some View {
+        
         VStack(alignment: .leading, spacing: 16) {
             Text("Quiz Settings")
                 .font(.headline)
@@ -89,7 +85,7 @@ struct QuizSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                TextField("Quiz Title", text: document.title)
+                TextField("Quiz Title", text: $editorState.document.title)
                     .textFieldStyle(.roundedBorder)
             }
 
@@ -100,7 +96,7 @@ struct QuizSettingsView: View {
                     .foregroundStyle(.secondary)
 
                 ZStack(alignment: .topLeading) {
-                    TextEditor(text: document.description)
+                    TextEditor(text: $editorState.document.description)
                         .font(.body)
                         .scrollContentBackground(.hidden)
                         .padding(8)
@@ -119,7 +115,7 @@ struct QuizSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Text("\(document.questions.count)")
+                Text("\(editorState.document.questions.count)")
                     .font(.body)
             }
 
@@ -129,7 +125,7 @@ struct QuizSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                let totalPoints = document.questions.reduce(0) { $0 + $1.points }
+                let totalPoints = editorState.document.questions.reduce(0) { $0 + $1.points }
                 Text(String(format: "%.1f", totalPoints))
                     .font(.body)
             }
@@ -148,7 +144,7 @@ struct QuizSettingsView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
-                        TextField("Value", value: $editorState.globalPointsValue, format: .number)
+                        TextField("Value", value: $editorState.globalPointsValue, format: .number.precision(.fractionLength(1...1)))
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 80)
                     }

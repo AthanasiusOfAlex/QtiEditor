@@ -10,7 +10,7 @@ import SwiftUI
 /// Editor view for a single answer choice
 struct AnswerEditorView: View {
     @Environment(EditorState.self) private var editorState
-    let answer: QTIAnswer
+    @Binding var answer: QTIAnswer
     let index: Int
     let isSelected: Bool
     let hasMultipleSelected: Bool
@@ -24,8 +24,6 @@ struct AnswerEditorView: View {
     @State private var editorHeight: CGFloat = 50
 
     var body: some View {
-        @Bindable var answer = answer
-
         answerContent
             .onAppear {
                 editorHeight = CGFloat(storedAnswerHeight)
@@ -93,9 +91,7 @@ struct AnswerEditorView: View {
     }
 
     private var headerRow: some View {
-        @Bindable var answer = answer
-
-        return HStack {
+        HStack {
             Text("Answer \(index + 1)")
                 .font(.headline)
 
@@ -103,7 +99,6 @@ struct AnswerEditorView: View {
                 get: { answer.isCorrect },
                 set: { newValue in
                     answer.isCorrect = newValue
-                    editorState.markDocumentEdited()
                     onCorrectChanged(newValue)
                 }
             ))
@@ -130,15 +125,12 @@ struct AnswerEditorView: View {
     }
 
     private var editorView: some View {
-        @Bindable var answer = answer
-
-        return VStack(spacing: 0) {
+        VStack(spacing: 0) {
             if editorState.editorMode == .html {
                 HTMLEditorView(text: Binding(
                     get: { answer.text },
                     set: { newValue in
                         answer.text = newValue
-                        editorState.markDocumentEdited()
                     }
                 ))
                     .frame(height: editorHeight)
@@ -147,7 +139,6 @@ struct AnswerEditorView: View {
                     get: { answer.text },
                     set: { newValue in
                         answer.text = newValue
-                        editorState.markDocumentEdited()
                     }
                 ))
                     .frame(height: editorHeight)
@@ -199,7 +190,7 @@ struct AnswerResizeHandle: View {
     )
 
     AnswerEditorView(
-        answer: sampleAnswer,
+        answer: $sampleAnswer,
         index: 0,
         isSelected: false,
         hasMultipleSelected: false,

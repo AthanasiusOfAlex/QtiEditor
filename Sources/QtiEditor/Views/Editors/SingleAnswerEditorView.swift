@@ -137,20 +137,18 @@ struct SingleAnswerEditorView: View {
 
                     // HTML editor
                     HTMLEditorView(text: Binding(
-                        get: { answer.text },
+                        get: { answer.wrappedValue.text },
                         set: { newValue in
-                            answer.text = newValue
-                            editorState.markDocumentEdited()
+                            answer.wrappedValue.text = newValue
                         }
                     ))
                     .frame(maxHeight: .infinity)
                 }
             } else {
                 RichTextEditorView(htmlText: Binding(
-                    get: { answer.text },
+                    get: { answer.wrappedValue.text },
                     set: { newValue in
-                        answer.text = newValue
-                        editorState.markDocumentEdited()
+                        answer.wrappedValue.text = newValue
                     }
                 ))
                 .frame(maxHeight: .infinity)
@@ -178,7 +176,6 @@ struct SingleAnswerEditorView: View {
         let beautified = await beautifier.beautify(answer.wrappedValue.text)
         await MainActor.run {
             answer.wrappedValue.text = beautified
-            editorState.markDocumentEdited()
         }
     }
 
