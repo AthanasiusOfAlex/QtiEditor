@@ -49,9 +49,125 @@ A macOS native application for editing Canvas LMS quiz exports in QTI 1.2 format
 
 ## Technical Architecture
 
+### Guidelines for Concurrency
+
+Key principle: **"MainActor holds the State, Actors do the work, and Structs travel between them,"**
+
+#### 1\. The Separation of Concerns: Actors vs. Values
+
+The most common source of "Sendable conflicts" is the attempt to pass mutable reference types (classes) between threads. To solve this, your architecture must adhere to this rule: **Process logic in Actors, store state in MainActor classes, and communicate using Structs.**
+
+##### What should be `@MainActor`?
+
+In a SwiftUI app, the Main Actor is not just for the View code; it is for the **State that drives the View**.
+
+  * **Views:** Implicitly `@MainActor`.
+  * **View Models / UI State:** Explicitly `@MainActor`.
+  * **Window/App Delegates:** Implicitly `@MainActor`.
+
+**The Golden Rule:** If a class holds data that `body` reads directly, that class **must** be isolated to the `@MainActor`.
+
+Do not try to make your UI State thread-safe using internal locks or queues. Instead, isolate the whole class to the Main Actor. This ensures that any update to a property (which triggers a UI redraw) happens safely on the main thread, automatically.
+
+#### 2\. Weaving in `@Observable`
+
+The Observation framework (`@Observable`) removes the need for `objectWillChange` and `@Published`. However, because it relies on tracking field access, it is vital that these accesses happen predictably.
+
+**The Strategy:**
+Annotate your entire `@Observable` class with `@MainActor`.
+
+```swift
+@MainActor
+@Observable
+class UserProfileViewModel {
+    var username: String = ""
+    var statistics: UserStats? // A struct, not a class
+
+    // Since this is @MainActor, you can't call this synchronously 
+    // from a background thread. You must 'await' it.
+    func updateProfile() async {
+        // logic
+    }
+}
+```
+
+**Why this fixes conflicts:**
+When you annotate a class with `@MainActor`, Swift implicitly makes that class `Sendable`.
+
+- **Why?** Because the compiler guarantees that all properties are only accessed on the Main Thread. Therefore, it is safe to pass a reference to this class to a background task, *provided* that the background task `await`s any calls back into the class.
+
+#### 3\. Handling `Sendable` and Avoiding Conflicts
+
+The "Sendable conflict" usually happens when you try to pass a non-Sendable object (like a plain class) into a `Task` or an `actor`.
+
+Here is how to avoid them in a modern architecture:
+
+##### A. The "Value Boundary" Pattern
+
+Never pass your `@Observable` class *into* a background service to do work. Instead, extract the data needed into a `struct` (Value Type).
+
+**Bad Architecture (Causes Conflict):**
+
+```swift
+// Background Actor
+actor DataService {
+    func process(model: UserProfileViewModel) { ... } // Error: ViewModel is not Sendable (or isolated to MainActor)
+}
+```
+
+**Correct Architecture (Value Semantics):**
+
+```swift
+struct UserInput: Sendable { // Structs are implicitly Sendable
+    let name: String
+    let age: Int
+}
+
+@MainActor
+class ViewModel: Observable {
+    var state: AppState
+
+    func save() async {
+        // 1. Extract data into a Value Type (Snapshot)
+        let input = UserInput(name: state.name, age: state.age)
+        
+        // 2. Pass the Value Type to the background actor
+        let result = await databaseActor.save(input)
+        
+        // 3. Update state with the result (back on MainActor automatically)
+        self.state.lastSaved = result.timestamp
+    }
+}
+```
+
+##### B. Services should be `Actors` or `Stateless`
+
+Your heavy lifting (Database, Networking, Image Processing) should not run on the Main Actor.
+
+- **Stateless logic:** Use `structs` with static functions.
+- **Stateful logic:** Use `actor` (not `@MainActor class`).
+
+#### Summary of the Blueprint
+
+1. **The UI Layer (`@MainActor`):**
+
+   - SwiftUI Views.
+   - `@Observable` classes that store the data for those views.
+   - These handle user input and decide *what* needs to be done.
+
+2. **The Transport Layer (Boundaries):**
+
+   - Data are passed between layers using **Structs** and **Enums** only. These are `Sendable` by default.
+
+3. **The Domain Layer (Background / `actor`):**
+
+   - Networking, Database, and heavy computation.
+   - These return simple data types (Structs) back to the `@MainActor` to consume.
+
 ### Technology Stack
 
 #### Core Technologies
+
 - **Swift Regex**: Modern regex engine for search/replace
   - User inputs patterns as strings (e.g., `<p>(.*?)</p>`)
   - Engine parses and executes using Swift.Regex type
