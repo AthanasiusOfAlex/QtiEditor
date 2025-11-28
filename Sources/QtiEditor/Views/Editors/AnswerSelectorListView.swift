@@ -26,73 +26,9 @@ struct AnswerSelectorListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header with add button and bulk actions
-            HStack {
-                Text("Answers (\(question.answers.count))")
-                    .font(.headline)
-
-                Spacer()
-
-                // Add answer button
-                Button(action: addAnswer) {
-                    Label("Add", systemImage: "plus.circle.fill")
-                        .labelStyle(.iconOnly)
-                }
-                .buttonStyle(.borderless)
-                .help("Add a new answer")
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color.secondary.opacity(0.05))
-
+            headerView
             Divider()
-
-            // Answer list
-            if question.answers.isEmpty {
-                ContentUnavailableView(
-                    "No Answers",
-                    systemImage: "list.bullet",
-                    description: Text("Click + to add an answer")
-                )
-                .frame(maxHeight: .infinity)
-            } else {
-                List(selection: $selectedAnswerIDs) {
-                    ForEach(Array(question.answers.enumerated()), id: \.element.id) { index, answer in
-                        AnswerRowView(
-                            answer: answer,
-                            index: index,
-                            isSelected: selectedAnswerIDs.contains(answer.id)
-                        )
-                        .tag(answer.id)
-                        .contextMenu {
-                            buildContextMenu(for: answer)
-                        }
-                    }
-                    .onMove { fromOffsets, toOffset in
-                        question.answers.move(fromOffsets: fromOffsets, toOffset: toOffset)
-                        editorState.markDocumentEdited()
-                    }
-                }
-                .listStyle(.sidebar)
-                .focused($isListFocused)
-                .focusedSceneValue(\.focusContext, isListFocused ? .answerList : nil)
-                .focusedSceneValue(\.focusedActions, isListFocused ? FocusedActions(
-                    copy: { copySelectedAnswers() },
-                    cut: {
-                        copySelectedAnswers()
-                        performDelete()
-                    },
-                    paste: { pasteAnswersAtEnd() },
-                    selectAll: { selectAllAnswers() },
-                    delete: { confirmDelete() }
-                ) : nil)
-                .onAppear {
-                    startClipboardMonitoring()
-                }
-                .onDisappear {
-                    stopClipboardMonitoring()
-                }
-            }
+            contentView
         }
         .frame(minWidth: 200, idealWidth: 250)
         .background(Color(nsColor: .textBackgroundColor))
@@ -107,6 +43,89 @@ struct AnswerSelectorListView: View {
         } message: {
             Text(deleteDialogMessage())
         }
+    }
+    
+    // MARK: - View Components
+    
+    private var headerView: some View {
+        HStack {
+            Text("Answers (\(question.answers.count))")
+                .font(.headline)
+
+            Spacer()
+
+            // Add answer button
+            Button(action: addAnswer) {
+                Label("Add", systemImage: "plus.circle.fill")
+                    .labelStyle(.iconOnly)
+            }
+            .buttonStyle(.borderless)
+            .help("Add a new answer")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color.secondary.opacity(0.05))
+    }
+    
+    @ViewBuilder
+    private var contentView: some View {
+        if question.answers.isEmpty {
+            emptyStateView
+        } else {
+            answerListView
+        }
+    }
+    
+    private var emptyStateView: some View {
+        ContentUnavailableView(
+            "No Answers",
+            systemImage: "list.bullet",
+            description: Text("Click + to add an answer")
+        )
+        .frame(maxHeight: .infinity)
+    }
+    
+    private var answerListView: some View {
+        List(selection: $selectedAnswerIDs) {
+            ForEach(Array(question.answers.enumerated()), id: \.element.id) { index, answer in
+                AnswerRowView(
+                    answer: answer,
+                    index: index,
+                    isSelected: selectedAnswerIDs.contains(answer.id)
+                )
+                .tag(answer.id)
+                .contextMenu {
+                    buildContextMenu(for: answer)
+                }
+            }
+            .onMove { fromOffsets, toOffset in
+                question.answers.move(fromOffsets: fromOffsets, toOffset: toOffset)
+            }
+        }
+        .listStyle(.sidebar)
+        .focused($isListFocused)
+        .focusedSceneValue(\.focusContext, isListFocused ? .answerList : nil)
+        .focusedSceneValue(\.focusedActions, focusedActionsValue)
+        .onAppear {
+            startClipboardMonitoring()
+        }
+        .onDisappear {
+            stopClipboardMonitoring()
+        }
+    }
+    
+    private var focusedActionsValue: FocusedActions? {
+        guard isListFocused else { return nil }
+        return FocusedActions(
+            copy: { copySelectedAnswers() },
+            cut: {
+                copySelectedAnswers()
+                performDelete()
+            },
+            paste: { pasteAnswersAtEnd() },
+            selectAll: { selectAllAnswers() },
+            delete: { confirmDelete() }
+        )
     }
 
     // MARK: - Context Menu
