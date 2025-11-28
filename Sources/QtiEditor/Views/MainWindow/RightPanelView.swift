@@ -71,15 +71,12 @@ struct QuizSettingsView: View {
     @Environment(EditorState.self) private var editorState
 
     var body: some View {
-        let document = editorState.document
-        quizSettingsContent(for: document)
+        @Bindable var editorState = editorState
+        quizSettingsContent(for: $editorState.document)
     }
 
     @ViewBuilder
-    private func quizSettingsContent(for document: QTIDocument) -> some View {
-        @Bindable var document = document
-        @Bindable var editorState = editorState
-
+    private func quizSettingsContent(for document: Binding<QTIDocument>) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Quiz Settings")
                 .font(.headline)
@@ -92,11 +89,8 @@ struct QuizSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                TextField("Quiz Title", text: $document.title)
+                TextField("Quiz Title", text: document.title)
                     .textFieldStyle(.roundedBorder)
-                    .onChange(of: document.title) { _, _ in
-                        editorState.markDocumentEdited()
-                    }
             }
 
             // Quiz description
@@ -106,13 +100,10 @@ struct QuizSettingsView: View {
                     .foregroundStyle(.secondary)
 
                 ZStack(alignment: .topLeading) {
-                    TextEditor(text: $document.description)
+                    TextEditor(text: document.description)
                         .font(.body)
                         .scrollContentBackground(.hidden)
                         .padding(8)
-                        .onChange(of: document.description) { _, _ in
-                            editorState.markDocumentEdited()
-                        }
                 }
                 .frame(height: 100)
                 .background(Color(nsColor: .textBackgroundColor))
