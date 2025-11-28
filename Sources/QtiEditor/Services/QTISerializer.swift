@@ -9,7 +9,7 @@
 import Foundation
 
 /// Serializes QTIDocumentSnapshot models into Canvas-compatible QTI 1.2 XML
-final class QTISerializer {
+struct QTISerializer {
     /// Serializes a QTIDocumentSnapshot to QTI XML data
     /// - Parameter snapshot: The document snapshot to serialize
     /// - Returns: XML data
