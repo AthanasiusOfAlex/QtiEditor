@@ -11,7 +11,7 @@ import SwiftUI
 /// Displays question header, title field, search preview, and editor mode toggle
 struct QuestionMetadataView: View {
     @Environment(EditorState.self) private var editorState
-    let question: QTIQuestion
+    @Binding var question: QTIQuestion
     let questionNumber: Int
 
     var body: some View {
@@ -162,10 +162,11 @@ struct QuestionMetadataView: View {
 }
 
 #Preview {
+    @Previewable @State var document = QTIDocument.empty()
     QuestionMetadataView(
-        question: QTIDocument.empty().questions[0],
+        question: $document.questions[0],
         questionNumber: 1
     )
-    .environment(EditorState(document: QTIDocument.empty()))
+    .environment(EditorState(document: document))
     .padding()
 }

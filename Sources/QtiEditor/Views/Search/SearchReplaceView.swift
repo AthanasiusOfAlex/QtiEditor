@@ -331,7 +331,7 @@ struct SearchReplaceView: View {
     }
 
     private func replaceCurrentMatch() {
-        let document = editorState.document
+        var document = editorState.document
         guard currentMatchIndex < searchResults.count else {
             return
         }
@@ -346,11 +346,8 @@ struct SearchReplaceView: View {
                     with: editorState.replacementText,
                     pattern: editorState.searchText,
                     isRegex: editorState.isRegexEnabled,
-                    in: document
+                    in: &document
                 )
-
-                // Mark document as edited
-                editorState.markDocumentEdited()
 
                 // Remove this match from results
                 searchResults.remove(at: currentMatchIndex)

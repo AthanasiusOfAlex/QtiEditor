@@ -79,7 +79,7 @@ struct QuestionListView: View {
 
     @ViewBuilder
     private func buildListContent(editorState: EditorState) -> some View {
-        let document = editorState.document
+        var document = editorState.document
         Section("Questions (\(document.questions.count))") {
             ForEach(Array(document.questions.enumerated()), id: \.element.id) { index, question in
                 QuestionRowView(question: question, index: index + 1)
