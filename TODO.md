@@ -2,16 +2,22 @@
 
 ## Phase 1: Fine Tuning
 
-### Features
-- [ ] I need to be able to turn off autosave until we get undo/redo fine-tuned
-
-### Bugs
-- [ ] It won't save new files. I get this strange popup message instead: 'The document "Untitled" could not be saved as "Untitled.zip". QtiEditor is unable to save using this document type.'
-- [ ] When I validate the HTML, and the HTML is valid, I get a popup entitled "Error" with text "HTML is valid!" The title is obviously wrong.
-- [ ] We should disable beautification until we fix it. It doesn't work and just messes up the HTML. Leave the button in place, but gray it out.
-- [ ] Should `QtiAnswer`, `ReferenceFileDocument`, and `QtiQuestion` really be `@unchecked`, or is there something wrong with how we are handling the concurrency? I see `var` variables, but no manual dispatch/NSLock. Reminder: we want those unless we are forced to use legacy APIs; we want to follow modern Swift concurrency best practices. Why are we sending things with a mutable state anyhow?
+- [ ] Fix the remaining issues with Swift concurrency.
+  - [ ] Read the section entitled "Guidelines for Concurrency" attentively
+  - [ ] Fix the following compiler errors
+    - Sources/QtiEditor/Models/QTI/QTIDocument.swift:22:26 Conformance of 'QTIDocument' to protocol 'ReferenceFileDocument' crosses into main actor-isolated code and can cause data races
+    - Sources/QtiEditor/Models/QTI/QTIDocument.swift:54:14 Main actor-isolated property 'title' can not be mutated from a nonisolated context
+    - Sources/QtiEditor/Models/QTI/QTIDocument.swift:55:14 Main actor-isolated property 'description' can not be mutated from a nonisolated context
+    - Sources/QtiEditor/Models/QTI/QTIDocument.swift:56:14 Main actor-isolated property 'questions' can not be mutated from a nonisolated context
+    - Sources/QtiEditor/Models/QTI/QTIDocument.swift:57:14 Main actor-isolated property 'metadata' can not be mutated from a nonisolated context
+    - Sources/QtiEditor/Models/QTI/QTIDocument.swift:92:18 Main actor-isolated property 'title' can not be mutated from a nonisolated context
+    - Sources/QtiEditor/Models/QTI/QTIDocument.swift:93:18 Main actor-isolated property 'description' can not be mutated from a nonisolated context
+    - Sources/QtiEditor/Models/QTI/QTIDocument.swift:94:18 Main actor-isolated property 'questions' can not be mutated from a nonisolated context
+    - Sources/QtiEditor/Models/QTI/QTIDocument.swift:95:18 Main actor-isolated property 'metadata' can not be mutated from a nonisolated context
+  - [ ] See if there are still some refactoring to be done to follow the guidelines
 
 ## Phase 4: Long-term projects
+
 - [ ] Robust undo/redo system that tracks the underlying HTML, not the rich text
 - [ ] Make it so that editing in the rich-text editor doesn't mess up the underlying HTML. Right now, as soon as I edit complex HTML, the editor immediately simplifies the structure
 - [ ] Actual HTML beautifying. Should we use the Tidy library? This project looks promising: https://github.com/htacg/SwLibTidy.git
