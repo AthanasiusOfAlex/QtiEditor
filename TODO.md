@@ -4,7 +4,6 @@
 
 ### Features
 - [ ] I need to be able to turn off autosave until we get undo/redo fine-tuned
-- [ ] Undo/redo should track the underlying HTML, not just keystrokes, if that is possible.
 
 ### Bugs
 - [ ] It won't save new files. I get this strange popup message instead: 'The document "Untitled" could not be saved as "Untitled.zip". QtiEditor is unable to save using this document type.'
