@@ -33,7 +33,7 @@ enum QTIQuestionType: String, Codable, CaseIterable, Sendable {
 }
 
 /// Represents a single question in a QTI quiz
-struct QTIQuestion: Identifiable, Codable, Sendable {
+struct QTIQuestion: Identifiable, Codable, Sendable, Equatable {
     /// Unique identifier
     let id: UUID
 

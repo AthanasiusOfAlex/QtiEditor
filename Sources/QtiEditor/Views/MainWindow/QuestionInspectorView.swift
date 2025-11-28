@@ -12,13 +12,16 @@ struct QuestionInspectorView: View {
     @Environment(EditorState.self) private var editorState
 
     var body: some View {
+        @Bindable var editorState = editorState
+
         VStack(alignment: .leading, spacing: 16) {
-            if let question = editorState.selectedQuestion {
+            if let selectedID = editorState.selectedQuestionID,
+               let index = editorState.document.questions.firstIndex(where: { $0.id == selectedID }) {
                 // Question is selected - show question inspector
-                questionInspector(for: question)
+                questionInspector(for: $editorState.document.questions[index])
             } else {
                 // No question selected - show quiz metadata
-                quizInspector(for: editorState.document)
+                quizInspector(for: $editorState.document)
             }
         }
         .padding()
@@ -28,9 +31,7 @@ struct QuestionInspectorView: View {
     }
 
     @ViewBuilder
-    private func questionInspector(for question: QTIQuestion) -> some View {
-        @Bindable var question = question
-
+    private func questionInspector(for question: Binding<QTIQuestion>) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Question Settings")
                 .font(.headline)
@@ -43,7 +44,7 @@ struct QuestionInspectorView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Text(question.type.displayName)
+                Text(question.type.wrappedValue.displayName)
                     .font(.body)
             }
 
@@ -53,12 +54,9 @@ struct QuestionInspectorView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                TextField("Points", value: $question.points, format: .number)
+                TextField("Points", value: question.points, format: .number)
                     .textFieldStyle(.roundedBorder)
                     .help("Point value for this question")
-                    .onChange(of: question.points) { _, _ in
-                        editorState.markDocumentEdited()
-                    }
             }
 
             // Answer count
@@ -91,9 +89,7 @@ struct QuestionInspectorView: View {
     }
 
     @ViewBuilder
-    private func quizInspector(for document: QTIDocument) -> some View {
-        @Bindable var document = document
-
+    private func quizInspector(for document: Binding<QTIDocument>) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Quiz Settings")
                 .font(.headline)
@@ -106,11 +102,8 @@ struct QuestionInspectorView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                TextField("Quiz Title", text: $document.title)
+                TextField("Quiz Title", text: document.title)
                     .textFieldStyle(.roundedBorder)
-                    .onChange(of: document.title) { _, _ in
-                        editorState.markDocumentEdited()
-                    }
             }
 
             // Quiz description
@@ -120,13 +113,10 @@ struct QuestionInspectorView: View {
                     .foregroundStyle(.secondary)
 
                 ZStack(alignment: .topLeading) {
-                    TextEditor(text: $document.description)
+                    TextEditor(text: document.description)
                         .font(.body)
                         .scrollContentBackground(.hidden)
                         .padding(8)
-                        .onChange(of: document.description) { _, _ in
-                            editorState.markDocumentEdited()
-                        }
                 }
                 .frame(height: 100)
                 .background(Color(nsColor: .textBackgroundColor))

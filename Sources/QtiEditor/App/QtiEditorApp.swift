@@ -14,7 +14,7 @@ import AppKit
 struct QtiEditorApp: App {
     var body: some Scene {
         DocumentGroup(newDocument: { QTIDocument.empty() }) { configuration in
-            ContentView(document: configuration.document)
+            ContentView(document: configuration.$document)
         }
         .defaultSize(width: 1500, height: 950)
         .commands {

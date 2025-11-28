@@ -3,6 +3,7 @@
 //  QtiEditor
 //
 //  Created by Claude on 2025-11-16.
+//  Updated 2025-11-20 for Phase 1 Refactor
 //
 
 import Foundation
@@ -22,9 +23,6 @@ enum EditorMode: String, CaseIterable, Sendable {
 final class EditorState {
     /// Currently open document
     var document: QTIDocument
-
-    /// System UndoManager
-    weak var undoManager: UndoManager?
 
     /// Currently selected question ID (focused for editing)
     var selectedQuestionID: UUID?
@@ -140,9 +138,6 @@ final class EditorState {
     /// Whether a file operation is in progress
     var isLoading: Bool = false
 
-    /// Whether the document has unsaved changes
-    var isDocumentEdited: Bool = false
-
     init(document: QTIDocument) {
         self.document = document
 
@@ -182,7 +177,6 @@ final class EditorState {
         for index in document.questions.indices {
             if document.questions[index].points != globalPointsValue {
                 document.questions[index].points = globalPointsValue
-                markDocumentEdited()
             }
         }
     }
@@ -239,7 +233,6 @@ final class EditorState {
         document.questions.append(question)
         selectedQuestionID = question.id
         selectedQuestionIDs = [question.id]
-        markDocumentEdited()
     }
 
     /// Delete the specified question
@@ -249,7 +242,6 @@ final class EditorState {
             selectedQuestionID = nil
         }
         selectedQuestionIDs.remove(question.id)
-        markDocumentEdited()
     }
 
     /// Delete all currently selected questions
@@ -267,7 +259,6 @@ final class EditorState {
             selectedQuestionID = nil
         }
         selectedQuestionIDs.removeAll()
-        markDocumentEdited()
     }
 
     /// Duplicate the specified question and insert it after the original
@@ -288,7 +279,6 @@ final class EditorState {
         // Select the new question
         selectedQuestionID = duplicatedQuestion.id
         selectedQuestionIDs = [duplicatedQuestion.id]
-        markDocumentEdited()
     }
 
     /// Duplicate the currently selected question
@@ -323,7 +313,6 @@ final class EditorState {
         // Select the duplicated questions
         selectedQuestionIDs = newQuestionIDs
         selectedQuestionID = newQuestionIDs.first
-        markDocumentEdited()
     }
 
     /// Duplicate an answer and add it after the original
@@ -348,7 +337,6 @@ final class EditorState {
 
         // Insert after the original
         document.questions[qIndex].answers.insert(duplicatedAnswer, at: index + 1)
-        markDocumentEdited()
     }
 
     // MARK: - Copy/Paste Operations
@@ -448,7 +436,6 @@ final class EditorState {
             // Select the pasted questions
             selectedQuestionIDs = newQuestionIDs
             selectedQuestionID = newQuestions.first?.id
-            markDocumentEdited()
         } catch {
             showError("Failed to paste question(s): \(error.localizedDescription)")
         }
@@ -486,7 +473,6 @@ final class EditorState {
             // Select the pasted questions
             selectedQuestionIDs = newQuestionIDs
             selectedQuestionID = newQuestions.first?.id
-            markDocumentEdited()
         } catch {
             showError("Failed to paste question(s): \(error.localizedDescription)")
         }
@@ -608,7 +594,6 @@ final class EditorState {
 
             // Add at the end of the answer list
             document.questions[qIndex].answers.append(newAnswer)
-            markDocumentEdited()
         } catch {
             showError("Failed to paste answer: \(error.localizedDescription)")
         }
@@ -667,19 +652,9 @@ final class EditorState {
                 insertIndex += 1
             }
 
-            markDocumentEdited()
         } catch {
             showError("Failed to paste answers: \(error.localizedDescription)")
         }
-    }
-
-    // MARK: - Document State
-
-    /// Mark the document as having unsaved changes
-    /// Call this method when modifying question/answer properties directly
-    func markDocumentEdited() {
-        isDocumentEdited = true
-        undoManager?.registerUndo(withTarget: document) { _ in }
     }
 
     // MARK: - Error Handling

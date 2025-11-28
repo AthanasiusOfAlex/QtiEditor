@@ -3,7 +3,7 @@
 //  QtiEditor
 //
 //  Created by Louis Melahn on 2025-11-16.
-//  Updated 2025-11-19 for DocumentGroup architecture
+//  Updated 2025-11-20 for Phase 1 Refactor
 //
 
 import SwiftUI
@@ -12,23 +12,38 @@ import UniformTypeIdentifiers
 
 /// Main window container for the QTI Editor
 struct ContentView: View {
-    var document: QTIDocument
-    @State private var editorState: EditorState
-    @Environment(\.undoManager) var undoManager
-
-    init(document: QTIDocument) {
-        self.document = document
-        _editorState = State(initialValue: EditorState(document: document))
-    }
+    @Binding var document: QTIDocument
+    @State private var editorState: EditorState?
 
     var body: some View {
-        @Bindable var editorState = editorState
-        @Bindable var document = editorState.document
+        Group {
+            if let editorState {
+                MainContentView(editorState: editorState, documentBinding: $document)
+            } else {
+                ProgressView()
+                    .onAppear {
+                        self.editorState = EditorState(document: document)
+                    }
+            }
+        }
+        .onChange(of: document) { _, newValue in
+            // Handle undo/redo or external changes
+            if let editorState, editorState.document != newValue {
+                editorState.document = newValue
+            }
+        }
+    }
+}
 
+/// Extracted content view to handle EditorState binding
+struct MainContentView: View {
+    @Bindable var editorState: EditorState
+    @Binding var documentBinding: QTIDocument
+
+    var body: some View {
         HSplitView {
             // LEFT PANEL: Questions list (collapsible, resizable)
             QuestionListView()
-                .environment(editorState)
                 .frame(
                     minWidth: editorState.isLeftPanelVisible ? 150 : 0,
                     idealWidth: editorState.isLeftPanelVisible ? editorState.leftPanelWidth : 0,
@@ -59,18 +74,18 @@ struct ContentView: View {
                     // Multiple questions selected
                     multipleQuestionsSelectedView
                 } else if let selectedID = editorState.selectedQuestionID,
-                          let index = document.questions.firstIndex(where: { $0.id == selectedID }) {
+                          let index = editorState.document.questions.firstIndex(where: { $0.id == selectedID }) {
                     // Single question selected - show question + answers in VSplitView
                     VSplitView {
                         // Top: Question section
                         QuestionSectionView(
-                            question: $document.questions[index],
+                            question: $editorState.document.questions[index],
                             questionNumber: index + 1
                         )
                         .frame(minHeight: 200)
 
                         // Bottom: Answers master-detail
-                        AnswersMasterDetailView(question: $document.questions[index])
+                        AnswersMasterDetailView(question: $editorState.document.questions[index])
                             .frame(minHeight: 150)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -93,14 +108,12 @@ struct ContentView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .environment(editorState)
 
             // RIGHT PANEL: Utilities (Search, Quiz Settings) - collapsible, resizable
             RightPanelView(selectedTab: Binding(
                 get: { editorState.rightPanelTab },
                 set: { editorState.rightPanelTab = $0 }
             ))
-            .environment(editorState)
             .frame(
                 minWidth: editorState.isRightPanelVisible ? 200 : 0,
                 idealWidth: editorState.isRightPanelVisible ? editorState.rightPanelWidth : 0,
@@ -124,6 +137,7 @@ struct ContentView: View {
             .opacity(editorState.isRightPanelVisible ? 1 : 0)
             .animation(.easeInOut(duration: 0.15), value: editorState.isRightPanelVisible)  // Animate opacity only
         }
+        .environment(editorState) // Inject environment once at HSplitView level
         .background(
             // Hidden button for Search shortcut (Cmd+F)
             Button("Search Shortcut") {
@@ -154,9 +168,6 @@ struct ContentView: View {
             }
         }
         .focusedSceneValue(\.editorState, editorState)
-        .overlay {
-            // Loading overlay removed as file loading is handled by system
-        }
         .alert(editorState.alertTitle, isPresented: $editorState.showAlert) {
             Button("OK") {
                 editorState.showAlert = false
@@ -166,8 +177,9 @@ struct ContentView: View {
                 Text(message)
             }
         }
-        .onAppear {
-            editorState.undoManager = undoManager
+        // Sync changes back to DocumentGroup binding (triggers autosave/undo)
+        .onChange(of: editorState.document) { _, newValue in
+            documentBinding = newValue
         }
     }
 
@@ -272,5 +284,5 @@ struct RightPanelWidthPreferenceKey: PreferenceKey {
 }
 
 #Preview {
-    ContentView(document: QTIDocument.empty())
+    ContentView(document: .constant(QTIDocument.empty()))
 }

@@ -3,7 +3,7 @@
 //  QtiEditor
 //
 //  Created by Claude on 2025-11-16.
-//  Updated 2025-11-19 for DocumentGroup architecture
+//  Updated 2025-11-20 for Phase 1 Refactor
 //
 
 import Foundation
@@ -17,33 +17,29 @@ extension UTType {
 
 /// Represents a complete QTI quiz document
 /// This is the root model that contains all quiz data
-@Observable
-@MainActor
-final class QTIDocument: ReferenceFileDocument {
+struct QTIDocument: FileDocument, Identifiable, Equatable, Codable, Sendable {
     /// Unique identifier for this quiz
     let id: UUID
 
     /// Quiz title
-    nonisolated(unsafe) var title: String
+    var title: String
 
     /// Quiz description (optional)
-    nonisolated(unsafe) var description: String
+    var description: String
 
     /// Collection of questions in this quiz
-    nonisolated(unsafe) var questions: [QTIQuestion]
+    var questions: [QTIQuestion]
 
     /// Quiz-level settings and metadata
-    nonisolated(unsafe) var metadata: [String: String]
+    var metadata: [String: String]
 
-    // MARK: - ReferenceFileDocument Conformance
+    // MARK: - FileDocument Conformance
 
     static var readableContentTypes: [UTType] { [.imscc, .zip] }
     static var writableContentTypes: [UTType] { [.imscc, .zip] }
 
-    typealias Snapshot = QTIDocumentSnapshot
-
     /// Designated initializer
-    nonisolated init(
+    init(
         id: UUID = UUID(),
         title: String = "Untitled Quiz",
         description: String = "",
@@ -63,15 +59,16 @@ final class QTIDocument: ReferenceFileDocument {
     }
 
     /// Initialize from a file
-    nonisolated init(configuration: ReadConfiguration) throws {
+    init(configuration: ReadConfiguration) throws {
         let fileWrapper = configuration.file
 
         let extractor = IMSCCExtractor()
         let parser = QTIParser()
 
         // Helper to perform parsing from a directory URL
-        func parseFromDirectory(_ directoryURL: URL) throws -> QTIDocumentSnapshot {
+        func parseFromDirectory(_ directoryURL: URL) throws -> QTIDocument {
              let assessmentURL = try extractor.locateAssessmentFile(in: directoryURL)
+             // Parser will be updated to return QTIDocument
              return try parser.parse(fileURL: assessmentURL)
         }
 
@@ -86,60 +83,46 @@ final class QTIDocument: ReferenceFileDocument {
             let extractedDir = try extractor.extract(packageURL: tempZipURL)
             defer { extractor.cleanup(extractedURL: extractedDir) }
 
-            let snapshot = try parseFromDirectory(extractedDir)
+            let document = try parseFromDirectory(extractedDir)
 
-            self.id = UUID()
-            self.title = snapshot.title
-            self.description = snapshot.description
-            self.questions = snapshot.questions
-            self.metadata = snapshot.metadata
+            self.id = UUID() // Generate new ID for session
+            self.title = document.title
+            self.description = document.description
+            self.questions = document.questions
+            self.metadata = document.metadata
             return
         }
-
-        // Handle Directory (unzipped)
-        // If we opened a folder (unlikely for .imscc unless treated as bundle), we'd need to assume it has content.
-        // For now, we only support single file (zip).
 
         throw QTIError.cannotExtractPackage("Unsupported file format: Directory opening not implemented")
     }
 
-    /// Create a snapshot of the document state
-    func snapshot(contentType: UTType) throws -> QTIDocumentSnapshot {
-        QTIDocumentSnapshot(
-            title: title,
-            description: description,
-            questions: questions,
-            metadata: metadata
-        )
-    }
-
-    /// Write the snapshot to a file wrapper
-    nonisolated func fileWrapper(snapshot: QTIDocumentSnapshot, configuration: WriteConfiguration) throws -> FileWrapper {
+    /// Write the document to a file wrapper
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
         // 1. Create temp directory
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
         // Cleanup temp dir on exit (success or fail)
-        // Note: we need to keep tempZipURL valid until FileWrapper reads it (options: .immediate reads it)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
-        // 2. Serialize snapshot data to XML files in tempDir
+        // 2. Serialize data to XML files in tempDir
         // Setup paths
-        let quizID = snapshot.metadata["canvas_identifier"] ?? UUID().uuidString.replacingOccurrences(of: "-", with: "")
+        let quizID = metadata["canvas_identifier"] ?? UUID().uuidString.replacingOccurrences(of: "-", with: "")
         let quizDir = tempDir.appendingPathComponent(quizID)
         try FileManager.default.createDirectory(at: quizDir, withIntermediateDirectories: true)
 
         // Serialize Assessment XML
         let serializer = QTISerializer()
         let assessmentURL = quizDir.appendingPathComponent("\(quizID).xml")
-        try serializer.serialize(snapshot: snapshot, to: assessmentURL)
+        // Serializer will be updated to take QTIDocument
+        try serializer.serialize(snapshot: self, to: assessmentURL)
 
         // Manifest & Meta
         let metaURL = quizDir.appendingPathComponent("assessment_meta.xml")
-        try IMSCCPackageGenerator.generateAssessmentMeta(for: snapshot, quizID: quizID, to: metaURL)
+        try IMSCCPackageGenerator.generateAssessmentMeta(for: self, quizID: quizID, to: metaURL)
 
         let manifestURL = tempDir.appendingPathComponent("imsmanifest.xml")
-        try IMSCCPackageGenerator.generateManifest(for: snapshot, quizID: quizID, to: manifestURL)
+        try IMSCCPackageGenerator.generateManifest(for: self, quizID: quizID, to: manifestURL)
 
         // 3. Zip tempDir to temp zip file
         let tempZipURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".imscc")
@@ -149,12 +132,8 @@ final class QTIDocument: ReferenceFileDocument {
         defer { try? FileManager.default.removeItem(at: tempZipURL) }
 
         // 4. Create FileWrapper
-        // .immediate ensures data is read into memory so we can delete the file
         let wrapper = try FileWrapper(url: tempZipURL, options: .immediate)
 
         return wrapper
     }
 }
-
-// MARK: - Identifiable Conformance
-extension QTIDocument: Identifiable {}
