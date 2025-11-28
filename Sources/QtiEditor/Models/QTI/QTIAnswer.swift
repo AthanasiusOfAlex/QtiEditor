@@ -8,9 +8,8 @@
 import Foundation
 
 /// Represents an answer choice for a QTI question
-@MainActor
 @Observable
-final class QTIAnswer: Sendable {
+final class QTIAnswer: @unchecked Sendable {
     /// Unique identifier
     let id: UUID
 
@@ -29,7 +28,7 @@ final class QTIAnswer: Sendable {
     /// Additional metadata (Canvas-specific fields, etc.)
     var metadata: [String: String]
 
-    nonisolated init(
+    init(
         id: UUID = UUID(),
         text: String = "",
         isCorrect: Bool = false,
@@ -76,7 +75,7 @@ extension QTIAnswer {
         )
     }
 
-    nonisolated convenience init(dto: DTO) {
+    convenience init(dto: DTO) {
         self.init(
             id: dto.id,
             text: dto.text,

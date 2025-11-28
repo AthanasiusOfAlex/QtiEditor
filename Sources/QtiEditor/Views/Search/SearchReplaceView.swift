@@ -265,9 +265,7 @@ struct SearchReplaceView: View {
     }
 
     private func performSearch() {
-        guard let document = editorState.document else {
-            return
-        }
+        let document = editorState.document
 
         isSearching = true
         errorMessage = nil
@@ -306,9 +304,7 @@ struct SearchReplaceView: View {
     }
 
     private func performReplaceAll() {
-        guard let document = editorState.document else {
-            return
-        }
+        let document = editorState.document
 
         isSearching = true
         errorMessage = nil
@@ -338,8 +334,8 @@ struct SearchReplaceView: View {
     }
 
     private func replaceCurrentMatch() {
-        guard let document = editorState.document,
-              currentMatchIndex < searchResults.count else {
+        let document = editorState.document
+        guard currentMatchIndex < searchResults.count else {
             return
         }
 

@@ -17,9 +17,8 @@ extension UTType {
 
 /// Represents a complete QTI quiz document
 /// This is the root model that contains all quiz data
-@MainActor
 @Observable
-final class QTIDocument: ReferenceFileDocument {
+final class QTIDocument: ReferenceFileDocument, @unchecked Sendable {
     /// Unique identifier for this quiz
     let id: UUID
 
@@ -41,8 +40,8 @@ final class QTIDocument: ReferenceFileDocument {
 
     typealias Snapshot = QTIDocumentSnapshot
 
-    /// Designated initializer - marked nonisolated to be callable from background
-    nonisolated init(
+    /// Designated initializer
+    init(
         id: UUID = UUID(),
         title: String = "Untitled Quiz",
         description: String = "",
@@ -62,7 +61,7 @@ final class QTIDocument: ReferenceFileDocument {
     }
 
     /// Initialize from a file
-    nonisolated init(configuration: ReadConfiguration) throws {
+    init(configuration: ReadConfiguration) throws {
         let fileWrapper = configuration.file
 
         let extractor = IMSCCExtractor()
@@ -113,7 +112,7 @@ final class QTIDocument: ReferenceFileDocument {
     }
 
     /// Write the snapshot to a file wrapper
-    nonisolated func fileWrapper(snapshot: QTIDocumentSnapshot, configuration: WriteConfiguration) throws -> FileWrapper {
+    func fileWrapper(snapshot: QTIDocumentSnapshot, configuration: WriteConfiguration) throws -> FileWrapper {
         // 1. Create temp directory
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)

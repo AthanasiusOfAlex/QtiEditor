@@ -79,27 +79,26 @@ struct QuestionListView: View {
 
     @ViewBuilder
     private func buildListContent(editorState: EditorState) -> some View {
-        if let document = editorState.document {
-            Section("Questions (\(document.questions.count))") {
-                ForEach(Array(document.questions.enumerated()), id: \.element.id) { index, question in
-                    QuestionRowView(question: question, index: index + 1)
-                        .tag(question.id)
-                        .contextMenu {
-                            buildContextMenu(question: question)
-                        }
-                }
-                .onMove { fromOffsets, toOffset in
-                    document.questions.move(fromOffsets: fromOffsets, toOffset: toOffset)
-                }
+        let document = editorState.document
+        Section("Questions (\(document.questions.count))") {
+            ForEach(Array(document.questions.enumerated()), id: \.element.id) { index, question in
+                QuestionRowView(question: question, index: index + 1)
+                    .tag(question.id)
+                    .contextMenu {
+                        buildContextMenu(question: question)
+                    }
             }
+            .onMove { fromOffsets, toOffset in
+                document.questions.move(fromOffsets: fromOffsets, toOffset: toOffset)
+            }
+        }
 
-            if document.questions.isEmpty {
-                ContentUnavailableView(
-                    "No Questions",
-                    systemImage: "questionmark.circle",
-                    description: Text("Add a question to get started")
-                )
-            }
+        if document.questions.isEmpty {
+            ContentUnavailableView(
+                "No Questions",
+                systemImage: "questionmark.circle",
+                description: Text("Add a question to get started")
+            )
         }
     }
 
@@ -234,7 +233,7 @@ struct QuestionListView: View {
             // Keep current selection if it's still in the set
         } else {
             // Use the first selected question
-            editorState.selectedQuestionID = editorState.document?.questions.first { newSelection.contains($0.id) }?.id
+            editorState.selectedQuestionID = editorState.document.questions.first { newSelection.contains($0.id) }?.id
         }
 
         // Ensure an answer is always selected when viewing a question
@@ -246,7 +245,7 @@ struct QuestionListView: View {
     }
 
     private func selectAllQuestions() {
-        guard let document = editorState.document else { return }
+        let document = editorState.document
         editorState.selectedQuestionIDs = Set(document.questions.map { $0.id })
     }
 

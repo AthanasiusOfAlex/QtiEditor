@@ -71,15 +71,8 @@ struct QuizSettingsView: View {
     @Environment(EditorState.self) private var editorState
 
     var body: some View {
-        if let document = editorState.document {
-            quizSettingsContent(for: document)
-        } else {
-            ContentUnavailableView(
-                "No Quiz Open",
-                systemImage: "doc",
-                description: Text("Open or create a quiz to see settings")
-            )
-        }
+        let document = editorState.document
+        quizSettingsContent(for: document)
     }
 
     @ViewBuilder
