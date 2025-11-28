@@ -128,6 +128,9 @@ final class EditorState {
     /// Current search match being viewed (for highlighting)
     var currentSearchMatch: SearchMatch?
 
+    /// Alert title to display
+    var alertTitle: String = "Error"
+
     /// Alert message to display
     var alertMessage: String?
 
@@ -684,6 +687,7 @@ final class EditorState {
     // MARK: - Error Handling
 
     private func showError(_ message: String) {
+        alertTitle = "Error"
         alertMessage = message
         showAlert = true
     }

@@ -156,7 +156,7 @@ struct ContentView: View {
         .overlay {
             // Loading overlay removed as file loading is handled by system
         }
-        .alert("Error", isPresented: $editorState.showAlert) {
+        .alert(editorState.alertTitle, isPresented: $editorState.showAlert) {
             Button("OK") {
                 editorState.showAlert = false
             }

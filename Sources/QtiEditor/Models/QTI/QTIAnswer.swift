@@ -9,7 +9,8 @@ import Foundation
 
 /// Represents an answer choice for a QTI question
 @Observable
-final class QTIAnswer: @unchecked Sendable {
+@MainActor
+final class QTIAnswer {
     /// Unique identifier
     let id: UUID
 
@@ -28,7 +29,7 @@ final class QTIAnswer: @unchecked Sendable {
     /// Additional metadata (Canvas-specific fields, etc.)
     var metadata: [String: String]
 
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         text: String = "",
         isCorrect: Bool = false,

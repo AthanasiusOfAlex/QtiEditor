@@ -34,7 +34,8 @@ enum QTIQuestionType: String, Codable, CaseIterable, Sendable {
 
 /// Represents a single question in a QTI quiz
 @Observable
-final class QTIQuestion: @unchecked Sendable {
+@MainActor
+final class QTIQuestion {
     /// Unique identifier
     let id: UUID
 
@@ -56,7 +57,7 @@ final class QTIQuestion: @unchecked Sendable {
     /// Additional metadata (Canvas-specific fields, etc.)
     var metadata: [String: String]
 
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         type: QTIQuestionType = .multipleChoice,
         questionText: String = "",

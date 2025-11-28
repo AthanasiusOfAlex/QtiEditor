@@ -123,6 +123,7 @@ struct SingleAnswerEditorView: View {
                             Label("Beautify", systemImage: "wand.and.stars")
                         }
                         .buttonStyle(.bordered)
+                        .disabled(true)
 
                         Button(action: {
                             Task {
@@ -190,8 +191,10 @@ struct SingleAnswerEditorView: View {
 
         await MainActor.run {
             if result.isValid {
+                editorState.alertTitle = "Success"
                 editorState.alertMessage = "✓ HTML is valid!"
             } else {
+                editorState.alertTitle = "Validation Error"
                 let errors = result.errors.joined(separator: "\n")
                 editorState.alertMessage = "HTML Validation Errors:\n\n\(errors)"
             }
