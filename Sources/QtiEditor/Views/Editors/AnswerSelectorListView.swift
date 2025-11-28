@@ -177,7 +177,6 @@ struct AnswerSelectorListView: View {
             isCorrect: false
         )
         question.answers.append(newAnswer)
-        editorState.markDocumentEdited()
 
         // Auto-select the new answer
         selectedAnswerIDs = [newAnswer.id]
@@ -185,14 +184,13 @@ struct AnswerSelectorListView: View {
 
     private func deleteAnswer(_ answer: QTIAnswer) {
         question.answers.removeAll { $0.id == answer.id }
-        editorState.markDocumentEdited()
         selectedAnswerIDs.remove(answer.id)
     }
 
     private func duplicateAnswer(_ answer: QTIAnswer) {
         guard let index = question.answers.firstIndex(where: { $0.id == answer.id }) else { return }
 
-        let duplicated = answer.duplicate(preserveCanvasIdentifier: false)
+        var duplicated = answer.duplicate(preserveCanvasIdentifier: false)
 
         // Reset isCorrect for single-answer question types
         if question.type == .multipleChoice || question.type == .trueFalse {
@@ -200,7 +198,6 @@ struct AnswerSelectorListView: View {
         }
 
         question.answers.insert(duplicated, at: index + 1)
-        editorState.markDocumentEdited()
     }
 
     private func copySelectedAnswers() {
@@ -218,7 +215,7 @@ struct AnswerSelectorListView: View {
 
         var insertIndex = lastIndex + 1
         for answer in selectedAnswers {
-            let duplicated = answer.duplicate(preserveCanvasIdentifier: false)
+            var duplicated = answer.duplicate(preserveCanvasIdentifier: false)
 
             if question.type == .multipleChoice || question.type == .trueFalse {
                 duplicated.isCorrect = false
@@ -228,7 +225,6 @@ struct AnswerSelectorListView: View {
             insertIndex += 1
         }
 
-        editorState.markDocumentEdited()
         selectedAnswerIDs.removeAll()
     }
 
@@ -242,7 +238,6 @@ struct AnswerSelectorListView: View {
 
     private func performDelete() {
         question.answers.removeAll { selectedAnswerIDs.contains($0.id) }
-        editorState.markDocumentEdited()
         selectedAnswerIDs.removeAll()
     }
 
