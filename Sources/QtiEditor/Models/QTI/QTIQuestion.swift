@@ -33,8 +33,7 @@ enum QTIQuestionType: String, Codable, CaseIterable, Sendable {
 }
 
 /// Represents a single question in a QTI quiz
-@Observable
-final class QTIQuestion: @unchecked Sendable {
+struct QTIQuestion: Identifiable, Codable, Sendable {
     /// Unique identifier
     let id: UUID
 
@@ -78,50 +77,7 @@ final class QTIQuestion: @unchecked Sendable {
             self.metadata["canvas_identifier"] = UUID().uuidString.replacingOccurrences(of: "-", with: "")
         }
     }
-}
 
-// MARK: - Identifiable Conformance
-extension QTIQuestion: Identifiable {}
-
-// MARK: - DTO for Serialization
-extension QTIQuestion {
-    struct DTO: Codable, Sendable {
-        let id: UUID
-        let type: QTIQuestionType
-        let questionText: String
-        let points: Double
-        let answers: [QTIAnswer.DTO]
-        let generalFeedback: String
-        let metadata: [String: String]
-    }
-
-    var dto: DTO {
-        DTO(
-            id: id,
-            type: type,
-            questionText: questionText,
-            points: points,
-            answers: answers.map { $0.dto },
-            generalFeedback: generalFeedback,
-            metadata: metadata
-        )
-    }
-
-    convenience init(dto: DTO) {
-        self.init(
-            id: dto.id,
-            type: dto.type,
-            questionText: dto.questionText,
-            points: dto.points,
-            answers: dto.answers.map { QTIAnswer(dto: $0) },
-            generalFeedback: dto.generalFeedback,
-            metadata: dto.metadata
-        )
-    }
-}
-
-// MARK: - Helper Methods
-extension QTIQuestion {
     /// Returns the correct answer(s) for this question
     var correctAnswers: [QTIAnswer] {
         answers.filter { $0.isCorrect }

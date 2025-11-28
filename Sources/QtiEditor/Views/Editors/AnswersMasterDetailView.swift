@@ -12,7 +12,7 @@ import SwiftUI
 /// Right: Editor for selected answer(s)
 struct AnswersMasterDetailView: View {
     @Environment(EditorState.self) private var editorState
-    let question: QTIQuestion
+    @Binding var question: QTIQuestion
 
     var body: some View {
         @Bindable var editorState = editorState
@@ -20,14 +20,14 @@ struct AnswersMasterDetailView: View {
         return HSplitView {
             // Left: Answer selector list (narrow like a sidebar)
             AnswerSelectorListView(
-                question: question,
+                question: $question,
                 selectedAnswerIDs: $editorState.selectedAnswerIDs
             )
             .frame(minWidth: 150, idealWidth: 200, maxWidth: 300)
 
             // Right: Single answer editor (takes most of the space)
             SingleAnswerEditorView(
-                question: question,
+                question: $question,
                 selectedAnswerIDs: editorState.selectedAnswerIDs,
                 onCopySelected: copySelectedAnswers,
                 onDuplicateSelected: duplicateSelectedAnswers,

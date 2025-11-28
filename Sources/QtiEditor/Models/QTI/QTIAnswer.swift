@@ -8,8 +8,7 @@
 import Foundation
 
 /// Represents an answer choice for a QTI question
-@Observable
-final class QTIAnswer: @unchecked Sendable {
+struct QTIAnswer: Identifiable, Codable, Sendable {
     /// Unique identifier
     let id: UUID
 
@@ -48,47 +47,7 @@ final class QTIAnswer: @unchecked Sendable {
             self.metadata["canvas_identifier"] = UUID().uuidString.lowercased()
         }
     }
-}
 
-// MARK: - Identifiable Conformance
-extension QTIAnswer: Identifiable {}
-
-// MARK: - DTO for Serialization
-extension QTIAnswer {
-    struct DTO: Codable, Sendable {
-        let id: UUID
-        let text: String
-        let isCorrect: Bool
-        let feedback: String
-        let weight: Double
-        let metadata: [String: String]
-    }
-
-    var dto: DTO {
-        DTO(
-            id: id,
-            text: text,
-            isCorrect: isCorrect,
-            feedback: feedback,
-            weight: weight,
-            metadata: metadata
-        )
-    }
-
-    convenience init(dto: DTO) {
-        self.init(
-            id: dto.id,
-            text: dto.text,
-            isCorrect: dto.isCorrect,
-            feedback: dto.feedback,
-            weight: dto.weight,
-            metadata: dto.metadata
-        )
-    }
-}
-
-// MARK: - Helper Methods
-extension QTIAnswer {
     /// Creates a deep copy of this answer with a new UUID
     /// - Parameter preserveCanvasIdentifier: If false, removes canvas_identifier from metadata
     /// - Returns: A new QTIAnswer instance with copied properties

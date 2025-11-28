@@ -9,20 +9,20 @@ import Foundation
 
 /// Parses QTI 1.2 XML documents into QTIDocument models
 final class QTIParser {
-    /// Parses a QTI XML file into a QTIDocument
+    /// Parses a QTI XML file into a QTIDocumentSnapshot
     /// - Parameter url: URL to the assessment.xml file
-    /// - Returns: Parsed QTIDocument
+    /// - Returns: Parsed QTIDocumentSnapshot
     /// - Throws: QTIError if parsing fails
-    func parse(fileURL url: URL) throws -> QTIDocument {
+    func parse(fileURL url: URL) throws -> QTIDocumentSnapshot {
         let data = try Data(contentsOf: url)
         return try parse(data: data)
     }
 
-    /// Parses QTI XML data into a QTIDocument
+    /// Parses QTI XML data into a QTIDocumentSnapshot
     /// - Parameter data: XML data
-    /// - Returns: Parsed QTIDocument
+    /// - Returns: Parsed QTIDocumentSnapshot
     /// - Throws: QTIError if parsing fails
-    func parse(data: Data) throws -> QTIDocument {
+    func parse(data: Data) throws -> QTIDocumentSnapshot {
         let xmlDoc: XMLDocument
         do {
             xmlDoc = try XMLDocument(data: data)
@@ -46,7 +46,7 @@ final class QTIParser {
 
     // MARK: - Assessment Parsing
 
-    private func parseAssessment(_ element: XMLElement) throws -> QTIDocument {
+    private func parseAssessment(_ element: XMLElement) throws -> QTIDocumentSnapshot {
         // Parse assessment attributes
         let title = element.attribute(forName: "title")?.stringValue ?? "Untitled Quiz"
         let identifier = element.attribute(forName: "ident")?.stringValue ?? UUID().uuidString
@@ -83,8 +83,7 @@ final class QTIParser {
         }
 
         // Create document
-        let document = QTIDocument(
-            id: UUID(), // Generate new UUID (Canvas ID stored in metadata)
+        let document = QTIDocumentSnapshot(
             title: title,
             description: "",
             questions: allQuestions,

@@ -23,6 +23,7 @@ struct ContentView: View {
 
     var body: some View {
         @Bindable var editorState = editorState
+        @Bindable var document = editorState.document
 
         HSplitView {
             // LEFT PANEL: Questions list (collapsible, resizable)
@@ -57,23 +58,23 @@ struct ContentView: View {
                 if editorState.selectedQuestionIDs.count > 1 {
                     // Multiple questions selected
                     multipleQuestionsSelectedView
-                } else if let question = editorState.selectedQuestion,
-                          let questionNumber = editorState.document.questions.firstIndex(where: { $0.id == question.id }).map({ $0 + 1 }) {
+                } else if let selectedID = editorState.selectedQuestionID,
+                          let index = document.questions.firstIndex(where: { $0.id == selectedID }) {
                     // Single question selected - show question + answers in VSplitView
                     VSplitView {
                         // Top: Question section
                         QuestionSectionView(
-                            question: question,
-                            questionNumber: questionNumber
+                            question: $document.questions[index],
+                            questionNumber: index + 1
                         )
                         .frame(minHeight: 200)
 
                         // Bottom: Answers master-detail
-                        AnswersMasterDetailView(question: question)
+                        AnswersMasterDetailView(question: $document.questions[index])
                             .frame(minHeight: 150)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .id(question.id)  // Force view recreation when question changes
+                    .id(selectedID)  // Force view recreation when question changes
                 } else {
                     // No question selected - show message
                     if editorState.document.questions.isEmpty {
@@ -156,7 +157,7 @@ struct ContentView: View {
         .overlay {
             // Loading overlay removed as file loading is handled by system
         }
-        .alert("Error", isPresented: $editorState.showAlert) {
+        .alert(editorState.alertTitle, isPresented: $editorState.showAlert) {
             Button("OK") {
                 editorState.showAlert = false
             }
