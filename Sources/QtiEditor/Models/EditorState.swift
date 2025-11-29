@@ -24,6 +24,17 @@ final class EditorState {
     /// Currently open document
     var document: QTIDocument
 
+    // MARK: - Dirty State Tracking
+    /// Tracks whether the document has unsaved changes
+    var isDirty: Bool = false
+
+    /// The last saved version of the document (for comparison)
+    private var lastSavedDocument: QTIDocument
+
+    /// Callback to trigger save from menu commands
+    /// Set by ContentView to sync back to DocumentGroup
+    var saveHandler: (() -> Void)?
+
     /// Currently selected question ID (focused for editing)
     var selectedQuestionID: UUID?
 
@@ -140,6 +151,7 @@ final class EditorState {
 
     init(document: QTIDocument) {
         self.document = document
+        self.lastSavedDocument = document  // Track initial state
 
         // Load panel visibility from UserDefaults (default to true if not set)
         if UserDefaults.standard.object(forKey: "isLeftPanelVisible") != nil {
@@ -164,6 +176,28 @@ final class EditorState {
         }
     }
 
+    // MARK: - Dirty State Management
+
+    /// Mark document as dirty when changes are made
+    func markDirty() {
+        isDirty = true
+        // Notify NSDocument that the document has unsaved changes
+        NSDocumentController.shared.currentDocument?.updateChangeCount(.changeDone)
+    }
+
+    /// Mark document as clean after successful save
+    func markClean() {
+        isDirty = false
+        lastSavedDocument = document
+        // Notify NSDocument that changes have been saved
+        NSDocumentController.shared.currentDocument?.updateChangeCount(.changeCleared)
+    }
+
+    /// Check if document has unsaved changes
+    func hasUnsavedChanges() -> Bool {
+        return document != lastSavedDocument
+    }
+
     /// Returns the currently selected question, if any
     var selectedQuestion: QTIQuestion? {
         guard let id = selectedQuestionID else {
@@ -179,6 +213,7 @@ final class EditorState {
                 document.questions[index].points = globalPointsValue
             }
         }
+        markDirty()
     }
 
     /// Ensures that an answer is selected for the current question
@@ -233,6 +268,7 @@ final class EditorState {
         document.questions.append(question)
         selectedQuestionID = question.id
         selectedQuestionIDs = [question.id]
+        markDirty()
     }
 
     /// Delete the specified question
@@ -242,6 +278,7 @@ final class EditorState {
             selectedQuestionID = nil
         }
         selectedQuestionIDs.remove(question.id)
+        markDirty()
     }
 
     /// Delete all currently selected questions
@@ -259,6 +296,7 @@ final class EditorState {
             selectedQuestionID = nil
         }
         selectedQuestionIDs.removeAll()
+        markDirty()
     }
 
     /// Duplicate the specified question and insert it after the original
@@ -279,6 +317,7 @@ final class EditorState {
         // Select the new question
         selectedQuestionID = duplicatedQuestion.id
         selectedQuestionIDs = [duplicatedQuestion.id]
+        markDirty()
     }
 
     /// Duplicate the currently selected question
@@ -313,6 +352,7 @@ final class EditorState {
         // Select the duplicated questions
         selectedQuestionIDs = newQuestionIDs
         selectedQuestionID = newQuestionIDs.first
+        markDirty()
     }
 
     /// Duplicate an answer and add it after the original
@@ -337,6 +377,7 @@ final class EditorState {
 
         // Insert after the original
         document.questions[qIndex].answers.insert(duplicatedAnswer, at: index + 1)
+        markDirty()
     }
 
     // MARK: - Copy/Paste Operations
@@ -436,6 +477,7 @@ final class EditorState {
             // Select the pasted questions
             selectedQuestionIDs = newQuestionIDs
             selectedQuestionID = newQuestions.first?.id
+            markDirty()
         } catch {
             showError("Failed to paste question(s): \(error.localizedDescription)")
         }
@@ -473,6 +515,7 @@ final class EditorState {
             // Select the pasted questions
             selectedQuestionIDs = newQuestionIDs
             selectedQuestionID = newQuestions.first?.id
+            markDirty()
         } catch {
             showError("Failed to paste question(s): \(error.localizedDescription)")
         }
@@ -594,6 +637,7 @@ final class EditorState {
 
             // Add at the end of the answer list
             document.questions[qIndex].answers.append(newAnswer)
+            markDirty()
         } catch {
             showError("Failed to paste answer: \(error.localizedDescription)")
         }
@@ -651,7 +695,7 @@ final class EditorState {
                 document.questions[qIndex].answers.insert(newAnswer, at: insertIndex)
                 insertIndex += 1
             }
-
+            markDirty()
         } catch {
             showError("Failed to paste answers: \(error.localizedDescription)")
         }

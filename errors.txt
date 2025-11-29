@@ -1,0 +1,2 @@
+/Users/louismelahn/Documents/GitHub/Swift/QtiEditor/Sources/QtiEditor/App/AppDelegate.swift:24:30: error: type 'NSDocument' has no member 'didOpenNotification'
+/Users/louismelahn/Documents/GitHub/Swift/QtiEditor/Sources/QtiEditor/App/AppDelegate.swift:34:18: error: value of type 'NSDocument' has no member 'autosavingDelay'

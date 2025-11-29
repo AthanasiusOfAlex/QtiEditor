@@ -12,6 +12,8 @@ import AppKit
 
 @main
 struct QtiEditorApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     var body: some Scene {
         DocumentGroup(newDocument: QTIDocument.empty()) { configuration in
             ContentView(document: configuration.$document)
@@ -96,6 +98,19 @@ struct EditorCommands: Commands {
 
                 Divider()
             }
+        }
+
+        // Custom Save Command (replacing default to control when saves happen)
+        CommandGroup(replacing: .saveItem) {
+            Button("Save") {
+                Task { @MainActor in
+                    editorState?.saveHandler?()
+                }
+            }
+            .keyboardShortcut("s", modifiers: .command)
+            .disabled(editorState == nil)
+
+            // Note: "Save As..." and other save variants are still provided by DocumentGroup
         }
     }
 }

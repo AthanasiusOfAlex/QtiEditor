@@ -45,12 +45,16 @@ struct QuestionEditorView: View {
                     .background(Color.secondary.opacity(0.1))
 
                     // HTML editor
-                    HTMLEditorView(text: $question.questionText)
+                    HTMLEditorView(text: $question.questionText, onTextChange: { _ in
+                        editorState.markDirty()
+                    })
                 }
                 .border(Color.secondary.opacity(0.3), width: 1)
                 .cornerRadius(4)
             } else {
-                RichTextEditorView(htmlText: $question.questionText)
+                RichTextEditorView(htmlText: $question.questionText, onTextChange: { _ in
+                    editorState.markDirty()
+                })
                 .border(Color.secondary.opacity(0.3), width: 1)
                 .cornerRadius(4)
             }

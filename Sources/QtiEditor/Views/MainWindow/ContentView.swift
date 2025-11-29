@@ -147,7 +147,7 @@ struct MainContentView: View {
             .keyboardShortcut("f", modifiers: .command)
             .opacity(0)
         )
-        .navigationTitle(editorState.document.title)
+        .navigationTitle(editorState.document.title + (editorState.isDirty ? " •" : ""))
         .toolbar {
             ToolbarItem(placement: .navigation) {
                 Button(action: {
@@ -177,9 +177,15 @@ struct MainContentView: View {
                 Text(message)
             }
         }
-        // Sync changes back to DocumentGroup binding (triggers autosave/undo)
-        .onChange(of: editorState.document) { _, newValue in
-            documentBinding = newValue
+        // Setup save handler to sync only on explicit save (Cmd+S)
+        .onAppear {
+            if editorState.saveHandler == nil {
+                editorState.saveHandler = {
+                    // Sync to DocumentGroup binding (triggers fileWrapper() and save)
+                    documentBinding = editorState.document
+                    editorState.markClean()
+                }
+            }
         }
     }
 
