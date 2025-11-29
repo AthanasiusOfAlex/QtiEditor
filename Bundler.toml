@@ -5,3 +5,11 @@ identifier = 'com.example.QtiEditor'
 product = 'QtiEditor'
 version = '0.1.0'
 icon = "images/AppIcon.png"
+
+[apps.QtiEditor.plist]
+NSAutosaveInPlace = false
+
+[[apps.QtiEditor.plist.CFBundleDocumentTypes]]
+CFBundleTypeName = "Plain Text"
+LSHandlerRank = "Owner"
+LSItemContentTypes = ["public.plain-text"]

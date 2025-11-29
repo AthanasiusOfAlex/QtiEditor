@@ -3,9 +3,9 @@ import SwiftUI
 @main
 struct QtiEditor: App {
     var body: some Scene {
-        WindowGroup {
-            ContentView()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        DocumentGroup(newDocument: QTIDocument()) { file in
+            ContentView(document: file.$document)
         }
+        .defaultSize(width: 1500, height: 950)
     }
 }
