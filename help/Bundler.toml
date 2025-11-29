@@ -1,0 +1,6 @@
+format_version = 2
+
+[apps.help]
+identifier = 'com.example.help'
+product = 'help'
+version = '0.1.0'

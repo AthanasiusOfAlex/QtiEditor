@@ -3,19 +3,5 @@ format_version = 2
 [apps.QtiEditor]
 identifier = 'com.example.QtiEditor'
 product = 'QtiEditor'
-version = '0.99.0'
+version = '0.1.0'
 icon = "images/AppIcon.png"
-
-[apps.QtiEditor.plist]
-NSAutosaveInPlace = false
-
-[[apps.QtiEditor.plist.CFBundleDocumentTypes]]
-CFBundleTypeName = "Canvas QTI Package"
-LSHandlerRank = "Owner"
-LSItemContentTypes = ["org.imsglobal.imscc"]
-
-[[apps.QtiEditor.plist.UTExportedTypeDeclarations]]
-UTTypeConformsTo = ["public.zip-archive"]
-UTTypeDescription = "Canvas QTI Package"
-UTTypeIdentifier = "org.imsglobal.imscc"
-UTTypeTagSpecification = { "public.filename-extension" = ["imscc"] }
