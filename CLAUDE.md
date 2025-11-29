@@ -13,6 +13,12 @@ A macOS native application for editing Canvas LMS quiz exports in QTI 1.2 format
 
 **NOTE**: You will not be able to compile or test this code base directly on your Linux system. It only works in MacOS. Don't bother installing Swift. Let the user do the testing.
 
+## Deployment
+
+We will be using `swift bundler`. See `DEPLOYMENT.md`
+
+If you need to change `Info.plist`, please follow the guide `BUNDLER-PLIST-GUIDE.md`
+
 ## Programming Princples
 
 1. Always use modern APIs (SwiftUI, Swift Concurrency, Swift regex) when available
