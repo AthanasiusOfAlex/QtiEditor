@@ -27,9 +27,7 @@ If you need to change `Info.plist`, please follow the guide `BUNDLER-PLIST-GUIDE
 
 ## Core Features
 
-This is an extremely simple text editor that uses SwiftUI's native document classes.
-
-CRITICAL: autosave MUST be OPTIONAL
+This is an extremely simple editor of QTI quizzes that uses SwiftUI's native document classes.
 
 ## Contact & Maintenance
 
